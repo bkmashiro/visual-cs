@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merge Sort — visual-cs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🔀 Merge Sort</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Sorting · Divide and conquer</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="comparisons">0</div><div class="stat-label">Comparisons</div></div>
+    <div class="stat"><div class="stat-value" id="writes">0</div><div class="stat-label">Array Writes</div></div>
+    <div class="stat"><div class="stat-value" id="depth">0</div><div class="stat-label">Recursion Depth</div></div>
+    <div class="stat"><div class="stat-value" id="status" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="controls">
+    <button id="play-btn">Play</button>
+    <button id="step-btn" class="secondary">Step</button>
+    <button id="reset-btn" class="secondary">New Array</button>
+    <div class="range-group">
+      <label for="size-slider">Size</label>
+      <input id="size-slider" type="range" min="8" max="64" value="32">
+      <span id="size-value">32</span>
+    </div>
+    <div class="range-group">
+      <label for="speed-slider">Speed</label>
+      <input id="speed-slider" type="range" min="5" max="200" value="50">
+      <span id="speed-value">50 ms</span>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="canvas" width="1060" height="420"></canvas>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#8b949e"></div>Unsorted</div>
+    <div class="legend-item"><div class="swatch" style="background:#ff7b72"></div>Splitting</div>
+    <div class="legend-item"><div class="swatch" style="background:#f2cc60"></div>Comparing</div>
+    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Merging</div>
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Sorted</div>
+  </div>
+
+  <div class="explain">
+    <h2>What you're seeing</h2>
+    <p>Merge Sort recursively splits the array into halves until each sub-array has one element, then merges them back in sorted order. It guarantees O(n log n) time complexity.</p>
+    <ul>
+      <li>Red bars show the current split boundary.</li>
+      <li>Yellow bars are being compared during the merge phase.</li>
+      <li>Green bars are being written back from the merge buffer.</li>
+      <li>Blue bars are fully sorted in their final position.</li>
+    </ul>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>

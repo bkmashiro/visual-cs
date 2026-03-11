@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A* Pathfinding — visual-cs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>⭐ A* Pathfinding</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Graph · Heuristic search</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="path-length">—</div><div class="stat-label">Path Length</div></div>
+    <div class="stat"><div class="stat-value" id="open-count">0</div><div class="stat-label">Open Set</div></div>
+    <div class="stat"><div class="stat-value" id="closed-count">0</div><div class="stat-label">Closed Set</div></div>
+    <div class="stat"><div class="stat-value" id="status" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="controls">
+    <button id="run-btn">Run</button>
+    <button id="reset-btn" class="secondary">Reset Path</button>
+    <button id="clear-btn" class="secondary">Clear All</button>
+    <button id="maze-btn" class="secondary">Random Maze</button>
+    <div class="range-group">
+      <label for="speed-slider">Speed</label>
+      <input id="speed-slider" type="range" min="5" max="120" value="30">
+      <span id="speed-value">30 ms</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="grid-wrap">
+      <div id="grid" class="grid"></div>
+      <div class="status">Click cells to toggle walls. Use the sidebar to switch between wall/start/end modes, then hit Run.</div>
+    </div>
+
+    <div class="panel">
+      <div class="sidebar-title">Interaction Mode</div>
+      <div class="mode-list">
+        <button id="wall-mode-btn" class="secondary active">Draw Walls</button>
+        <button id="start-mode-btn" class="secondary">Place Start</button>
+        <button id="end-mode-btn" class="secondary">Place End</button>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#111827"></div>Unvisited</div>
+        <div class="legend-item"><div class="swatch" style="background:#f2cc60"></div>Open set</div>
+        <div class="legend-item"><div class="swatch" style="background:#2f81f7"></div>Closed set</div>
+        <div class="legend-item"><div class="swatch" style="background:#39d353"></div>Final path</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Start</div>
+        <div class="legend-item"><div class="swatch" style="background:#ff7b72"></div>End</div>
+        <div class="legend-item"><div class="swatch" style="background:#2d333b"></div>Wall</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>What you're seeing</h2>
+    <p>A* is an informed search algorithm that uses a heuristic (Manhattan distance) to guide the search towards the goal. It combines the actual cost from the start (g) with an estimated cost to the goal (h) to pick the most promising node.</p>
+    <ul>
+      <li>Yellow cells are in the open set — candidates to explore next.</li>
+      <li>Blue cells are in the closed set — already fully evaluated.</li>
+      <li>Green cells mark the final shortest path.</li>
+      <li>A* typically explores far fewer cells than Dijkstra or BFS on the same grid.</li>
+    </ul>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>

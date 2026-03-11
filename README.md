@@ -20,6 +20,12 @@
 | [BFS on Grid](./visualizations/bfs-grid/) | Graph | Interactive pathfinding |
 | [Quicksort](./visualizations/quicksort/) | Sorting | Partition and pivot animation |
 | [Game of Life](./visualizations/game-of-life/) | Simulation | Conway's cellular automaton |
+| [AVL Tree](./visualizations/avl-tree/) | Tree | Self-balancing BST with rotations |
+| [Dijkstra](./visualizations/dijkstra/) | Graph | Weighted shortest path on grid |
+| [Heap Sort](./visualizations/heap-sort/) | Sorting | Max-heap build and extract |
+| [Red-Black Tree](./visualizations/red-black-tree/) | Tree | Self-balancing BST with color rules |
+| [Merge Sort](./visualizations/merge-sort/) | Sorting | Divide and conquer sort |
+| [A* Pathfinding](./visualizations/astar/) | Search | Heuristic grid pathfinding |
 
 ## Philosophy
 

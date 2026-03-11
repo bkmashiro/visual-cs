@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red-Black Tree — visual-cs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🔴⚫ Red-Black Tree</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Tree · Self-balancing BST</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="node-count">0</div><div class="stat-label">Nodes</div></div>
+    <div class="stat"><div class="stat-value" id="tree-height">0</div><div class="stat-label">Height</div></div>
+    <div class="stat"><div class="stat-value" id="rotations">0</div><div class="stat-label">Rotations</div></div>
+    <div class="stat"><div class="stat-value" id="status" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="controls">
+    <input type="number" id="value-input" placeholder="Value" min="1" max="999">
+    <button id="insert-btn">Insert</button>
+    <button id="delete-btn" class="secondary">Delete</button>
+    <button id="random-btn" class="secondary">Random +5</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+    <div class="range-group">
+      <label for="speed-slider">Speed</label>
+      <input id="speed-slider" type="range" min="100" max="1500" value="500">
+      <span id="speed-value">500 ms</span>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="canvas" width="1200" height="600"></canvas>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#ff6b6b"></div>Red node</div>
+    <div class="legend-item"><div class="swatch" style="background:#444c56"></div>Black node</div>
+    <div class="legend-item"><div class="swatch" style="background:#f2cc60"></div>Highlighted (active)</div>
+  </div>
+
+  <div class="explain">
+    <h2>What you're seeing</h2>
+    <p>A Red-Black Tree is a self-balancing binary search tree where each node stores a color (red or black). The tree maintains balance through a set of rules enforced after every insertion and deletion.</p>
+    <ul>
+      <li>Every node is either red or black.</li>
+      <li>The root is always black.</li>
+      <li>No two consecutive red nodes (a red node cannot have a red parent).</li>
+      <li>Every path from root to a null leaf has the same number of black nodes.</li>
+      <li>Rotations and recoloring restore these properties after modifications.</li>
+    </ul>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
