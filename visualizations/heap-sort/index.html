@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heap Sort Visualizer — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #0a0f16;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --heap: #2f81f7;
+    --sorted: #3fb950;
+    --compare: #f2a93b;
+    --swap: #ff6b6b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  header h1 { font-size: 1.3rem; }
+  .main { max-width: 1220px; margin: 0 auto; padding: 28px 24px 36px; }
+  .stats, .controls, .legend, .chart-wrap, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .stats {
+    padding: 14px 18px;
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .stat { min-width: 120px; }
+  .stat-value { font-size: 1.25rem; font-weight: 800; }
+  .stat-label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .controls {
+    padding: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  button {
+    background: var(--accent);
+    color: #08111b;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .range-group { display: flex; align-items: center; gap: 8px; color: var(--muted); margin-left: auto; }
+  input[type=range] { width: 180px; accent-color: var(--accent); }
+  .chart-wrap {
+    padding: 20px 20px 12px;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 420px;
+    background: linear-gradient(180deg, rgba(88,166,255,0.08), transparent 25%), #0a1017;
+    border-radius: 10px;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.84rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 18px; margin-top: 12px; }
+  @media (max-width: 900px) {
+    .range-group { margin-left: 0; width: 100%; justify-content: space-between; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🏗️ Heap Sort Visualizer</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Sorting · Max heap</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="phase-value">Ready</div><div class="stat-label">Phase</div></div>
+    <div class="stat"><div class="stat-value" id="step-value">0</div><div class="stat-label">Steps</div></div>
+    <div class="stat"><div class="stat-value" id="heap-value">40</div><div class="stat-label">Heap Size</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:1rem;color:var(--muted)">Paused</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="controls">
+    <button id="generate-btn" class="secondary">Generate Random Array</button>
+    <button id="sort-btn">Sort</button>
+    <button id="pause-btn" class="secondary" disabled>Pause</button>
+    <button id="resume-btn" class="secondary" disabled>Resume</button>
+    <div class="range-group">
+      <label for="speed-slider">Speed</label>
+      <input id="speed-slider" type="range" min="10" max="180" value="55">
+      <span id="speed-value">55 ms</span>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="chart" width="1160" height="420"></canvas>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#2f81f7"></div>Heap portion</div>
+    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Sorted portion</div>
+    <div class="legend-item"><div class="swatch" style="background:#f2a93b"></div>Currently comparing</div>
+    <div class="legend-item"><div class="swatch" style="background:#ff6b6b"></div>Swapping</div>
+  </div>
+
+  <div class="explain">
+    <h2>Heap sort in two phases</h2>
+    <p>The algorithm first turns the array into a max heap, then repeatedly swaps the root with the last heap element and shrinks the heap boundary. This visualizer colors the active heap blue and the finished suffix green.</p>
+    <ul>
+      <li><strong style="color:var(--text)">Building Heap</strong> restores heap order from the bottom up.</li>
+      <li><strong style="color:var(--text)">Extracting Max</strong> moves the largest element to the sorted portion on each pass.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  const SIZE = 40;
+  const chart = document.getElementById('chart');
+  const ctx = chart.getContext('2d');
+  const generateBtn = document.getElementById('generate-btn');
+  const sortBtn = document.getElementById('sort-btn');
+  const pauseBtn = document.getElementById('pause-btn');
+  const resumeBtn = document.getElementById('resume-btn');
+  const speedSlider = document.getElementById('speed-slider');
+  const speedValue = document.getElementById('speed-value');
+  const phaseValue = document.getElementById('phase-value');
+  const stepValue = document.getElementById('step-value');
+  const heapValue = document.getElementById('heap-value');
+  const statusValue = document.getElementById('status-value');
+
+  let values = [];
+  let heapSize = SIZE;
+  let stepCount = 0;
+  let comparing = [];
+  let swapping = [];
+  let sorting = false;
+  let paused = false;
+  let phase = 'Ready';
+
+  function randomArray() {
+    return Array.from({ length: SIZE }, () => 20 + Math.floor(Math.random() * 360));
+  }
+
+  function updateStats() {
+    phaseValue.textContent = phase;
+    stepValue.textContent = String(stepCount);
+    heapValue.textContent = String(heapSize);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, chart.width, chart.height);
+    const width = chart.width;
+    const height = chart.height;
+    const padding = 22;
+    const barWidth = (width - padding * 2) / values.length;
+    const maxValue = Math.max(...values, 1);
+
+    ctx.fillStyle = 'rgba(139,148,158,0.22)';
+    for (let i = 0; i < 5; i += 1) {
+      const y = padding + ((height - padding * 2) / 4) * i;
+      ctx.fillRect(padding, y, width - padding * 2, 1);
+    }
+
+    values.forEach((value, index) => {
+      const x = padding + index * barWidth + 1;
+      const barHeight = (value / maxValue) * (height - padding * 2);
+      const y = height - padding - barHeight;
+      let color = index >= heapSize ? '#3fb950' : '#2f81f7';
+      if (comparing.includes(index)) color = '#f2a93b';
+      if (swapping.includes(index)) color = '#ff6b6b';
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, Math.max(6, barWidth - 3), barHeight);
+    });
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function waitTurn() {
+    while (paused) {
+      await sleep(40);
+    }
+    await sleep(Number(speedSlider.value));
+  }
+
+  async function compare(indices) {
+    comparing = [...indices];
+    swapping = [];
+    stepCount += 1;
+    render();
+    updateStats();
+    await waitTurn();
+  }
+
+  async function swap(i, j) {
+    swapping = [i, j];
+    comparing = [];
+    stepCount += 1;
+    [values[i], values[j]] = [values[j], values[i]];
+    render();
+    updateStats();
+    await waitTurn();
+  }
+
+  async function heapify(n, i) {
+    let largest = i;
+    const left = 2 * i + 1;
+    const right = 2 * i + 2;
+
+    if (left < n) {
+      await compare([largest, left]);
+      if (values[left] > values[largest]) largest = left;
+    }
+    if (right < n) {
+      await compare([largest, right]);
+      if (values[right] > values[largest]) largest = right;
+    }
+
+    if (largest !== i) {
+      await swap(i, largest);
+      await heapify(n, largest);
+    }
+  }
+
+  async function heapSort() {
+    if (sorting) return;
+    sorting = true;
+    paused = false;
+    phase = 'Building Heap';
+    statusValue.textContent = 'Sorting…';
+    sortBtn.disabled = true;
+    generateBtn.disabled = true;
+    pauseBtn.disabled = false;
+    resumeBtn.disabled = true;
+    heapSize = values.length;
+    stepCount = 0;
+    updateStats();
+    render();
+
+    for (let i = Math.floor(values.length / 2) - 1; i >= 0; i -= 1) {
+      await heapify(values.length, i);
+    }
+
+    phase = 'Extracting Max';
+    updateStats();
+
+    for (let end = values.length - 1; end > 0; end -= 1) {
+      await swap(0, end);
+      heapSize = end;
+      updateStats();
+      comparing = [];
+      swapping = [end];
+      render();
+      await waitTurn();
+      swapping = [];
+      await heapify(end, 0);
+    }
+
+    heapSize = 0;
+    comparing = [];
+    swapping = [];
+    phase = 'Done';
+    statusValue.textContent = 'Sorted';
+    sorting = false;
+    pauseBtn.disabled = true;
+    resumeBtn.disabled = true;
+    sortBtn.disabled = false;
+    generateBtn.disabled = false;
+    updateStats();
+    render();
+  }
+
+  function resetArray() {
+    values = randomArray();
+    heapSize = values.length;
+    stepCount = 0;
+    comparing = [];
+    swapping = [];
+    sorting = false;
+    paused = false;
+    phase = 'Ready';
+    statusValue.textContent = 'Paused';
+    pauseBtn.disabled = true;
+    resumeBtn.disabled = true;
+    sortBtn.disabled = false;
+    generateBtn.disabled = false;
+    updateStats();
+    render();
+  }
+
+  generateBtn.addEventListener('click', resetArray);
+  sortBtn.addEventListener('click', heapSort);
+  pauseBtn.addEventListener('click', () => {
+    if (!sorting) return;
+    paused = true;
+    statusValue.textContent = 'Paused';
+    pauseBtn.disabled = true;
+    resumeBtn.disabled = false;
+  });
+  resumeBtn.addEventListener('click', () => {
+    if (!sorting) return;
+    paused = false;
+    statusValue.textContent = 'Sorting…';
+    pauseBtn.disabled = false;
+    resumeBtn.disabled = true;
+  });
+  speedSlider.addEventListener('input', () => {
+    speedValue.textContent = `${speedSlider.value} ms`;
+  });
+
+  resetArray();
+</script>
+</body>
+</html>

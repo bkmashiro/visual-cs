@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dijkstra Shortest Path — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #0a0f16;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --frontier: #f2cc60;
+    --visited: #2f81f7;
+    --path: #39d353;
+    --start: #3fb950;
+    --end: #ff7b72;
+    --wall: #2d333b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  header a:hover { text-decoration: underline; }
+  header h1 { font-size: 1.3rem; }
+  .main { max-width: 1240px; margin: 0 auto; padding: 28px 24px 36px; }
+  .controls, .stats, .legend, .explain, .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .controls {
+    padding: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  button {
+    background: var(--accent);
+    color: #08111b;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button.active {
+    background: #1f6feb;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .range-group { display: flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: 0.86rem; }
+  input[type=range] { accent-color: var(--accent); width: 180px; }
+  .content { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
+  .panel { padding: 16px; }
+  .grid-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 2px;
+    background: #0b1118;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    aspect-ratio: 1;
+  }
+  .cell {
+    border-radius: 4px;
+    background: #111827;
+    border: 1px solid rgba(255,255,255,0.02);
+    cursor: pointer;
+    transition: transform 0.08s ease, background 0.12s ease;
+  }
+  .cell:hover { transform: scale(0.95); }
+  .cell.wall { background: var(--wall); }
+  .cell.frontier { background: var(--frontier); }
+  .cell.visited { background: var(--visited); }
+  .cell.path { background: var(--path); }
+  .cell.start { background: var(--start); }
+  .cell.end { background: var(--end); }
+  .stats { padding: 14px 16px; display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat { min-width: 120px; }
+  .stat-value { font-size: 1.25rem; font-weight: 800; }
+  .stat-label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.4px; }
+  .mode-list { display: grid; gap: 8px; }
+  .sidebar-title { font-size: 0.84rem; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .legend { display: grid; gap: 10px; padding: 16px; margin-top: 16px; font-size: 0.84rem; color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .status { margin-top: 12px; color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 18px; margin-top: 12px; }
+  @media (max-width: 980px) {
+    .content { grid-template-columns: 1fr; }
+    .range-group { margin-left: 0; width: 100%; justify-content: space-between; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🧭 Dijkstra Shortest Path</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Graph · Weighted shortest path</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="length-value">—</div><div class="stat-label">Path Length</div></div>
+    <div class="stat"><div class="stat-value" id="visited-value">0</div><div class="stat-label">Visited Cells</div></div>
+    <div class="stat"><div class="stat-value" id="frontier-value">0</div><div class="stat-label">Frontier Size</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="controls">
+    <button id="set-start-btn">Set Start</button>
+    <button id="set-end-btn" class="secondary">Set End</button>
+    <button id="run-btn">Run</button>
+    <button id="reset-btn" class="secondary">Reset</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+    <div class="range-group">
+      <label for="speed-slider">Speed</label>
+      <input id="speed-slider" type="range" min="5" max="120" value="35">
+      <span id="speed-value">35 ms</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="grid-wrap">
+      <div id="grid" class="grid"></div>
+      <div class="status">Click cells to toggle walls. Use <strong style="color:var(--text)">Set Start</strong> or <strong style="color:var(--text)">Set End</strong> to place endpoints, then hit Run.</div>
+    </div>
+
+    <div class="panel">
+      <div class="sidebar-title">Interaction Mode</div>
+      <div class="mode-list">
+        <button id="wall-mode-btn" class="secondary active">Draw Walls</button>
+        <button id="start-mode-btn" class="secondary">Place Start</button>
+        <button id="end-mode-btn" class="secondary">Place End</button>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#111827"></div>Unvisited</div>
+        <div class="legend-item"><div class="swatch" style="background:#f2cc60"></div>Frontier</div>
+        <div class="legend-item"><div class="swatch" style="background:#2f81f7"></div>Visited</div>
+        <div class="legend-item"><div class="swatch" style="background:#39d353"></div>Shortest path</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Start</div>
+        <div class="legend-item"><div class="swatch" style="background:#ff7b72"></div>End</div>
+        <div class="legend-item"><div class="swatch" style="background:#2d333b"></div>Wall</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>What you’re seeing</h2>
+    <p>Dijkstra’s algorithm always expands the lowest-distance frontier node first. On a uniform-cost grid that behaves similarly to BFS, but this implementation keeps the true Dijkstra bookkeeping with distances and predecessor links.</p>
+    <ul>
+      <li>Yellow cells are queued in the frontier.</li>
+      <li>Blue cells have been permanently settled with the shortest known distance.</li>
+      <li>Bright green cells are the final shortest path from start to end.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  const SIZE = 20;
+  const gridEl = document.getElementById('grid');
+  const lengthValue = document.getElementById('length-value');
+  const visitedValue = document.getElementById('visited-value');
+  const frontierValue = document.getElementById('frontier-value');
+  const statusValue = document.getElementById('status-value');
+  const speedSlider = document.getElementById('speed-slider');
+  const speedValue = document.getElementById('speed-value');
+  const setStartBtn = document.getElementById('set-start-btn');
+  const setEndBtn = document.getElementById('set-end-btn');
+  const wallModeBtn = document.getElementById('wall-mode-btn');
+  const startModeBtn = document.getElementById('start-mode-btn');
+  const endModeBtn = document.getElementById('end-mode-btn');
+  const runBtn = document.getElementById('run-btn');
+  const resetBtn = document.getElementById('reset-btn');
+  const clearBtn = document.getElementById('clear-btn');
+
+  const cells = [];
+  let mode = 'wall';
+  let running = false;
+  let start = { row: 2, col: 2 };
+  let end = { row: 17, col: 17 };
+
+  function key(row, col) {
+    return `${row},${col}`;
+  }
+
+  function makeCell(row, col) {
+    return {
+      row,
+      col,
+      el: null,
+      wall: false,
+      state: 'unvisited',
+      distance: Infinity,
+      previous: null
+    };
+  }
+
+  function getCell(row, col) {
+    return cells[row * SIZE + col];
+  }
+
+  function isStart(row, col) {
+    return start.row === row && start.col === col;
+  }
+
+  function isEnd(row, col) {
+    return end.row === row && end.col === col;
+  }
+
+  function syncModeButtons() {
+    const mapping = [
+      [wallModeBtn, 'wall'],
+      [startModeBtn, 'start'],
+      [endModeBtn, 'end'],
+      [setStartBtn, 'start'],
+      [setEndBtn, 'end']
+    ];
+    for (const [btn, buttonMode] of mapping) {
+      btn.classList.toggle('active', mode === buttonMode);
+      btn.classList.toggle('secondary', mode !== buttonMode && btn !== runBtn);
+    }
+    wallModeBtn.textContent = mode === 'wall' ? 'Draw Walls' : 'Draw Walls';
+  }
+
+  function resetPathState() {
+    for (const cell of cells) {
+      cell.state = 'unvisited';
+      cell.distance = Infinity;
+      cell.previous = null;
+    }
+    lengthValue.textContent = '—';
+    visitedValue.textContent = '0';
+    frontierValue.textContent = '0';
+    statusValue.textContent = 'Ready';
+    paintGrid();
+  }
+
+  function clearWalls() {
+    for (const cell of cells) cell.wall = false;
+    resetPathState();
+  }
+
+  function paintGrid() {
+    let visitedCount = 0;
+    let frontierCount = 0;
+    for (const cell of cells) {
+      const classes = ['cell'];
+      if (cell.wall) classes.push('wall');
+      if (cell.state === 'frontier') {
+        classes.push('frontier');
+        frontierCount += 1;
+      }
+      if (cell.state === 'visited') {
+        classes.push('visited');
+        visitedCount += 1;
+      }
+      if (cell.state === 'path') classes.push('path');
+      if (isStart(cell.row, cell.col)) classes.push('start');
+      if (isEnd(cell.row, cell.col)) classes.push('end');
+      cell.el.className = classes.join(' ');
+    }
+    visitedValue.textContent = String(visitedCount);
+    frontierValue.textContent = String(frontierCount);
+  }
+
+  function setMode(nextMode) {
+    mode = nextMode;
+    syncModeButtons();
+    statusValue.textContent = nextMode === 'wall' ? 'Wall mode active' : `Click a cell to place ${nextMode}`;
+  }
+
+  function handleCellClick(cell) {
+    if (running) return;
+    if (mode === 'start') {
+      if (isEnd(cell.row, cell.col)) return;
+      start = { row: cell.row, col: cell.col };
+      cell.wall = false;
+      setMode('wall');
+      resetPathState();
+      statusValue.textContent = `Start set to (${cell.row}, ${cell.col})`;
+      return;
+    }
+    if (mode === 'end') {
+      if (isStart(cell.row, cell.col)) return;
+      end = { row: cell.row, col: cell.col };
+      cell.wall = false;
+      setMode('wall');
+      resetPathState();
+      statusValue.textContent = `End set to (${cell.row}, ${cell.col})`;
+      return;
+    }
+    if (isStart(cell.row, cell.col) || isEnd(cell.row, cell.col)) return;
+    cell.wall = !cell.wall;
+    resetPathState();
+  }
+
+  function neighbors(cell) {
+    const offsets = [[1,0],[-1,0],[0,1],[0,-1]];
+    const result = [];
+    for (const [dr, dc] of offsets) {
+      const nr = cell.row + dr;
+      const nc = cell.col + dc;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) continue;
+      const next = getCell(nr, nc);
+      if (!next.wall) result.push(next);
+    }
+    return result;
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function runDijkstra() {
+    if (running) return;
+    running = true;
+    runBtn.disabled = true;
+    resetBtn.disabled = true;
+    clearBtn.disabled = true;
+    statusValue.textContent = 'Running Dijkstra…';
+    resetPathState();
+
+    const open = [];
+    const startCell = getCell(start.row, start.col);
+    const endCell = getCell(end.row, end.col);
+    startCell.distance = 0;
+    open.push(startCell);
+    startCell.state = 'frontier';
+
+    while (open.length) {
+      open.sort((a, b) => a.distance - b.distance);
+      const current = open.shift();
+      if (current.state === 'visited') continue;
+      if (!isStart(current.row, current.col) && !isEnd(current.row, current.col)) current.state = 'visited';
+      paintGrid();
+      await sleep(Number(speedSlider.value));
+
+      if (current === endCell) {
+        const path = [];
+        let cursor = endCell;
+        while (cursor) {
+          path.push(cursor);
+          cursor = cursor.previous;
+        }
+        path.reverse();
+        for (const cell of path) {
+          if (!isStart(cell.row, cell.col) && !isEnd(cell.row, cell.col)) cell.state = 'path';
+          paintGrid();
+          await sleep(Math.max(10, Number(speedSlider.value) / 2));
+        }
+        lengthValue.textContent = String(Math.max(0, path.length - 1));
+        statusValue.textContent = `Shortest path found in ${Math.max(0, path.length - 1)} steps`;
+        running = false;
+        runBtn.disabled = false;
+        resetBtn.disabled = false;
+        clearBtn.disabled = false;
+        return;
+      }
+
+      for (const next of neighbors(current)) {
+        const alt = current.distance + 1;
+        if (alt < next.distance) {
+          next.distance = alt;
+          next.previous = current;
+          open.push(next);
+          if (!isStart(next.row, next.col) && !isEnd(next.row, next.col) && next.state !== 'visited') {
+            next.state = 'frontier';
+          }
+        }
+      }
+      paintGrid();
+    }
+
+    lengthValue.textContent = '∞';
+    statusValue.textContent = 'No path exists';
+    running = false;
+    runBtn.disabled = false;
+    resetBtn.disabled = false;
+    clearBtn.disabled = false;
+  }
+
+  function buildGrid() {
+    const fragment = document.createDocumentFragment();
+    for (let row = 0; row < SIZE; row += 1) {
+      for (let col = 0; col < SIZE; col += 1) {
+        const cell = makeCell(row, col);
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'cell';
+        el.addEventListener('click', () => handleCellClick(cell));
+        cell.el = el;
+        cells.push(cell);
+        fragment.appendChild(el);
+      }
+    }
+    gridEl.appendChild(fragment);
+    paintGrid();
+    syncModeButtons();
+  }
+
+  speedSlider.addEventListener('input', () => {
+    speedValue.textContent = `${speedSlider.value} ms`;
+  });
+  setStartBtn.addEventListener('click', () => setMode('start'));
+  setEndBtn.addEventListener('click', () => setMode('end'));
+  wallModeBtn.addEventListener('click', () => setMode('wall'));
+  startModeBtn.addEventListener('click', () => setMode('start'));
+  endModeBtn.addEventListener('click', () => setMode('end'));
+  runBtn.addEventListener('click', runDijkstra);
+  resetBtn.addEventListener('click', resetPathState);
+  clearBtn.addEventListener('click', clearWalls);
+
+  buildGrid();
+</script>
+</body>
+</html>

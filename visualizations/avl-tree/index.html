@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVL Tree Visualizer — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #0f1620;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #ff6b6b;
+    --node: #1f6feb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  header a { color: var(--accent); text-decoration: none; font-size: 0.92rem; }
+  header a:hover { text-decoration: underline; }
+  header h1 { font-size: 1.3rem; }
+  .main {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 28px 24px 36px;
+  }
+  .toolbar, .stats, .legend, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  input[type=number] {
+    width: 140px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    outline: none;
+  }
+  input[type=number]:focus { border-color: var(--accent); }
+  button {
+    background: var(--accent);
+    color: #08111b;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  button:hover { opacity: 0.88; }
+  button.secondary {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+  }
+  .stat { min-width: 110px; }
+  .stat-value { font-size: 1.35rem; font-weight: 800; }
+  .stat-label { font-size: 0.76rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .stat small { color: var(--muted); font-size: 0.8rem; }
+  .workspace {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 680px;
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 30%), #091019;
+    cursor: grab;
+  }
+  canvas.dragging { cursor: grabbing; }
+  .overlay {
+    position: absolute;
+    left: 18px;
+    top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(13, 17, 23, 0.86);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.84rem;
+    backdrop-filter: blur(8px);
+  }
+  .pill strong { color: var(--text); }
+  .pill.rotation {
+    color: #fff;
+    border-color: rgba(255, 107, 107, 0.5);
+    background: rgba(112, 22, 22, 0.76);
+    min-height: 38px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 0.84rem;
+    color: var(--muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .message { margin-left: auto; }
+  .explain {
+    margin-top: 20px;
+    padding: 24px 28px;
+  }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 18px; margin-top: 12px; }
+  @media (max-width: 900px) {
+    canvas { height: 520px; }
+    .message { width: 100%; margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🌲 AVL Tree Visualizer</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Tree · Self-balancing BST</span>
+</header>
+
+<div class="main">
+  <div class="toolbar">
+    <input id="value-input" type="number" placeholder="Enter integer" />
+    <button id="insert-btn">Insert</button>
+    <button id="delete-btn" class="secondary">Delete</button>
+    <button id="sample-btn" class="secondary">Load Sample</button>
+    <button id="reset-view-btn" class="secondary">Reset View</button>
+    <div class="message pill"><strong>Tip</strong> Drag to pan · Scroll to zoom</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="height-value">0</div><div class="stat-label">Tree Height</div></div>
+    <div class="stat"><div class="stat-value" id="count-value">0</div><div class="stat-label">Node Count</div></div>
+    <div class="stat"><div class="stat-value" id="balance-value">0</div><div class="stat-label">Root Balance</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="workspace">
+    <canvas id="tree-canvas" width="1280" height="680"></canvas>
+    <div class="overlay">
+      <div class="pill"><strong>Pan / Zoom</strong> Keep the whole tree in view</div>
+      <div class="pill rotation" id="rotation-pill">No rotation in progress</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Balanced node (BF = -1 / 0 / 1)</div>
+    <div class="legend-item"><div class="swatch" style="background:#ff6b6b"></div>Node involved in current rotation / unbalanced state</div>
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Regular node body</div>
+    <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Balance factor text</div>
+  </div>
+
+  <div class="explain">
+    <h2>How it works</h2>
+    <p>AVL trees maintain a balance factor of <code>-1</code>, <code>0</code>, or <code>1</code> for every node. After each insertion or deletion, the tree updates heights bottom-up and applies one of four rotations: LL, RR, LR, or RL.</p>
+    <ul>
+      <li>Green nodes are currently balanced.</li>
+      <li>When rebalancing happens, the affected nodes pulse red and the rotation type appears in the overlay.</li>
+      <li>The canvas supports pan and zoom so deeper trees stay easy to inspect.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  class AVLNode {
+    constructor(key) {
+      this.key = key;
+      this.left = null;
+      this.right = null;
+      this.height = 1;
+    }
+  }
+
+  const canvas = document.getElementById('tree-canvas');
+  const ctx = canvas.getContext('2d');
+  const input = document.getElementById('value-input');
+  const insertBtn = document.getElementById('insert-btn');
+  const deleteBtn = document.getElementById('delete-btn');
+  const sampleBtn = document.getElementById('sample-btn');
+  const resetViewBtn = document.getElementById('reset-view-btn');
+  const heightValue = document.getElementById('height-value');
+  const countValue = document.getElementById('count-value');
+  const balanceValue = document.getElementById('balance-value');
+  const statusValue = document.getElementById('status-value');
+  const rotationPill = document.getElementById('rotation-pill');
+
+  let root = null;
+  let nodeCount = 0;
+  let layoutNodes = [];
+  let rotationQueue = [];
+  let activeRotation = null;
+  let animating = false;
+
+  const view = {
+    scale: 1,
+    offsetX: canvas.width / 2,
+    offsetY: 70,
+    dragging: false,
+    startX: 0,
+    startY: 0,
+    originX: 0,
+    originY: 0
+  };
+
+  function height(node) {
+    return node ? node.height : 0;
+  }
+
+  function balanceFactor(node) {
+    return node ? height(node.left) - height(node.right) : 0;
+  }
+
+  function updateHeight(node) {
+    node.height = 1 + Math.max(height(node.left), height(node.right));
+  }
+
+  function rotateRight(y) {
+    const x = y.left;
+    const t2 = x.right;
+    x.right = y;
+    y.left = t2;
+    updateHeight(y);
+    updateHeight(x);
+    return x;
+  }
+
+  function rotateLeft(x) {
+    const y = x.right;
+    const t2 = y.left;
+    y.left = x;
+    x.right = t2;
+    updateHeight(x);
+    updateHeight(y);
+    return y;
+  }
+
+  function queueRotation(type, nodes) {
+    rotationQueue.push({
+      type,
+      keys: nodes.filter(Boolean).map(node => node.key)
+    });
+  }
+
+  function insert(node, key) {
+    if (!node) {
+      nodeCount += 1;
+      return new AVLNode(key);
+    }
+    if (key < node.key) node.left = insert(node.left, key);
+    else if (key > node.key) node.right = insert(node.right, key);
+    else {
+      statusValue.textContent = `Value ${key} already exists`;
+      return node;
+    }
+
+    updateHeight(node);
+    const bf = balanceFactor(node);
+
+    if (bf > 1 && key < node.left.key) {
+      queueRotation('LL', [node, node.left]);
+      return rotateRight(node);
+    }
+    if (bf < -1 && key > node.right.key) {
+      queueRotation('RR', [node, node.right]);
+      return rotateLeft(node);
+    }
+    if (bf > 1 && key > node.left.key) {
+      queueRotation('LR', [node, node.left, node.left && node.left.right]);
+      node.left = rotateLeft(node.left);
+      return rotateRight(node);
+    }
+    if (bf < -1 && key < node.right.key) {
+      queueRotation('RL', [node, node.right, node.right && node.right.left]);
+      node.right = rotateRight(node.right);
+      return rotateLeft(node);
+    }
+    return node;
+  }
+
+  function minNode(node) {
+    let current = node;
+    while (current.left) current = current.left;
+    return current;
+  }
+
+  function deleteNode(node, key) {
+    if (!node) return null;
+
+    if (key < node.key) node.left = deleteNode(node.left, key);
+    else if (key > node.key) node.right = deleteNode(node.right, key);
+    else {
+      nodeCount -= 1;
+      if (!node.left || !node.right) {
+        return node.left || node.right;
+      }
+      const successor = minNode(node.right);
+      node.key = successor.key;
+      nodeCount += 1;
+      node.right = deleteNode(node.right, successor.key);
+    }
+
+    if (!node) return null;
+
+    updateHeight(node);
+    const bf = balanceFactor(node);
+
+    if (bf > 1 && balanceFactor(node.left) >= 0) {
+      queueRotation('LL', [node, node.left]);
+      return rotateRight(node);
+    }
+    if (bf > 1 && balanceFactor(node.left) < 0) {
+      queueRotation('LR', [node, node.left, node.left && node.left.right]);
+      node.left = rotateLeft(node.left);
+      return rotateRight(node);
+    }
+    if (bf < -1 && balanceFactor(node.right) <= 0) {
+      queueRotation('RR', [node, node.right]);
+      return rotateLeft(node);
+    }
+    if (bf < -1 && balanceFactor(node.right) > 0) {
+      queueRotation('RL', [node, node.right, node.right && node.right.left]);
+      node.right = rotateRight(node.right);
+      return rotateLeft(node);
+    }
+    return node;
+  }
+
+  function countNodes(node) {
+    if (!node) return 0;
+    return 1 + countNodes(node.left) + countNodes(node.right);
+  }
+
+  function computeLayout() {
+    layoutNodes = [];
+    if (!root) return;
+    const gapBase = 90;
+    function walk(node, depth, x, spread, parent) {
+      if (!node) return;
+      const y = depth * 110;
+      layoutNodes.push({ node, x, y, parent });
+      const nextSpread = Math.max(spread * 0.56, 56);
+      walk(node.left, depth + 1, x - spread, nextSpread, node.key);
+      walk(node.right, depth + 1, x + spread, nextSpread, node.key);
+    }
+    const spread = Math.max(gapBase * Math.pow(1.45, Math.max(height(root) - 2, 0)), 120);
+    walk(root, 0, 0, spread, null);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(view.offsetX, view.offsetY);
+    ctx.scale(view.scale, view.scale);
+    ctx.lineWidth = 2 / view.scale;
+
+    const map = new Map(layoutNodes.map(item => [item.node.key, item]));
+
+    for (const item of layoutNodes) {
+      if (item.parent == null) continue;
+      const parent = map.get(item.parent);
+      if (!parent) continue;
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(139, 148, 158, 0.65)';
+      ctx.moveTo(parent.x, parent.y + 24);
+      ctx.lineTo(item.x, item.y - 24);
+      ctx.stroke();
+    }
+
+    for (const item of layoutNodes) {
+      const bf = balanceFactor(item.node);
+      const highlighted = activeRotation && activeRotation.keys.includes(item.node.key);
+      const isBalanced = Math.abs(bf) <= 1;
+      const fill = highlighted ? '#ff6b6b' : isBalanced ? '#3fb950' : '#c93c37';
+      const glow = highlighted ? 'rgba(255,107,107,0.5)' : isBalanced ? 'rgba(63,185,80,0.25)' : 'rgba(201,60,55,0.35)';
+
+      ctx.save();
+      ctx.shadowBlur = 18 / view.scale;
+      ctx.shadowColor = glow;
+      ctx.beginPath();
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = highlighted ? '#ffd5d5' : '#8b949e';
+      ctx.arc(item.x, item.y, 28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = `${16 / view.scale}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(item.node.key), item.x, item.y - 4 / view.scale);
+
+      ctx.fillStyle = '#facc15';
+      ctx.font = `${11 / view.scale}px Inter, sans-serif`;
+      ctx.fillText(`BF ${bf}`, item.x, item.y + 14 / view.scale);
+    }
+    ctx.restore();
+  }
+
+  function refreshStats(message = 'Ready') {
+    computeLayout();
+    render();
+    heightValue.textContent = height(root);
+    countValue.textContent = countNodes(root);
+    balanceValue.textContent = root ? balanceFactor(root) : 0;
+    statusValue.textContent = message;
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function playRotationQueue() {
+    if (animating) return;
+    animating = true;
+    while (rotationQueue.length) {
+      activeRotation = rotationQueue.shift();
+      rotationPill.textContent = `Rotation: ${activeRotation.type}`;
+      render();
+      await sleep(680);
+      activeRotation = null;
+      rotationPill.textContent = 'Tree balanced';
+      render();
+      await sleep(120);
+    }
+    animating = false;
+  }
+
+  function parseInput() {
+    const value = Number.parseInt(input.value, 10);
+    if (Number.isNaN(value)) {
+      statusValue.textContent = 'Enter an integer first';
+      return null;
+    }
+    return value;
+  }
+
+  async function handleInsert() {
+    const value = parseInput();
+    if (value == null) return;
+    const before = nodeCount;
+    rotationQueue = [];
+    root = insert(root, value);
+    if (before === nodeCount) {
+      refreshStats(`Value ${value} already exists`);
+      return;
+    }
+    refreshStats(`Inserted ${value}`);
+    await playRotationQueue();
+    refreshStats(`Inserted ${value}`);
+  }
+
+  async function handleDelete() {
+    const value = parseInput();
+    if (value == null) return;
+    const before = nodeCount;
+    rotationQueue = [];
+    root = deleteNode(root, value);
+    if (before === nodeCount) {
+      refreshStats(`Value ${value} not found`);
+      return;
+    }
+    refreshStats(`Deleted ${value}`);
+    await playRotationQueue();
+    refreshStats(`Deleted ${value}`);
+  }
+
+  async function loadSample() {
+    root = null;
+    nodeCount = 0;
+    rotationQueue = [];
+    activeRotation = null;
+    const values = [30, 20, 10, 25, 40, 50, 45, 5, 35, 60, 55];
+    for (const value of values) {
+      root = insert(root, value);
+      refreshStats(`Inserted ${value}`);
+      await playRotationQueue();
+      await sleep(120);
+    }
+    refreshStats('Sample tree loaded');
+  }
+
+  insertBtn.addEventListener('click', () => { handleInsert(); });
+  deleteBtn.addEventListener('click', () => { handleDelete(); });
+  sampleBtn.addEventListener('click', () => { loadSample(); });
+  resetViewBtn.addEventListener('click', () => {
+    view.scale = 1;
+    view.offsetX = canvas.width / 2;
+    view.offsetY = 70;
+    render();
+  });
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') handleInsert();
+  });
+
+  canvas.addEventListener('mousedown', event => {
+    view.dragging = true;
+    canvas.classList.add('dragging');
+    view.startX = event.clientX;
+    view.startY = event.clientY;
+    view.originX = view.offsetX;
+    view.originY = view.offsetY;
+  });
+  window.addEventListener('mousemove', event => {
+    if (!view.dragging) return;
+    view.offsetX = view.originX + (event.clientX - view.startX);
+    view.offsetY = view.originY + (event.clientY - view.startY);
+    render();
+  });
+  window.addEventListener('mouseup', () => {
+    view.dragging = false;
+    canvas.classList.remove('dragging');
+  });
+  canvas.addEventListener('wheel', event => {
+    event.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    const worldX = (mouseX - view.offsetX) / view.scale;
+    const worldY = (mouseY - view.offsetY) / view.scale;
+    const factor = event.deltaY < 0 ? 1.1 : 0.9;
+    const nextScale = Math.min(2.5, Math.max(0.35, view.scale * factor));
+    view.scale = nextScale;
+    view.offsetX = mouseX - worldX * view.scale;
+    view.offsetY = mouseY - worldY * view.scale;
+    render();
+  }, { passive: false });
+
+  refreshStats('Ready for insertions and deletions');
+</script>
+</body>
+</html>
