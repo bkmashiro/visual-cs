@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binary Search — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #e3b341;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+  header a { color: #58a6ff; text-decoration: none; font-size: 0.9rem; }
+  header a:hover { text-decoration: underline; }
+  header h1 { font-size: 1.3rem; font-weight: 700; }
+  .main { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+
+  .input-row {
+    display: flex; gap: 12px; align-items: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .input-row label { color: var(--muted); font-size: 0.9rem; }
+  input[type=number] {
+    background: #0a0e14; border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 8px 12px; font-size: 1rem; width: 100px;
+  }
+  input[type=number]:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+  input[type=range] { accent-color: var(--accent); width: 120px; }
+
+  button {
+    background: var(--accent); color: #000; font-weight: 700; font-size: 0.85rem;
+    padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s;
+  }
+  button:hover { opacity: 0.8; }
+  button.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  button.secondary:hover { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: default; }
+
+  .stats { display: flex; gap: 24px; padding: 12px 20px; background: var(--surface); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-value { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: 0.75rem; color: var(--muted); }
+
+  .message-box {
+    background: var(--surface); border-left: 3px solid var(--accent);
+    padding: 12px 20px; border-radius: 0 8px 8px 0;
+    margin-bottom: 16px; font-size: 0.95rem; color: var(--text);
+    min-height: 44px; transition: border-color 0.3s;
+  }
+  .message-box.success { border-color: #3fb950; color: #3fb950; }
+  .message-box.fail { border-color: #f78166; color: #f78166; }
+
+  .array-container {
+    background: #0a0e14; border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px 16px; overflow-x: auto; margin-bottom: 8px;
+  }
+  .array-wrapper {
+    display: flex; gap: 4px; min-width: max-content; margin: 0 auto;
+    justify-content: center;
+  }
+  .cell {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: transform 0.3s ease;
+  }
+  .cell-box {
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-weight: 700; font-size: 0.85rem;
+    border: 2px solid transparent;
+    transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease, box-shadow 0.35s ease;
+  }
+  .cell-idx { font-size: 0.65rem; color: var(--muted); }
+  .cell-pointer {
+    height: 18px; font-size: 0.7rem; font-weight: 700;
+    text-align: center; transition: color 0.3s;
+  }
+
+  /* states */
+  .state-normal .cell-box { background: #1c2433; border-color: #30363d; color: var(--muted); }
+  .state-range .cell-box { background: #1a2840; border-color: #58a6ff40; color: var(--text); }
+  .state-mid .cell-box {
+    background: #3d2a00; border-color: var(--accent);
+    color: var(--accent); transform: scale(1.1);
+    box-shadow: 0 0 16px #e3b34140;
+  }
+  .state-found .cell-box {
+    background: #0f2a1a; border-color: #3fb950;
+    color: #3fb950; transform: scale(1.15);
+    box-shadow: 0 0 20px #3fb95060;
+  }
+  .state-excluded .cell-box { background: #0d1117; border-color: #1c2433; color: #30363d; }
+
+  .pointer-L { color: #58a6ff; }
+  .pointer-R { color: #f778ba; }
+  .pointer-M { color: var(--accent); }
+
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; padding: 10px 20px; background: var(--surface); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 24px; font-size: 0.82rem; color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; }
+
+  .explain { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px 32px; margin-top: 24px; }
+  .explain h2 { font-size: 1.2rem; color: var(--accent); margin-bottom: 16px; }
+  .explain h3 { font-size: 0.95rem; color: var(--text); margin: 16px 0 8px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.9rem; }
+  .explain ul, .explain ol { padding-left: 20px; }
+  .explain code { background: #0a0e14; color: #e3b341; padding: 1px 6px; border-radius: 4px; font-size: 0.85rem; font-family: 'Fira Code', monospace; }
+  pre { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+  pre code { background: none; color: var(--text); font-size: 0.83rem; }
+  .complexity { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+  .complexity-item { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; text-align: center; }
+  .complexity-item .label { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+  .complexity-item .value { font-weight: 700; color: #e3b341; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🔍 Binary Search</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Search · O(log n)</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="steps">0</div><div class="stat-label">Steps</div></div>
+    <div class="stat"><div class="stat-value" id="lo-val">—</div><div class="stat-label">Left (lo)</div></div>
+    <div class="stat"><div class="stat-value" id="hi-val">—</div><div class="stat-label">Right (hi)</div></div>
+    <div class="stat"><div class="stat-value" id="mid-val">—</div><div class="stat-label">Mid</div></div>
+    <div class="stat"><div class="stat-value" id="mid-elem" style="color:#e3b341">—</div><div class="stat-label">arr[mid]</div></div>
+  </div>
+
+  <div class="input-row">
+    <label>Target:</label>
+    <input type="number" id="target" value="42" min="1" max="100">
+    <button id="btn-search">🔍 Search</button>
+    <button id="btn-step" class="secondary">⏭ Step</button>
+    <button id="btn-reset" class="secondary">↺ Reset</button>
+    <button id="btn-new" class="secondary">🔀 New Array</button>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <label style="color:var(--muted);font-size:0.85rem">Speed: <span id="speed-val">400</span>ms</label>
+      <input type="range" id="speed-slider" min="100" max="2000" value="400" step="50">
+    </div>
+  </div>
+
+  <div class="message-box" id="message">Enter a target value and click Search, or use Step to go one step at a time.</div>
+
+  <div class="array-container">
+    <div class="array-wrapper" id="array-wrapper"></div>
+  </div>
+  <div style="text-align:center;margin:8px 0 4px;font-size:0.75rem;color:var(--muted)">
+    ⬆ L = left pointer &nbsp;|&nbsp; M = mid (current check) &nbsp;|&nbsp; R = right pointer
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#1a2840;border:1px solid #58a6ff40"></div>In range</div>
+    <div class="legend-item"><div class="swatch" style="background:#3d2a00;border:1px solid #e3b341"></div>Mid (checking)</div>
+    <div class="legend-item"><div class="swatch" style="background:#0f2a1a;border:1px solid #3fb950"></div>Found!</div>
+    <div class="legend-item"><div class="swatch" style="background:#0d1117;border:1px solid #1c2433"></div>Excluded</div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Binary search finds a target value in a <strong>sorted array</strong> by repeatedly halving the search space. Instead of checking every element, it compares the target to the middle element and discards the irrelevant half.</p>
+
+    <h3>Algorithm Steps</h3>
+    <ol>
+      <li>Initialize <code>lo = 0</code>, <code>hi = n-1</code></li>
+      <li>Compute <code>mid = Math.floor((lo + hi) / 2)</code></li>
+      <li>If <code>arr[mid] === target</code>: found! Return <code>mid</code></li>
+      <li>If <code>arr[mid] &lt; target</code>: target is in right half → <code>lo = mid + 1</code></li>
+      <li>If <code>arr[mid] &gt; target</code>: target is in left half → <code>hi = mid - 1</code></li>
+      <li>Repeat until found or <code>lo &gt; hi</code></li>
+    </ol>
+
+    <h3>Key Code</h3>
+    <pre><code>function* binarySearchGen(arr, target) {
+  let lo = 0, hi = arr.length - 1;
+  while (lo &lt;= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    yield { lo, hi, mid, arr };           // pause here to visualize
+    if (arr[mid] === target) {
+      yield { lo, hi, mid, found: true };
+      return mid;
+    } else if (arr[mid] &lt; target) {
+      lo = mid + 1;                        // discard left half
+    } else {
+      hi = mid - 1;                        // discard right half
+    }
+  }
+  yield { notFound: true };
+  return -1;
+}</code></pre>
+
+    <h3>Why It's Fast</h3>
+    <p>Each step eliminates <em>half</em> the remaining candidates. An array of 1,000,000 elements needs at most <strong>20 steps</strong> (log₂ 1,000,000 ≈ 20). Compare that to linear search's worst case of 1,000,000 steps.</p>
+
+    <h3>Complexity</h3>
+    <div class="complexity">
+      <div class="complexity-item"><div class="label">Best Case</div><div class="value">O(1)</div></div>
+      <div class="complexity-item"><div class="label">Average Case</div><div class="value">O(log n)</div></div>
+      <div class="complexity-item"><div class="label">Worst Case</div><div class="value">O(log n)</div></div>
+      <div class="complexity-item"><div class="label">Space</div><div class="value">O(1)</div></div>
+      <div class="complexity-item"><div class="label">Requirement</div><div class="value">Sorted array</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let arr = [];
+let gen = null, running = false, interval = null;
+let speed = 400;
+let currentState = null;
+
+function makeArray(n = 24) {
+  const set = new Set();
+  while (set.size < n) set.add(Math.floor(Math.random() * 99) + 1);
+  arr = Array.from(set).sort((a, b) => a - b);
+  gen = null; running = false; clearInterval(interval);
+  currentState = null;
+  render({ lo: null, hi: null, mid: null });
+  document.getElementById('steps').textContent = '0';
+  document.getElementById('lo-val').textContent = '—';
+  document.getElementById('hi-val').textContent = '—';
+  document.getElementById('mid-val').textContent = '—';
+  document.getElementById('mid-elem').textContent = '—';
+  setMessage('Array generated. Enter a target and click Search.', '');
+}
+
+function render(state) {
+  const wrapper = document.getElementById('array-wrapper');
+  wrapper.innerHTML = '';
+  for (let i = 0; i < arr.length; i++) {
+    let stateClass = 'state-normal';
+    let pointer = '';
+    if (state.found && i === state.mid) { stateClass = 'state-found'; }
+    else if (state.lo !== null && state.hi !== null) {
+      if (i < state.lo || i > state.hi) stateClass = 'state-excluded';
+      else if (i === state.mid) stateClass = 'state-mid';
+      else stateClass = 'state-range';
+    }
+
+    const ptrs = [];
+    if (state.lo === i) ptrs.push('<span class="pointer-L">L</span>');
+    if (state.mid === i && !state.found) ptrs.push('<span class="pointer-M">M</span>');
+    if (state.hi === i) ptrs.push('<span class="pointer-R">R</span>');
+
+    wrapper.innerHTML += `
+      <div class="cell ${stateClass}">
+        <div class="cell-pointer">${ptrs.join(' ')}</div>
+        <div class="cell-box">${arr[i]}</div>
+        <div class="cell-idx">${i}</div>
+      </div>
+    `;
+  }
+}
+
+function setMessage(msg, type) {
+  const el = document.getElementById('message');
+  el.textContent = msg;
+  el.className = 'message-box ' + type;
+}
+
+function updateStats(state) {
+  if (state.lo !== null) document.getElementById('lo-val').textContent = state.lo;
+  if (state.hi !== null) document.getElementById('hi-val').textContent = state.hi;
+  if (state.mid !== null) {
+    document.getElementById('mid-val').textContent = state.mid;
+    document.getElementById('mid-elem').textContent = arr[state.mid];
+  }
+}
+
+let stepCount = 0;
+
+function* binarySearchGen(target) {
+  let lo = 0, hi = arr.length - 1;
+  stepCount = 0;
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    stepCount++;
+    document.getElementById('steps').textContent = stepCount;
+    const state = { lo, hi, mid };
+    updateStats(state);
+    render(state);
+    if (arr[mid] === target) {
+      setMessage(`✓ Found ${target} at index ${mid} in ${stepCount} step${stepCount>1?'s':''}!`, 'success');
+      render({ lo, hi, mid, found: true });
+      yield 'found';
+      return;
+    } else if (arr[mid] < target) {
+      setMessage(`arr[${mid}] = ${arr[mid]} < ${target} → search right half`, '');
+      lo = mid + 1;
+    } else {
+      setMessage(`arr[${mid}] = ${arr[mid]} > ${target} → search left half`, '');
+      hi = mid - 1;
+    }
+    yield 'step';
+  }
+  setMessage(`✗ ${target} not found in the array.`, 'fail');
+  render({ lo: null, hi: null, mid: null });
+  yield 'notfound';
+}
+
+function doStep() {
+  if (!gen) {
+    const target = parseInt(document.getElementById('target').value);
+    if (isNaN(target)) { setMessage('Please enter a valid number.', 'fail'); return; }
+    stepCount = 0;
+    gen = binarySearchGen(target);
+  }
+  const result = gen.next();
+  if (result.done || result.value === 'found' || result.value === 'notfound') {
+    clearInterval(interval); running = false; gen = null;
+    document.getElementById('btn-search').textContent = '🔍 Search';
+  }
+}
+
+document.getElementById('btn-search').addEventListener('click', () => {
+  if (running) {
+    clearInterval(interval); running = false;
+    document.getElementById('btn-search').textContent = '🔍 Search';
+    return;
+  }
+  gen = null; stepCount = 0;
+  const target = parseInt(document.getElementById('target').value);
+  if (isNaN(target)) { setMessage('Please enter a valid number.', 'fail'); return; }
+  gen = binarySearchGen(target);
+  running = true;
+  document.getElementById('btn-search').textContent = '⏹ Stop';
+  interval = setInterval(() => {
+    const result = gen.next();
+    if (result.done || result.value === 'found' || result.value === 'notfound') {
+      clearInterval(interval); running = false; gen = null;
+      document.getElementById('btn-search').textContent = '🔍 Search';
+    }
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  clearInterval(interval); running = false;
+  document.getElementById('btn-search').textContent = '🔍 Search';
+  doStep();
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  clearInterval(interval); running = false; gen = null; stepCount = 0;
+  document.getElementById('btn-search').textContent = '🔍 Search';
+  render({ lo: null, hi: null, mid: null });
+  document.getElementById('steps').textContent = '0';
+  document.getElementById('lo-val').textContent = '—';
+  document.getElementById('hi-val').textContent = '—';
+  document.getElementById('mid-val').textContent = '—';
+  document.getElementById('mid-elem').textContent = '—';
+  setMessage('Reset. Enter a target and click Search.', '');
+});
+
+document.getElementById('btn-new').addEventListener('click', () => makeArray(24));
+
+document.getElementById('speed-slider').addEventListener('input', e => {
+  speed = parseInt(e.target.value);
+  document.getElementById('speed-val').textContent = speed;
+});
+
+makeArray(24);
+</script>
+</body>
+</html>

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game of Life — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #f778ba;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+  header a { color: #58a6ff; text-decoration: none; font-size: 0.9rem; }
+  header a:hover { text-decoration: underline; }
+  header h1 { font-size: 1.3rem; font-weight: 700; }
+  .main { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
+
+  .layout { display: flex; gap: 20px; }
+  canvas { border-radius: 8px; border: 1px solid var(--border); cursor: crosshair; display: block; }
+  .sidebar { width: 220px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .panel h3 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+
+  button {
+    background: var(--accent); color: #000; font-weight: 700; font-size: 0.85rem;
+    padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s; width: 100%;
+    margin-bottom: 6px;
+  }
+  button:hover { opacity: 0.8; }
+  button.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  button.secondary:hover { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: default; }
+
+  .stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem; }
+  .stat-row span:first-child { color: var(--muted); }
+  .stat-row span:last-child { font-weight: 700; }
+
+  .pattern-btn {
+    display: block; width: 100%; text-align: left;
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 7px 10px; margin-bottom: 5px;
+    cursor: pointer; font-size: 0.82rem; transition: all 0.2s; width: 100%;
+  }
+  .pattern-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .speed-row { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--muted); }
+  input[type=range] { accent-color: var(--accent); flex: 1; }
+
+  .explain { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px 32px; margin-top: 24px; }
+  .explain h2 { font-size: 1.2rem; color: var(--accent); margin-bottom: 16px; }
+  .explain h3 { font-size: 0.95rem; color: var(--text); margin: 16px 0 8px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.9rem; }
+  .explain ul { padding-left: 20px; }
+  .explain code { background: #0a0e14; color: #e3b341; padding: 1px 6px; border-radius: 4px; font-size: 0.85rem; font-family: 'Fira Code', monospace; }
+  pre { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+  pre code { background: none; color: var(--text); font-size: 0.83rem; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🧬 Game of Life</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Simulation · Conway's CA</span>
+</header>
+
+<div class="main">
+  <div class="layout">
+    <div>
+      <canvas id="canvas" width="600" height="600"></canvas>
+      <div style="text-align:center;margin-top:8px;font-size:0.75rem;color:var(--muted)">
+        Click or drag to toggle cells
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <h3>Controls</h3>
+        <button id="btn-play">▶ Play</button>
+        <button id="btn-step" class="secondary">⏭ Step</button>
+        <button id="btn-clear" class="secondary">🗑 Clear</button>
+        <button id="btn-random" class="secondary">🎲 Randomize</button>
+      </div>
+
+      <div class="panel">
+        <h3>Patterns</h3>
+        <button class="pattern-btn" onclick="loadPattern('glider')">🚀 Glider</button>
+        <button class="pattern-btn" onclick="loadPattern('pulsar')">💫 Pulsar</button>
+        <button class="pattern-btn" onclick="loadPattern('rpentomino')">🧿 R-pentomino</button>
+        <button class="pattern-btn" onclick="loadPattern('gosper')">🔫 Gosper Gun</button>
+        <button class="pattern-btn" onclick="loadPattern('lwss')">🐛 LWSS</button>
+      </div>
+
+      <div class="panel">
+        <h3>Stats</h3>
+        <div class="stat-row"><span>Generation</span><span id="gen" style="color:var(--accent)">0</span></div>
+        <div class="stat-row"><span>Alive cells</span><span id="alive" style="color:#3fb950">0</span></div>
+        <div class="stat-row"><span>Population Δ</span><span id="delta">—</span></div>
+        <div class="stat-row"><span>FPS</span><span id="fps">—</span></div>
+      </div>
+
+      <div class="panel">
+        <h3>Speed</h3>
+        <div class="speed-row">
+          <span id="fps-target">15</span> fps
+          <input type="range" id="fps-slider" min="1" max="60" value="15">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Rules</h3>
+        <div style="font-size:0.8rem;color:var(--muted);line-height:1.6">
+          <b style="color:var(--text)">Birth:</b> dead cell with exactly 3 live neighbors → lives<br><br>
+          <b style="color:var(--text)">Survival:</b> live cell with 2 or 3 neighbors → survives<br><br>
+          <b style="color:var(--text)">Death:</b> all other cases → dies
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Conway's Game of Life is a <strong>cellular automaton</strong> — a grid of cells that evolve according to simple rules. Each cell is alive or dead; each generation, all cells update simultaneously based on their 8 neighbors.</p>
+
+    <h3>The Four Rules</h3>
+    <ul>
+      <li>A live cell with <strong>fewer than 2</strong> live neighbors dies (underpopulation)</li>
+      <li>A live cell with <strong>2 or 3</strong> live neighbors survives</li>
+      <li>A live cell with <strong>more than 3</strong> live neighbors dies (overpopulation)</li>
+      <li>A dead cell with <strong>exactly 3</strong> live neighbors becomes alive (reproduction)</li>
+    </ul>
+
+    <h3>Key Implementation</h3>
+    <pre><code>function step(grid, rows, cols) {
+  const next = Array.from({length: rows}, () => new Uint8Array(cols));
+  for (let r = 0; r &lt; rows; r++) {
+    for (let c = 0; c &lt; cols; c++) {
+      let n = 0;
+      for (let dr = -1; dr &lt;= 1; dr++)
+        for (let dc = -1; dc &lt;= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = (r + dr + rows) % rows;  // wrap-around
+          const nc = (c + dc + cols) % cols;
+          n += grid[nr][nc];
+        }
+      // apply rules
+      next[r][c] = (grid[r][c] && (n === 2 || n === 3)) || (!grid[r][c] && n === 3) ? 1 : 0;
+    }
+  }
+  return next;
+}</code></pre>
+
+    <p><strong>Toroidal topology:</strong> The grid wraps around — left edge connects to right, top connects to bottom. This avoids edge-case handling and creates an "infinite" universe feel.</p>
+
+    <h3>Famous Patterns</h3>
+    <ul>
+      <li><strong>Glider</strong> — a 5-cell pattern that moves diagonally across the grid</li>
+      <li><strong>Pulsar</strong> — a period-3 oscillator, one of the most common</li>
+      <li><strong>R-pentomino</strong> — 5 cells that take 1103 generations to stabilize, producing gliders</li>
+      <li><strong>Gosper Glider Gun</strong> — the first pattern found that grows without bound</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const ROWS = 60, COLS = 60;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const CELL = canvas.width / COLS;
+
+let grid = Array.from({length: ROWS}, () => new Uint8Array(COLS));
+let generation = 0, alive = 0, prevAlive = 0;
+let running = false, animFrame = null;
+let fpsTarget = 15, lastTime = 0;
+let isDragging = false, drawMode = 1;
+
+// Colors
+const DEAD_COLOR = '#0a0e14';
+const ALIVE_COLOR = '#f778ba';
+const GRID_COLOR = '#111827';
+
+function countAlive() {
+  let c = 0;
+  for (let r = 0; r < ROWS; r++) for (let c2 = 0; c2 < COLS; c2++) c += grid[r][c2];
+  return c;
+}
+
+function draw() {
+  ctx.fillStyle = DEAD_COLOR;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c]) {
+        // alive cell with gradient based on position for beauty
+        const hue = ((r * 3 + c * 2) % 60) + 300; // pink-purple range
+        ctx.fillStyle = `hsl(${hue}, 80%, 65%)`;
+        ctx.fillRect(c * CELL + 0.5, r * CELL + 0.5, CELL - 1, CELL - 1);
+      }
+    }
+  }
+
+  // subtle grid
+  ctx.strokeStyle = GRID_COLOR; ctx.lineWidth = 0.3;
+  for (let r = 0; r <= ROWS; r++) {
+    ctx.beginPath(); ctx.moveTo(0, r * CELL); ctx.lineTo(canvas.width, r * CELL); ctx.stroke();
+  }
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath(); ctx.moveTo(c * CELL, 0); ctx.lineTo(c * CELL, canvas.height); ctx.stroke();
+  }
+}
+
+function step() {
+  const next = Array.from({length: ROWS}, () => new Uint8Array(COLS));
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      let n = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          n += grid[(r + dr + ROWS) % ROWS][(c + dc + COLS) % COLS];
+        }
+      }
+      next[r][c] = (grid[r][c] && (n === 2 || n === 3)) || (!grid[r][c] && n === 3) ? 1 : 0;
+    }
+  }
+  grid = next;
+  generation++;
+  prevAlive = alive;
+  alive = countAlive();
+  updateStats();
+  draw();
+}
+
+function updateStats() {
+  document.getElementById('gen').textContent = generation;
+  document.getElementById('alive').textContent = alive;
+  const delta = alive - prevAlive;
+  const el = document.getElementById('delta');
+  el.textContent = delta > 0 ? '+' + delta : delta;
+  el.style.color = delta > 0 ? '#3fb950' : delta < 0 ? '#f78166' : 'var(--muted)';
+}
+
+let fpsFrames = 0, fpsLast = 0;
+function gameLoop(ts) {
+  if (!running) return;
+  const interval = 1000 / fpsTarget;
+  if (ts - lastTime >= interval) {
+    step();
+    lastTime = ts;
+    fpsFrames++;
+    if (ts - fpsLast >= 500) {
+      document.getElementById('fps').textContent = Math.round(fpsFrames * 1000 / (ts - fpsLast));
+      fpsFrames = 0; fpsLast = ts;
+    }
+  }
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+function startPlay() {
+  if (running) return;
+  running = true;
+  lastTime = 0; fpsLast = 0; fpsFrames = 0;
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+function stopPlay() {
+  running = false;
+  cancelAnimationFrame(animFrame);
+  document.getElementById('btn-play').textContent = '▶ Play';
+  document.getElementById('fps').textContent = '—';
+}
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  running ? stopPlay() : startPlay();
+});
+
+document.getElementById('btn-step').addEventListener('click', () => { stopPlay(); step(); });
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  stopPlay();
+  grid = Array.from({length: ROWS}, () => new Uint8Array(COLS));
+  generation = 0; alive = 0; prevAlive = 0;
+  updateStats(); draw();
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  stopPlay();
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      grid[r][c] = Math.random() < 0.3 ? 1 : 0;
+  generation = 0; prevAlive = 0; alive = countAlive();
+  updateStats(); draw();
+});
+
+document.getElementById('fps-slider').addEventListener('input', e => {
+  fpsTarget = parseInt(e.target.value);
+  document.getElementById('fps-target').textContent = fpsTarget;
+});
+
+// Canvas interaction
+function cellAt(x, y) {
+  return {r: Math.floor(y / CELL), c: Math.floor(x / CELL)};
+}
+function toggleCell(x, y, forceVal) {
+  const {r, c} = cellAt(x, y);
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+  grid[r][c] = forceVal !== undefined ? forceVal : (grid[r][c] ? 0 : 1);
+  alive = countAlive(); updateStats(); draw();
+}
+canvas.addEventListener('mousedown', e => {
+  isDragging = true;
+  const rect = canvas.getBoundingClientRect();
+  const {r, c} = cellAt(e.clientX - rect.left, e.clientY - rect.top);
+  if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+    drawMode = grid[r][c] ? 0 : 1;
+    grid[r][c] = drawMode;
+    alive = countAlive(); updateStats(); draw();
+  }
+});
+canvas.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const rect = canvas.getBoundingClientRect();
+  toggleCell(e.clientX - rect.left, e.clientY - rect.top, drawMode);
+});
+canvas.addEventListener('mouseup', () => isDragging = false);
+canvas.addEventListener('mouseleave', () => isDragging = false);
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault(); isDragging = true;
+  const t = e.touches[0], rect = canvas.getBoundingClientRect();
+  const {r, c} = cellAt(t.clientX - rect.left, t.clientY - rect.top);
+  if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+    drawMode = grid[r][c] ? 0 : 1;
+    grid[r][c] = drawMode;
+    alive = countAlive(); updateStats(); draw();
+  }
+}, {passive:false});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0], rect = canvas.getBoundingClientRect();
+  toggleCell(t.clientX - rect.left, t.clientY - rect.top, drawMode);
+}, {passive:false});
+canvas.addEventListener('touchend', () => isDragging = false);
+
+// Patterns
+const PATTERNS = {
+  glider: [[0,1],[1,2],[2,0],[2,1],[2,2]],
+  pulsar: [
+    [2,4],[2,5],[2,6],[2,10],[2,11],[2,12],
+    [4,2],[4,7],[4,9],[4,14],
+    [5,2],[5,7],[5,9],[5,14],
+    [6,2],[6,7],[6,9],[6,14],
+    [7,4],[7,5],[7,6],[7,10],[7,11],[7,12],
+    [9,4],[9,5],[9,6],[9,10],[9,11],[9,12],
+    [10,2],[10,7],[10,9],[10,14],
+    [11,2],[11,7],[11,9],[11,14],
+    [12,2],[12,7],[12,9],[12,14],
+    [14,4],[14,5],[14,6],[14,10],[14,11],[14,12],
+  ],
+  rpentomino: [[0,1],[0,2],[1,0],[1,1],[2,1]],
+  gosper: [
+    [5,1],[5,2],[6,1],[6,2],
+    [5,11],[6,11],[7,11],[4,12],[8,12],[3,13],[9,13],[3,14],[9,14],
+    [6,15],[4,16],[8,16],[5,17],[6,17],[7,17],[6,18],
+    [3,21],[4,21],[5,21],[3,22],[4,22],[5,22],[2,23],[6,23],
+    [1,25],[2,25],[6,25],[7,25],
+    [3,35],[4,35],[3,36],[4,36],
+  ],
+  lwss: [[0,1],[0,4],[1,0],[2,0],[2,4],[3,0],[3,1],[3,2],[3,3]],
+};
+
+function loadPattern(name) {
+  stopPlay();
+  grid = Array.from({length: ROWS}, () => new Uint8Array(COLS));
+  generation = 0; prevAlive = 0;
+  const cells = PATTERNS[name];
+  const maxR = Math.max(...cells.map(([r]) => r));
+  const maxC = Math.max(...cells.map(([, c]) => c));
+  const offR = Math.floor((ROWS - maxR) / 2);
+  const offC = Math.floor((COLS - maxC) / 2);
+  for (const [r, c] of cells) {
+    const nr = r + offR, nc = c + offC;
+    if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) grid[nr][nc] = 1;
+  }
+  alive = countAlive(); updateStats(); draw();
+}
+
+// Init
+loadPattern('pulsar');
+</script>
+</body>
+</html>

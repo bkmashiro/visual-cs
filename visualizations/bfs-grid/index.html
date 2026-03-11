@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BFS on Grid — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #3fb950;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+  header a { color: #58a6ff; text-decoration: none; font-size: 0.9rem; }
+  header a:hover { text-decoration: underline; }
+  header h1 { font-size: 1.3rem; font-weight: 700; }
+  .main { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
+
+  .layout { display: flex; gap: 20px; align-items: flex-start; }
+  .canvas-wrap { flex: 1; }
+  canvas {
+    display: block; cursor: crosshair;
+    border-radius: 8px; border: 1px solid var(--border); background: #0a0e14;
+  }
+
+  .sidebar { width: 240px; display: flex; flex-direction: column; gap: 12px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .panel h3 { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+
+  .mode-btn {
+    display: block; width: 100%; text-align: left;
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 8px 12px; margin-bottom: 6px;
+    cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+  }
+  .mode-btn:hover { border-color: var(--accent); }
+  .mode-btn.active { background: #0f2a1a; border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+  button {
+    background: var(--accent); color: #000; font-weight: 700; font-size: 0.85rem;
+    padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s;
+    width: 100%;
+  }
+  button:hover { opacity: 0.8; }
+  button.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  button.secondary:hover { border-color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  .btn-row { display: flex; gap: 6px; }
+  .btn-row button { flex: 1; }
+
+  .stat-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .stat-row span:first-child { color: var(--muted); font-size: 0.82rem; }
+  .stat-row span:last-child { font-weight: 700; font-size: 0.9rem; }
+
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.82rem; color: var(--muted); }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+
+  .msg { padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; background: #0a0e14; border: 1px solid var(--border); color: var(--muted); min-height: 36px; }
+
+  .explain { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px 32px; margin-top: 24px; }
+  .explain h2 { font-size: 1.2rem; color: var(--accent); margin-bottom: 16px; }
+  .explain h3 { font-size: 0.95rem; color: var(--text); margin: 16px 0 8px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.9rem; }
+  .explain ul, .explain ol { padding-left: 20px; }
+  .explain code { background: #0a0e14; color: #e3b341; padding: 1px 6px; border-radius: 4px; font-size: 0.85rem; font-family: 'Fira Code', monospace; }
+  pre { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+  pre code { background: none; color: var(--text); font-size: 0.83rem; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🗺️ BFS on Grid</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Graph · Pathfinding</span>
+</header>
+
+<div class="main">
+  <div class="layout">
+    <div class="canvas-wrap">
+      <canvas id="canvas" width="600" height="600"></canvas>
+      <div style="text-align:center;margin-top:8px;font-size:0.75rem;color:var(--muted)">
+        Click to draw · Drag to paint walls
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <h3>Draw Mode</h3>
+        <button class="mode-btn" id="mode-start" onclick="setMode('start')">🟢 Set Start</button>
+        <button class="mode-btn" id="mode-end" onclick="setMode('end')">🔴 Set End</button>
+        <button class="mode-btn active" id="mode-wall" onclick="setMode('wall')">⬛ Draw Wall</button>
+        <button class="mode-btn" id="mode-erase" onclick="setMode('erase')">🧹 Erase</button>
+      </div>
+
+      <div class="panel">
+        <h3>Controls</h3>
+        <button id="btn-run" onclick="startBFS()">▶ Run BFS</button>
+        <div style="margin:6px 0"></div>
+        <div class="btn-row">
+          <button class="secondary" id="btn-step" onclick="stepBFS()">⏭ Step</button>
+          <button class="secondary" onclick="resetSearch()">↺ Reset</button>
+        </div>
+        <div style="margin:6px 0"></div>
+        <button class="secondary" onclick="clearAll()">🗑 Clear All</button>
+        <div style="margin:6px 0"></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--muted)">
+          Speed:
+          <input type="range" id="speed-slider" min="10" max="300" value="60" step="10" style="flex:1;accent-color:var(--accent)">
+          <span id="speed-val">60ms</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Stats</h3>
+        <div class="stat-row"><span>Explored</span><span id="explored-count" style="color:#58a6ff">0</span></div>
+        <div class="stat-row"><span>Queue size</span><span id="queue-size" style="color:#ff9900">0</span></div>
+        <div class="stat-row"><span>Path length</span><span id="path-len" style="color:#ffd700">—</span></div>
+        <div class="stat-row"><span>Steps</span><span id="step-count">0</span></div>
+      </div>
+
+      <div class="panel">
+        <h3>Legend</h3>
+        <div class="legend-item"><div class="swatch" style="background:#22c55e"></div>Start</div>
+        <div class="legend-item"><div class="swatch" style="background:#ef4444"></div>End</div>
+        <div class="legend-item"><div class="swatch" style="background:#374151"></div>Wall</div>
+        <div class="legend-item"><div class="swatch" style="background:#1e3a5f"></div>Explored</div>
+        <div class="legend-item"><div class="swatch" style="background:#7c3a00"></div>Frontier</div>
+        <div class="legend-item"><div class="swatch" style="background:#b8860b"></div>Path</div>
+      </div>
+
+      <div class="msg" id="message">Click the grid to set start/end/walls, then run BFS.</div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Breadth-First Search (BFS) finds the <strong>shortest path</strong> in an unweighted graph by exploring nodes level by level. On a grid, each cell is a node, and its 4 neighbors are its edges.</p>
+
+    <h3>Algorithm</h3>
+    <ol>
+      <li>Enqueue the start cell</li>
+      <li>Dequeue a cell, mark it explored, add unvisited neighbors to the queue</li>
+      <li>Track each cell's <em>parent</em> — the cell we came from</li>
+      <li>When we dequeue the end cell, trace parent pointers back to reconstruct the path</li>
+      <li>If the queue empties without finding the end, no path exists</li>
+    </ol>
+
+    <h3>Key Code</h3>
+    <pre><code>function* bfsGen(grid, start, end) {
+  const queue = [start];
+  const visited = new Set([key(start)]);
+  const parent = new Map();
+
+  while (queue.length > 0) {
+    const curr = queue.shift();    // dequeue (FIFO — this is what makes it BFS)
+    yield { curr, queue: [...queue] };
+
+    if (sameCell(curr, end)) {
+      const path = tracePath(parent, end);
+      yield { done: true, path };
+      return;
+    }
+    for (const nbr of neighbors(grid, curr)) {
+      if (!visited.has(key(nbr))) {
+        visited.add(key(nbr));
+        parent.set(key(nbr), curr);
+        queue.push(nbr);           // neighbors added to BACK of queue
+      }
+    }
+  }
+  yield { noPath: true };
+}</code></pre>
+
+    <p><strong>Why BFS finds the shortest path:</strong> All cells at distance <em>d</em> are explored before any at distance <em>d+1</em>. The first time we reach the end, it's via the shortest route.</p>
+  </div>
+</div>
+
+<script>
+const ROWS = 20, COLS = 20;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const CELL = canvas.width / COLS;
+
+// Grid cell types: 0=empty, 1=wall
+let grid = Array.from({length: ROWS}, () => new Array(COLS).fill(0));
+let startCell = {r: 2, c: 2};
+let endCell = {r: 17, c: 17};
+let mode = 'wall';
+let isDragging = false;
+
+// BFS state
+let bfsGen = null, bfsRunning = false, bfsInterval = null;
+let explored = new Set(), frontier = new Set(), pathCells = new Set();
+let stepCount = 0;
+let speed = 60;
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode-' + m).classList.add('active');
+}
+
+function cellAt(x, y) {
+  const c = Math.floor(x / CELL);
+  const r = Math.floor(y / CELL);
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
+  return {r, c};
+}
+
+function handleClick(x, y) {
+  const cell = cellAt(x, y);
+  if (!cell) return;
+  const {r, c} = cell;
+  if (mode === 'start') { startCell = {r, c}; resetSearch(); }
+  else if (mode === 'end') { endCell = {r, c}; resetSearch(); }
+  else if (mode === 'wall') { if (!isSpecial(r,c)) grid[r][c] = 1; }
+  else if (mode === 'erase') { grid[r][c] = 0; }
+  draw();
+}
+
+function isSpecial(r, c) {
+  return (r === startCell.r && c === startCell.c) || (r === endCell.r && c === endCell.c);
+}
+
+canvas.addEventListener('mousedown', e => {
+  isDragging = true;
+  const rect = canvas.getBoundingClientRect();
+  handleClick(e.clientX - rect.left, e.clientY - rect.top);
+});
+canvas.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const rect = canvas.getBoundingClientRect();
+  handleClick(e.clientX - rect.left, e.clientY - rect.top);
+});
+canvas.addEventListener('mouseup', () => isDragging = false);
+canvas.addEventListener('mouseleave', () => isDragging = false);
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault(); isDragging = true;
+  const t = e.touches[0], rect = canvas.getBoundingClientRect();
+  handleClick(t.clientX - rect.left, t.clientY - rect.top);
+}, {passive:false});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0], rect = canvas.getBoundingClientRect();
+  handleClick(t.clientX - rect.left, t.clientY - rect.top);
+}, {passive:false});
+canvas.addEventListener('touchend', () => isDragging = false);
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const x = c * CELL, y = r * CELL;
+      const key = `${r},${c}`;
+      let color;
+      if (r === startCell.r && c === startCell.c) color = '#22c55e';
+      else if (r === endCell.r && c === endCell.c) color = '#ef4444';
+      else if (grid[r][c] === 1) color = '#374151';
+      else if (pathCells.has(key)) color = '#b8860b';
+      else if (frontier.has(key)) color = '#7c3a00';
+      else if (explored.has(key)) color = '#1e3a5f';
+      else color = '#111827';
+
+      ctx.fillStyle = color;
+      ctx.fillRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+
+      // glow for path
+      if (pathCells.has(key)) {
+        ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 8;
+        ctx.fillStyle = '#ffd700';
+        ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+        ctx.shadowBlur = 0;
+      }
+
+      // start/end labels
+      if (r === startCell.r && c === startCell.c) {
+        ctx.fillStyle = '#fff'; ctx.font = `bold ${CELL*0.5}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('S', x + CELL/2, y + CELL/2);
+      } else if (r === endCell.r && c === endCell.c) {
+        ctx.fillStyle = '#fff'; ctx.font = `bold ${CELL*0.5}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('E', x + CELL/2, y + CELL/2);
+      }
+    }
+  }
+
+  // grid lines
+  ctx.strokeStyle = '#1c2433'; ctx.lineWidth = 0.5;
+  for (let r = 0; r <= ROWS; r++) {
+    ctx.beginPath(); ctx.moveTo(0, r * CELL); ctx.lineTo(canvas.width, r * CELL); ctx.stroke();
+  }
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath(); ctx.moveTo(c * CELL, 0); ctx.lineTo(c * CELL, canvas.height); ctx.stroke();
+  }
+}
+
+function key(cell) { return `${cell.r},${cell.c}`; }
+function sameCell(a, b) { return a.r === b.r && a.c === b.c; }
+
+function getNeighbors(r, c) {
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+  return dirs
+    .map(([dr, dc]) => ({r: r+dr, c: c+dc}))
+    .filter(n => n.r >= 0 && n.r < ROWS && n.c >= 0 && n.c < COLS && grid[n.r][n.c] === 0);
+}
+
+function* bfsGenerator() {
+  const queue = [{r: startCell.r, c: startCell.c}];
+  const visited = new Set([key(startCell)]);
+  const parent = new Map();
+  stepCount = 0;
+  explored.clear(); frontier.clear(); pathCells.clear();
+  frontier.add(key(startCell));
+
+  while (queue.length > 0) {
+    const curr = queue.shift();
+    const ck = key(curr);
+    frontier.delete(ck);
+    explored.add(ck);
+    stepCount++;
+
+    document.getElementById('explored-count').textContent = explored.size;
+    document.getElementById('queue-size').textContent = queue.length;
+    document.getElementById('step-count').textContent = stepCount;
+    draw();
+
+    if (sameCell(curr, endCell)) {
+      // trace path
+      let node = curr;
+      while (node) {
+        pathCells.add(key(node));
+        node = parent.get(key(node));
+      }
+      document.getElementById('path-len').textContent = pathCells.size - 1;
+      draw();
+      setMsg(`✓ Path found! Length: ${pathCells.size - 1} cells, explored: ${explored.size}`, 'success');
+      yield 'done';
+      return;
+    }
+
+    for (const nbr of getNeighbors(curr.r, curr.c)) {
+      const nk = key(nbr);
+      if (!visited.has(nk)) {
+        visited.add(nk);
+        parent.set(nk, curr);
+        queue.push(nbr);
+        frontier.add(nk);
+      }
+    }
+    yield 'step';
+  }
+  setMsg('✗ No path found! The destination is blocked.', 'fail');
+  yield 'nope';
+}
+
+function setMsg(msg, type) {
+  const el = document.getElementById('message');
+  el.textContent = msg;
+  el.style.color = type === 'success' ? '#3fb950' : type === 'fail' ? '#f78166' : 'var(--muted)';
+}
+
+function resetSearch() {
+  clearInterval(bfsInterval); bfsRunning = false; bfsGen = null;
+  explored.clear(); frontier.clear(); pathCells.clear();
+  stepCount = 0;
+  document.getElementById('explored-count').textContent = '0';
+  document.getElementById('queue-size').textContent = '0';
+  document.getElementById('path-len').textContent = '—';
+  document.getElementById('step-count').textContent = '0';
+  setMsg('Click the grid to set start/end/walls, then run BFS.', '');
+  draw();
+}
+
+function startBFS() {
+  if (bfsRunning) { clearInterval(bfsInterval); bfsRunning = false; document.getElementById('btn-run').textContent = '▶ Run BFS'; return; }
+  resetSearch();
+  bfsGen = bfsGenerator();
+  bfsRunning = true;
+  document.getElementById('btn-run').textContent = '⏹ Stop';
+  setMsg('Running BFS...', '');
+  bfsInterval = setInterval(() => {
+    const result = bfsGen.next();
+    if (result.done || result.value === 'done' || result.value === 'nope') {
+      clearInterval(bfsInterval); bfsRunning = false;
+      document.getElementById('btn-run').textContent = '▶ Run BFS';
+    }
+  }, speed);
+}
+
+function stepBFS() {
+  clearInterval(bfsInterval); bfsRunning = false;
+  document.getElementById('btn-run').textContent = '▶ Run BFS';
+  if (!bfsGen) { resetSearch(); bfsGen = bfsGenerator(); setMsg('Stepping through BFS...', ''); }
+  const result = bfsGen.next();
+  if (result.done || result.value === 'done' || result.value === 'nope') bfsGen = null;
+}
+
+function clearAll() {
+  grid = Array.from({length: ROWS}, () => new Array(COLS).fill(0));
+  resetSearch();
+}
+
+document.getElementById('speed-slider').addEventListener('input', e => {
+  speed = parseInt(e.target.value);
+  document.getElementById('speed-val').textContent = speed + 'ms';
+});
+
+// Default walls — a simple maze-like pattern
+function addDefaultWalls() {
+  // horizontal walls
+  for (let c = 3; c < 14; c++) grid[5][c] = 1;
+  for (let c = 6; c < 18; c++) grid[10][c] = 1;
+  for (let c = 2; c < 14; c++) grid[15][c] = 1;
+  // vertical walls
+  for (let r = 5; r < 10; r++) grid[r][14] = 1;
+  for (let r = 10; r < 15; r++) grid[r][5] = 1;
+}
+
+addDefaultWalls();
+draw();
+</script>
+</body>
+</html>

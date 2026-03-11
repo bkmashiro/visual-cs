@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quicksort — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #f78166;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+  header a { color: #58a6ff; text-decoration: none; font-size: 0.9rem; }
+  header a:hover { text-decoration: underline; }
+  header h1 { font-size: 1.3rem; font-weight: 700; }
+  .main { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
+  canvas { display: block; margin: 0 auto; border-radius: 8px; background: #0a0e14; border: 1px solid var(--border); }
+
+  .controls {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    margin: 16px 0; background: var(--surface);
+    padding: 14px 20px; border-radius: 10px; border: 1px solid var(--border);
+  }
+  button {
+    background: var(--accent); color: #000; font-weight: 700; font-size: 0.85rem;
+    padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s;
+  }
+  button:hover { opacity: 0.8; }
+  button.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  button.secondary:hover { border-color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: default; }
+
+  .slider-group { display: flex; align-items: center; gap: 8px; }
+  .slider-group label { font-size: 0.85rem; color: var(--muted); }
+  input[type=range] { accent-color: var(--accent); width: 120px; }
+
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 20px; background: var(--surface); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 16px; }
+  .stat { text-align: center; }
+  .stat-value { font-size: 1.3rem; font-weight: 800; }
+  .stat-label { font-size: 0.72rem; color: var(--muted); }
+
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; padding: 10px 20px; background: var(--surface); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 24px; font-size: 0.82rem; color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; }
+
+  .compare-table { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .algo-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .algo-card h3 { font-size: 0.9rem; color: var(--muted); margin-bottom: 10px; }
+  .algo-stat { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem; }
+  .algo-stat span:last-child { font-weight: 700; }
+
+  .explain { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px 32px; margin-top: 24px; }
+  .explain h2 { font-size: 1.2rem; color: var(--accent); margin-bottom: 16px; }
+  .explain h3 { font-size: 0.95rem; color: var(--text); margin: 16px 0 8px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.9rem; }
+  .explain ul, .explain ol { padding-left: 20px; }
+  .explain code { background: #0a0e14; color: #e3b341; padding: 1px 6px; border-radius: 4px; font-size: 0.85rem; font-family: 'Fira Code', monospace; }
+  pre { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+  pre code { background: none; color: var(--text); font-size: 0.83rem; }
+  .complexity { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+  .complexity-item { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; text-align: center; }
+  .complexity-item .label { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+  .complexity-item .value { font-weight: 700; color: #e3b341; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>⚡ Quicksort</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Sorting · O(n log n) avg</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="comparisons" style="color:#f78166">0</div><div class="stat-label">Comparisons</div></div>
+    <div class="stat"><div class="stat-value" id="swaps" style="color:#58a6ff">0</div><div class="stat-label">Swaps</div></div>
+    <div class="stat"><div class="stat-value" id="depth" style="color:#e3b341">0</div><div class="stat-label">Max Depth</div></div>
+    <div class="stat"><div class="stat-value" id="sorted-count" style="color:#3fb950">0</div><div class="stat-label">Sorted</div></div>
+    <div class="stat"><div class="stat-value" id="status-text" style="font-size:0.85rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <canvas id="canvas" width="960" height="360"></canvas>
+
+  <div class="controls">
+    <button id="btn-play">▶ Play</button>
+    <button id="btn-pause" class="secondary" disabled>⏸ Pause</button>
+    <button id="btn-step" class="secondary">⏭ Step</button>
+    <button id="btn-reset" class="secondary">↺ Reset</button>
+    <button id="btn-shuffle" class="secondary">🔀 New Array</button>
+    <div class="slider-group">
+      <label>Size: <span id="size-val">40</span></label>
+      <input type="range" id="size-slider" min="10" max="80" value="40">
+    </div>
+    <div class="slider-group">
+      <label>Speed: <span id="speed-val">50</span>ms</label>
+      <input type="range" id="speed-slider" min="5" max="500" value="50" step="5">
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Unsorted</div>
+    <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Pivot</div>
+    <div class="legend-item"><div class="swatch" style="background:#3b82f6"></div>Left pointer (i)</div>
+    <div class="legend-item"><div class="swatch" style="background:#22c55e"></div>Right pointer (j)</div>
+    <div class="legend-item"><div class="swatch" style="background:#a855f7"></div>Active subarray</div>
+    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Sorted</div>
+  </div>
+
+  <div class="compare-table">
+    <div class="algo-card" style="border-color:#f78166">
+      <h3>⚡ Quicksort (current run)</h3>
+      <div class="algo-stat"><span>Comparisons</span><span id="qs-cmp" style="color:#f78166">0</span></div>
+      <div class="algo-stat"><span>Swaps</span><span id="qs-swp" style="color:#58a6ff">0</span></div>
+      <div class="algo-stat"><span>Time complexity</span><span style="color:#e3b341">O(n log n)</span></div>
+    </div>
+    <div class="algo-card" style="border-color:#8b949e">
+      <h3>🫧 Bubble Sort (estimated)</h3>
+      <div class="algo-stat"><span>Comparisons (est.)</span><span id="bs-cmp" style="color:#8b949e">—</span></div>
+      <div class="algo-stat"><span>Swaps (est.)</span><span id="bs-swp" style="color:#8b949e">—</span></div>
+      <div class="algo-stat"><span>Time complexity</span><span style="color:#8b949e">O(n²)</span></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Quicksort is a divide-and-conquer algorithm. It picks a <strong>pivot</strong>, partitions the array so elements smaller than the pivot go left and larger go right, then recursively sorts each half.</p>
+
+    <h3>Lomuto Partition Scheme</h3>
+    <ol>
+      <li>Pick the last element as pivot</li>
+      <li>Maintain a store index <code>i</code> (left boundary of "greater than pivot" elements)</li>
+      <li>Scan from <code>lo</code> to <code>hi-1</code> with pointer <code>j</code></li>
+      <li>If <code>arr[j] ≤ pivot</code>, swap <code>arr[i]</code> and <code>arr[j]</code>, increment <code>i</code></li>
+      <li>Finally place pivot at <code>i</code> — it's now in its sorted position</li>
+      <li>Recurse on <code>[lo, i-1]</code> and <code>[i+1, hi]</code></li>
+    </ol>
+
+    <h3>Key Code (iterative with explicit stack)</h3>
+    <pre><code>function* quicksortGen(arr) {
+  const stack = [[0, arr.length - 1]];  // use stack to avoid true recursion
+  while (stack.length > 0) {
+    const [lo, hi] = stack.pop();
+    if (lo >= hi) continue;
+
+    // partition
+    const pivot = arr[hi];
+    let i = lo;
+    for (let j = lo; j &lt; hi; j++) {
+      yield { type: 'compare', i, j, pivotIdx: hi, lo, hi };
+      if (arr[j] &lt;= pivot) {
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        yield { type: 'swap', i, j };
+        i++;
+      }
+    }
+    [arr[i], arr[hi]] = [arr[hi], arr[i]];  // place pivot
+    yield { type: 'placed', pivotIdx: i };
+
+    stack.push([lo, i - 1]);
+    stack.push([i + 1, hi]);
+  }
+}</code></pre>
+
+    <h3>Why It's Fast</h3>
+    <p>On average, each partition splits the array roughly in half, giving O(n log n) total work. With n=40: Quicksort ≈ 40×6 = 240 ops, Bubble sort ≈ 40²/2 = 800 ops — <strong>3× faster</strong>.</p>
+
+    <h3>Complexity</h3>
+    <div class="complexity">
+      <div class="complexity-item"><div class="label">Best Case</div><div class="value">O(n log n)</div></div>
+      <div class="complexity-item"><div class="label">Average Case</div><div class="value">O(n log n)</div></div>
+      <div class="complexity-item"><div class="label">Worst Case</div><div class="value">O(n²)</div></div>
+      <div class="complexity-item"><div class="label">Space</div><div class="value">O(log n)</div></div>
+      <div class="complexity-item"><div class="label">Stable?</div><div class="value">No</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let arr = [], n = 40;
+let pivotIdx = -1, leftPtr = -1, rightPtr = -1;
+let activeRange = {lo: -1, hi: -1};
+let sortedSet = new Set();
+let comparisons = 0, swapCount = 0, maxDepth = 0;
+let gen = null, running = false, interval = null;
+let speed = 50;
+
+function makeArray(size) {
+  arr = Array.from({length: size}, (_, i) => i + 1);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  n = size;
+  pivotIdx = -1; leftPtr = -1; rightPtr = -1;
+  activeRange = {lo: -1, hi: -1};
+  sortedSet = new Set();
+  comparisons = 0; swapCount = 0; maxDepth = 0;
+  updateStats();
+  updateBubbleEstimate();
+  draw();
+}
+
+function hslForValue(v, max) {
+  const h = 240 - (v / max) * 180;
+  return `hsl(${h}, 80%, 55%)`;
+}
+
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0e14';
+  ctx.fillRect(0, 0, W, H);
+
+  const barW = W / n;
+  const maxH = H - 40;
+
+  for (let i = 0; i < n; i++) {
+    const bh = (arr[i] / n) * maxH;
+    const x = i * barW + 1;
+    const w = barW - 2;
+    const y = H - bh - 20;
+
+    let color;
+    if (sortedSet.has(i)) color = '#3fb950';
+    else if (i === pivotIdx) color = '#f78166';
+    else if (i === leftPtr) color = '#3b82f6';
+    else if (i === rightPtr) color = '#22c55e';
+    else if (i >= activeRange.lo && i <= activeRange.hi) color = '#6d3b9e';
+    else color = hslForValue(arr[i], n);
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, bh, [2, 2, 0, 0]);
+    ctx.fill();
+
+    // glow
+    if (i === pivotIdx || i === leftPtr || i === rightPtr) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 14;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  // pointer labels
+  ctx.font = 'bold 10px sans-serif';
+  ctx.textAlign = 'center';
+  if (pivotIdx >= 0) {
+    ctx.fillStyle = '#f78166';
+    ctx.fillText('P', (pivotIdx + 0.5) * barW, H - 5);
+  }
+  if (leftPtr >= 0) {
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillText('i', (leftPtr + 0.5) * barW, H - 14);
+  }
+  if (rightPtr >= 0) {
+    ctx.fillStyle = '#22c55e';
+    ctx.fillText('j', (rightPtr + 0.5) * barW, H - 5);
+  }
+}
+
+function updateStats() {
+  document.getElementById('comparisons').textContent = comparisons;
+  document.getElementById('swaps').textContent = swapCount;
+  document.getElementById('depth').textContent = maxDepth;
+  document.getElementById('sorted-count').textContent = sortedSet.size;
+  document.getElementById('qs-cmp').textContent = comparisons;
+  document.getElementById('qs-swp').textContent = swapCount;
+}
+
+function updateBubbleEstimate() {
+  const bsCmp = Math.round(n * (n - 1) / 2);
+  const bsSwp = Math.round(n * (n - 1) / 4);
+  document.getElementById('bs-cmp').textContent = `~${bsCmp}`;
+  document.getElementById('bs-swp').textContent = `~${bsSwp}`;
+}
+
+function* quicksortGen() {
+  const stack = [[0, n - 1, 0]]; // [lo, hi, depth]
+  while (stack.length > 0) {
+    const [lo, hi, depth] = stack.pop();
+    if (lo >= hi) {
+      if (lo === hi) sortedSet.add(lo);
+      continue;
+    }
+    if (depth > maxDepth) maxDepth = depth;
+
+    const pivot = arr[hi];
+    pivotIdx = hi;
+    activeRange = {lo, hi};
+    let i = lo;
+
+    for (let j = lo; j < hi; j++) {
+      leftPtr = i; rightPtr = j;
+      comparisons++;
+      yield 'compare';
+
+      if (arr[j] <= pivot) {
+        if (i !== j) {
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+          swapCount++;
+          yield 'swap';
+        }
+        i++;
+        leftPtr = i;
+      }
+    }
+
+    [arr[i], arr[hi]] = [arr[hi], arr[i]];
+    if (i !== hi) swapCount++;
+    sortedSet.add(i);
+    pivotIdx = -1; leftPtr = -1; rightPtr = -1;
+    yield 'placed';
+
+    stack.push([lo, i - 1, depth + 1]);
+    stack.push([i + 1, hi, depth + 1]);
+    updateStats();
+  }
+
+  // mark everything sorted
+  for (let i = 0; i < n; i++) sortedSet.add(i);
+  activeRange = {lo: -1, hi: -1};
+}
+
+function step() {
+  if (!gen) gen = quicksortGen();
+  const result = gen.next();
+  updateStats();
+  draw();
+  if (result.done) {
+    stopPlaying();
+    document.getElementById('status-text').textContent = 'Done! ✓';
+    document.getElementById('status-text').style.color = '#3fb950';
+    gen = null;
+  }
+}
+
+function startPlaying() {
+  if (running) return;
+  running = true;
+  document.getElementById('btn-play').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('status-text').textContent = 'Sorting…';
+  document.getElementById('status-text').style.color = '#58a6ff';
+  interval = setInterval(step, speed);
+}
+
+function stopPlaying() {
+  running = false; clearInterval(interval); interval = null;
+  document.getElementById('btn-play').disabled = false;
+  document.getElementById('btn-pause').disabled = true;
+}
+
+function reset() {
+  stopPlaying(); gen = null; makeArray(n);
+  document.getElementById('status-text').textContent = 'Ready';
+  document.getElementById('status-text').style.color = 'var(--muted)';
+}
+
+document.getElementById('btn-play').addEventListener('click', startPlaying);
+document.getElementById('btn-pause').addEventListener('click', stopPlaying);
+document.getElementById('btn-step').addEventListener('click', () => { stopPlaying(); step(); });
+document.getElementById('btn-reset').addEventListener('click', reset);
+document.getElementById('btn-shuffle').addEventListener('click', reset);
+document.getElementById('size-slider').addEventListener('input', e => {
+  document.getElementById('size-val').textContent = e.target.value;
+  n = parseInt(e.target.value);
+  reset();
+});
+document.getElementById('speed-slider').addEventListener('input', e => {
+  speed = parseInt(e.target.value);
+  document.getElementById('speed-val').textContent = speed;
+  if (running) { stopPlaying(); startPlaying(); }
+});
+
+makeArray(40);
+</script>
+</body>
+</html>

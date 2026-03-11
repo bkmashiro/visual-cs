@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>visual-cs — Algorithm Visualizations</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #f78166;
+    --tag-sorting: #1f3a5f;
+    --tag-sorting-text: #58a6ff;
+    --tag-graph: #1a3a2a;
+    --tag-graph-text: #3fb950;
+    --tag-simulation: #3a1a2a;
+    --tag-simulation-text: #f778ba;
+    --tag-search: #3a2a1a;
+    --tag-search-text: #e3b341;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
+  .header-right a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .header-right a:hover { color: var(--text); border-color: var(--accent); }
+
+  .hero {
+    text-align: center;
+    padding: 60px 40px 40px;
+  }
+  .hero h2 {
+    font-size: 2.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #58a6ff, #3fb950, #f778ba);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px 40px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--card-accent, var(--accent));
+    border-radius: 12px 12px 0 0;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: var(--card-accent, var(--accent));
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .card-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .tag.sorting { background: var(--tag-sorting); color: var(--tag-sorting-text); }
+  .tag.graph { background: var(--tag-graph); color: var(--tag-graph-text); }
+  .tag.simulation { background: var(--tag-simulation); color: var(--tag-simulation-text); }
+  .tag.search { background: var(--tag-search); color: var(--tag-search-text); }
+
+  .card-desc {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    flex: 1;
+  }
+  .card-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .card-meta span { display: flex; align-items: center; gap: 4px; }
+  .view-btn {
+    display: inline-block;
+    background: var(--card-accent, var(--accent));
+    color: #000;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    text-align: center;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 4px;
+  }
+  .view-btn:hover { opacity: 0.85; transform: scale(1.02); }
+
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    padding: 20px 40px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .stat { text-align: center; }
+  .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>visual<span>-cs</span></h1>
+    <p>Algorithm & data structure visualizations</p>
+  </div>
+  <div class="header-right">
+    <a href="https://github.com/bkmashiro/visual-cs" target="_blank">⭐ GitHub</a>
+  </div>
+</header>
+
+<div class="hero">
+  <h2>See Algorithms Think</h2>
+  <p>Interactive, animated visualizations of classic algorithms. Pure HTML/CSS/JS — no build step, no framework.</p>
+</div>
+
+<div class="grid">
+  <div class="card" style="--card-accent: #58a6ff;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Bubble Sort</div>
+        <span class="tag sorting">Sorting</span>
+      </div>
+      <div class="card-icon">🫧</div>
+    </div>
+    <div class="card-desc">Watch elements bubble up as adjacent pairs are compared and swapped. Tracks comparisons and swaps in real time with color-coded bars.</div>
+    <div class="card-meta">
+      <span>⏱ Animated</span>
+      <span>🎛 Speed control</span>
+      <span>📊 Stats</span>
+    </div>
+    <a class="view-btn" href="./visualizations/bubble-sort/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #e3b341;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Binary Search</div>
+        <span class="tag search">Search</span>
+      </div>
+      <div class="card-icon">🔍</div>
+    </div>
+    <div class="card-desc">Step through the divide-and-conquer search strategy. See the search range narrow with each comparison until the target is found.</div>
+    <div class="card-meta">
+      <span>⏱ Animated</span>
+      <span>🎯 Interactive</span>
+      <span>📊 Step counter</span>
+    </div>
+    <a class="view-btn" style="background:#e3b341" href="./visualizations/binary-search/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #3fb950;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">BFS on Grid</div>
+        <span class="tag graph">Graph</span>
+      </div>
+      <div class="card-icon">🗺️</div>
+    </div>
+    <div class="card-desc">Paint walls, set start/end, and watch BFS flood-fill the grid. Frontier expands in orange, explored cells turn blue, path lights up yellow.</div>
+    <div class="card-meta">
+      <span>🖱 Draw walls</span>
+      <span>👣 Path tracing</span>
+      <span>🔢 Step mode</span>
+    </div>
+    <a class="view-btn" style="background:#3fb950" href="./visualizations/bfs-grid/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #f78166;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Quicksort</div>
+        <span class="tag sorting">Sorting</span>
+      </div>
+      <div class="card-icon">⚡</div>
+    </div>
+    <div class="card-desc">Watch pivot selection and partitioning recurse through the array. Red pivot, blue/green pointers converge as the array is divided and conquered.</div>
+    <div class="card-meta">
+      <span>⏱ Animated</span>
+      <span>📏 Recursion depth</span>
+      <span>📊 vs Bubble sort</span>
+    </div>
+    <a class="view-btn" style="background:#f78166" href="./visualizations/quicksort/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #f778ba;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Game of Life</div>
+        <span class="tag simulation">Simulation</span>
+      </div>
+      <div class="card-icon">🧬</div>
+    </div>
+    <div class="card-desc">Conway's cellular automaton on a 60×60 grid. Load classic patterns (Glider, Pulsar, R-pentomino) or draw your own and watch life emerge.</div>
+    <div class="card-meta">
+      <span>🖱 Draw cells</span>
+      <span>🔮 Patterns</span>
+      <span>⏱ 1-60 FPS</span>
+    </div>
+    <a class="view-btn" style="background:#f778ba" href="./visualizations/game-of-life/index.html">View →</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-value">5</div><div class="stat-label">Visualizations</div></div>
+  <div class="stat"><div class="stat-value">0</div><div class="stat-label">Dependencies</div></div>
+  <div class="stat"><div class="stat-value">∞</div><div class="stat-label">Fun</div></div>
+</div>
+
+<footer>
+  <p>Open source · <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS</p>
+</footer>
+
+</body>
+</html>
