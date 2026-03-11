@@ -1,6 +1,11 @@
 # visual-cs
 
+[![GitHub stars](https://img.shields.io/github/stars/bkmashiro/visual-cs?style=social)](https://github.com/bkmashiro/visual-cs)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 > Algorithm and data structure visualizations — pure HTML/CSS/JS, no build step.
+
+**[⭐ Star on GitHub](https://github.com/bkmashiro/visual-cs)** if you find this useful!
 
 ## Live Demo
 
