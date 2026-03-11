@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skip List — visual-cs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>⏭️ Skip List</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Data Structure · Probabilistic</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="node-count">0</div><div class="stat-label">Nodes</div></div>
+    <div class="stat"><div class="stat-value" id="level-count">1</div><div class="stat-label">Levels</div></div>
+    <div class="stat"><div class="stat-value" id="comparisons">0</div><div class="stat-label">Comparisons</div></div>
+    <div class="stat"><div class="stat-value" id="status" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="controls">
+    <input type="number" id="value-input" placeholder="Value" min="1" max="999">
+    <button id="insert-btn">Insert</button>
+    <button id="search-btn" class="secondary">Search</button>
+    <button id="random-btn" class="secondary">Random +5</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+    <div class="range-group">
+      <label for="speed-slider">Speed</label>
+      <input id="speed-slider" type="range" min="50" max="800" value="300">
+      <span id="speed-value">300 ms</span>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="canvas" width="1200" height="500"></canvas>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Regular node</div>
+    <div class="legend-item"><div class="swatch" style="background:#f2cc60"></div>Search path</div>
+    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Found / Inserted</div>
+    <div class="legend-item"><div class="swatch" style="background:#ff6b6b"></div>New level (coin flip)</div>
+  </div>
+
+  <div class="explain">
+    <h2>How it works</h2>
+    <p>A skip list is a layered linked list where each level acts as an "express lane" that skips over many elements, enabling O(log n) average search, insert, and delete operations.</p>
+    <ul>
+      <li>Each inserted element is promoted to higher levels based on random coin flips (p = 0.5).</li>
+      <li>Search starts at the top level and moves right or drops down — the yellow path shows this traversal.</li>
+      <li>The HEAD sentinel on the left spans all levels, linking to the first element at each level.</li>
+    </ul>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>

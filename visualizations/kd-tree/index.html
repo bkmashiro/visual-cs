@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KD-Tree — visual-cs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>📐 KD-Tree</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Data Structure · Spatial Partitioning</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="point-count">0</div><div class="stat-label">Points</div></div>
+    <div class="stat"><div class="stat-value" id="tree-depth">0</div><div class="stat-label">Depth</div></div>
+    <div class="stat"><div class="stat-value" id="nn-dist">—</div><div class="stat-label">NN Distance</div></div>
+    <div class="stat"><div class="stat-value" id="status" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="controls">
+    <button id="random-btn">Random 20 pts</button>
+    <button id="nn-btn" class="secondary">NN Mode: OFF</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+    <div class="range-group">
+      <label for="speed-slider">Speed</label>
+      <input id="speed-slider" type="range" min="20" max="500" value="120">
+      <span id="speed-value">120 ms</span>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="canvas" width="1200" height="600"></canvas>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#ff6b6b"></div>X-split line</div>
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Y-split line</div>
+    <div class="legend-item"><div class="swatch" style="background:#e6edf3"></div>Point</div>
+    <div class="legend-item"><div class="swatch" style="background:#f2cc60"></div>Query / Path</div>
+    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Nearest neighbor</div>
+  </div>
+
+  <div class="explain">
+    <h2>How it works</h2>
+    <p>A KD-tree recursively partitions 2D space by alternating between X and Y axes. Each node splits the plane with a vertical (red) or horizontal (blue) line.</p>
+    <ul>
+      <li>Click the canvas to add a point. The tree rebuilds to show the new partitioning.</li>
+      <li>Toggle NN Mode, then click to place a query point — the nearest neighbor is found and highlighted in green.</li>
+      <li>The search path through the tree animates to show how spatial pruning works.</li>
+    </ul>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>

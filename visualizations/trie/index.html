@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trie — visual-cs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🔤 Trie (Prefix Tree)</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Data Structure · String Search</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="word-count">0</div><div class="stat-label">Words</div></div>
+    <div class="stat"><div class="stat-value" id="node-count">1</div><div class="stat-label">Nodes</div></div>
+    <div class="stat"><div class="stat-value" id="prefix-matches">0</div><div class="stat-label">Prefix Matches</div></div>
+    <div class="stat"><div class="stat-value" id="status" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="word-input" placeholder="Type a word" maxlength="12" autocomplete="off">
+    <button id="insert-btn">Insert</button>
+    <button id="search-btn" class="secondary">Search</button>
+    <button id="sample-btn" class="secondary">Load Sample</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+    <div class="range-group">
+      <label for="speed-slider">Speed</label>
+      <input id="speed-slider" type="range" min="50" max="600" value="200">
+      <span id="speed-value">200 ms</span>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="canvas" width="1200" height="600"></canvas>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Regular node</div>
+    <div class="legend-item"><div class="swatch" style="background:#f2cc60"></div>Search path</div>
+    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>End of word</div>
+    <div class="legend-item"><div class="swatch" style="background:#ff6b6b"></div>Inserting</div>
+  </div>
+
+  <div class="word-list-panel">
+    <h3>Words in Trie</h3>
+    <div id="word-list"></div>
+  </div>
+
+  <div class="explain">
+    <h2>How it works</h2>
+    <p>A Trie (prefix tree) stores strings character by character. Each node represents a prefix, and paths from root to marked nodes spell out stored words.</p>
+    <ul>
+      <li>Insertion walks down the tree, creating new nodes for each character not yet present.</li>
+      <li>Search highlights the path in yellow. Prefix matches update in real time as you type.</li>
+      <li>Green-bordered nodes mark the end of a complete word.</li>
+    </ul>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>

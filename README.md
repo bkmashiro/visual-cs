@@ -26,6 +26,9 @@
 | [Red-Black Tree](./visualizations/red-black-tree/) | Tree | Self-balancing BST with color rules |
 | [Merge Sort](./visualizations/merge-sort/) | Sorting | Divide and conquer sort |
 | [A* Pathfinding](./visualizations/astar/) | Search | Heuristic grid pathfinding |
+| [Skip List](./visualizations/skip-list/) | Data Structure | Probabilistic layered linked list |
+| [Trie](./visualizations/trie/) | Search | Prefix tree with real-time matching |
+| [KD-Tree](./visualizations/kd-tree/) | Data Structure | 2D spatial partitioning & nearest neighbor |
 
 ## Philosophy
 
