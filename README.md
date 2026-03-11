@@ -1,20 +1,26 @@
-# visual-cs
+<div align="center">
 
-[![GitHub stars](https://img.shields.io/github/stars/bkmashiro/visual-cs?style=social)](https://github.com/bkmashiro/visual-cs)
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# 🎨 visual-cs
 
-> Algorithm and data structure visualizations — pure HTML/CSS/JS, no build step.
+**Algorithm and data structure visualizations — pure HTML/CSS/JS, no build step.**
 
-**[⭐ Star on GitHub](https://github.com/bkmashiro/visual-cs)** if you find this useful!
+[![GitHub stars](https://img.shields.io/github/stars/bkmashiro/visual-cs?style=for-the-badge&logo=github&color=FFD700)](https://github.com/bkmashiro/visual-cs)
+[![MIT License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](LICENSE)
 
-## Live Demo
+**English** | [中文](README.zh.md)
 
-[**→ Browse All Visualizations**](https://bkmashiro.github.io/visual-cs)
+> See algorithms run, step by step, in your browser. New visualization added every 2 days.
 
-## Visualizations
+**[→ Browse All Visualizations](https://bkmashiro.github.io/visual-cs)**
+
+</div>
+
+---
+
+## 🗂️ Visualizations
 
 | Name | Category | Description |
-|------|----------|-------------|
+|:-----|:---------|:------------|
 | [Bubble Sort](./visualizations/bubble-sort/) | Sorting | Step-by-step comparison visualization |
 | [Binary Search](./visualizations/binary-search/) | Search | Visual range narrowing |
 | [BFS on Grid](./visualizations/bfs-grid/) | Graph | Interactive pathfinding |
@@ -30,9 +36,11 @@
 | [Trie](./visualizations/trie/) | Search | Prefix tree with real-time matching |
 | [KD-Tree](./visualizations/kd-tree/) | Data Structure | 2D spatial partitioning & nearest neighbor |
 
-## Philosophy
+---
 
-Each visualization is a single self-contained HTML file. No frameworks, no bundlers, no npm install.
+## 📐 Philosophy
+
+Each visualization is a **single self-contained HTML file**. No frameworks, no bundlers, no npm install.  
 Open any file directly in your browser or serve with `python -m http.server`.
 
 Every visualization includes:
@@ -40,6 +48,8 @@ Every visualization includes:
 - Inline explanation of the algorithm
 - Key implementation notes
 
-## Contributing / Adding New Visualizations
+---
 
-New visualizations are added regularly. Each one lives in `visualizations/<name>/`.
+## 📄 License
+
+MIT © [bkmashiro](https://github.com/bkmashiro)

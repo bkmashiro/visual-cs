@@ -1,0 +1,54 @@
+<div align="center">
+
+# 🎨 visual-cs
+
+**算法与数据结构可视化 — 纯 HTML/CSS/JS，零构建步骤。**
+
+[![GitHub stars](https://img.shields.io/github/stars/bkmashiro/visual-cs?style=for-the-badge&logo=github&color=FFD700)](https://github.com/bkmashiro/visual-cs)
+[![MIT License](https://img.shields.io/badge/许可证-MIT-22c55e?style=for-the-badge)](LICENSE)
+
+[English](README.md) | **中文**
+
+> 在浏览器中直观理解算法运行过程。每 2 天自动新增一个可视化。
+
+**[→ 浏览所有可视化](https://bkmashiro.github.io/visual-cs)**
+
+</div>
+
+---
+
+## 🗂️ 可视化列表
+
+| 名称 | 分类 | 说明 |
+|:-----|:-----|:-----|
+| [冒泡排序](./visualizations/bubble-sort/) | 排序 | 逐步比较与交换可视化 |
+| [二分查找](./visualizations/binary-search/) | 搜索 | 范围不断缩小的动画 |
+| [网格 BFS](./visualizations/bfs-grid/) | 图算法 | 交互式寻路演示 |
+| [快速排序](./visualizations/quicksort/) | 排序 | 分区与基准点动画 |
+| [生命游戏](./visualizations/game-of-life/) | 模拟 | Conway 元胞自动机 |
+| [AVL 树](./visualizations/avl-tree/) | 树 | 自平衡 BST，旋转动画 |
+| [Dijkstra](./visualizations/dijkstra/) | 图算法 | 网格上的加权最短路 |
+| [堆排序](./visualizations/heap-sort/) | 排序 | 最大堆构建与提取 |
+| [红黑树](./visualizations/red-black-tree/) | 树 | 带颜色规则的自平衡 BST |
+| [归并排序](./visualizations/merge-sort/) | 排序 | 分治排序动画 |
+| [A* 寻路](./visualizations/astar/) | 搜索 | 启发式网格寻路 |
+| [跳表](./visualizations/skip-list/) | 数据结构 | 概率层级链表 |
+| [字典树](./visualizations/trie/) | 搜索 | 前缀树，实时匹配 |
+| [KD 树](./visualizations/kd-tree/) | 数据结构 | 二维空间划分与最近邻搜索 |
+
+---
+
+## 📐 设计理念
+
+每个可视化都是**单文件自包含 HTML**，无框架，无 npm，直接用浏览器打开。
+
+每个可视化包含：
+- 交互控件（播放 / 暂停 / 单步 / 重置 / 速度调节）
+- 算法原理内联说明
+- 关键实现要点
+
+---
+
+## 📄 许可证
+
+MIT © [bkmashiro](https://github.com/bkmashiro)
