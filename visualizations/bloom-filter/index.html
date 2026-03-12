@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bloom Filter - visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #0a0f16;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --hash-1: #58a6ff;
+    --hash-2: #f59e0b;
+    --hash-3: #d2a8ff;
+    --hit: #3fb950;
+    --miss: #8b949e;
+    --fp: #ff7b72;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 24%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: rgba(22, 27, 34, 0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1220px; margin: 0 auto; padding: 28px 24px 40px; }
+  .stats, .controls, .panel, .bits, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .stats, .controls { display: flex; gap: 14px; flex-wrap: wrap; padding: 14px 18px; margin-bottom: 16px; }
+  .stat { min-width: 130px; }
+  .stat-value { font-size: 1.3rem; font-weight: 800; }
+  .stat-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
+  .controls { align-items: center; }
+  input[type="text"] {
+    width: 220px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: #061018;
+  }
+  button.secondary {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .layout {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  .panel h2 { font-size: 0.95rem; margin-bottom: 12px; color: var(--muted); }
+  .bits {
+    padding: 18px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+    background: linear-gradient(180deg, rgba(88,166,255,0.05), transparent 30%), #0a1017;
+  }
+  .bit {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    min-height: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    background: #0b121a;
+    transition: transform 0.2s, border-color 0.2s, background 0.2s;
+  }
+  .bit strong { font-size: 1.1rem; }
+  .bit small { color: var(--muted); }
+  .bit.set { background: rgba(63,185,80,0.18); border-color: #3fb950; }
+  .bit.active.hash1 { border-color: var(--hash-1); transform: translateY(-4px); }
+  .bit.active.hash2 { border-color: var(--hash-2); transform: translateY(-4px); }
+  .bit.active.hash3 { border-color: var(--hash-3); transform: translateY(-4px); }
+  .hash-list, .history {
+    display: grid;
+    gap: 10px;
+  }
+  .hash-card, .result-card {
+    background: #0b121a;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .hash-card h3, .result-card h3 { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .hash-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .hash-value { font-weight: 800; }
+  .pill {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    margin-right: 6px;
+  }
+  .history-item {
+    border-top: 1px solid #1f2732;
+    padding-top: 10px;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+  .history-item:first-child { border-top: none; padding-top: 0; }
+  .explain { margin-top: 18px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 18px; margin-top: 10px; }
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; }
+    .bits { grid-template-columns: repeat(6, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .bits { grid-template-columns: repeat(4, 1fr); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>Bloom Filter</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Probabilistic Membership</span>
+</header>
+
+<div class="main">
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="inserted-count" style="color:var(--hit)">0</div><div class="stat-label">Inserted Words</div></div>
+    <div class="stat"><div class="stat-value" id="bits-set" style="color:var(--accent)">0</div><div class="stat-label">Bits Set</div></div>
+    <div class="stat"><div class="stat-value" id="tests-count">0</div><div class="stat-label">Tests</div></div>
+    <div class="stat"><div class="stat-value" id="false-positives" style="color:var(--fp)">0</div><div class="stat-label">False Positives</div></div>
+    <div class="stat"><div class="stat-value" id="fpr-estimate" style="font-size:1rem;color:var(--muted)">0.00%</div><div class="stat-label">Estimated FPR</div></div>
+  </div>
+
+  <div class="controls">
+    <input id="word-input" type="text" placeholder="Enter a word, e.g. graph">
+    <button id="add-btn">Add Word</button>
+    <button id="test-btn" class="secondary">Test Membership</button>
+    <button id="random-btn" class="secondary">Try Random Test</button>
+    <button id="reset-btn" class="secondary">Reset</button>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Bit Array</h2>
+      <div class="bits" id="bits"></div>
+    </div>
+    <div class="panel">
+      <div class="hash-list" id="hash-list"></div>
+      <div class="result-card" style="margin-top:12px;">
+        <h3>Result</h3>
+        <div id="result-text" style="color:var(--muted);line-height:1.6;">Bloom filters can say "definitely not present" or "possibly present".</div>
+      </div>
+      <div class="result-card" style="margin-top:12px;">
+        <h3>Recent Checks</h3>
+        <div class="history" id="history"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>A Bloom filter uses multiple hash functions to map a word to several bits. Insertion sets those bits to 1. Membership testing checks the same positions: if any bit is 0, the word is definitely absent; if all are 1, the word may be present.</p>
+    <ul>
+      <li>True positive: the word was inserted and all tested bits are 1.</li>
+      <li>True negative: at least one tested bit is 0, so the word is definitely absent.</li>
+      <li>False positive: all tested bits are 1, but the word was never inserted.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const BIT_COUNT = 32;
+const HASHES = [
+  { name: 'h1', color: 'hash1', border: '#58a6ff' },
+  { name: 'h2', color: 'hash2', border: '#f59e0b' },
+  { name: 'h3', color: 'hash3', border: '#d2a8ff' }
+];
+
+const bitsEl = document.getElementById('bits');
+const hashListEl = document.getElementById('hash-list');
+const historyEl = document.getElementById('history');
+const resultTextEl = document.getElementById('result-text');
+const wordInput = document.getElementById('word-input');
+const addBtn = document.getElementById('add-btn');
+const testBtn = document.getElementById('test-btn');
+const randomBtn = document.getElementById('random-btn');
+const resetBtn = document.getElementById('reset-btn');
+const insertedCountEl = document.getElementById('inserted-count');
+const bitsSetEl = document.getElementById('bits-set');
+const testsCountEl = document.getElementById('tests-count');
+const falsePositivesEl = document.getElementById('false-positives');
+const fprEstimateEl = document.getElementById('fpr-estimate');
+
+let bits = Array(BIT_COUNT).fill(0);
+let insertedWords = new Set();
+let tests = 0;
+let falsePositives = 0;
+let history = [];
+let animating = false;
+let activeHashes = [];
+
+function normalize(word) {
+  return word.trim().toLowerCase();
+}
+
+function hashWord(word, seed) {
+  let hash = seed;
+  for (let i = 0; i < word.length; i += 1) {
+    hash = (hash * 33 + word.charCodeAt(i) * (i + 1)) % 2147483647;
+  }
+  return hash % BIT_COUNT;
+}
+
+function positionsFor(word) {
+  return [
+    hashWord(word, 17),
+    hashWord(word, 31 + word.length),
+    hashWord(word.split('').reverse().join(''), 53)
+  ];
+}
+
+function renderBits() {
+  bitsEl.innerHTML = bits.map((bit, index) => {
+    const activeIndex = activeHashes.findIndex((entry) => entry.position === index);
+    const activeClass = activeIndex >= 0 ? `active ${HASHES[activeIndex].color}` : '';
+    return `
+      <div class="bit ${bit ? 'set' : ''} ${activeClass}">
+        <strong>${bit}</strong>
+        <small>#${index}</small>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderHashes(word, positions) {
+  hashListEl.innerHTML = HASHES.map((hash, index) => `
+    <div class="hash-card" style="border-color:${hash.border}">
+      <h3>${hash.name}</h3>
+      <div class="hash-row">
+        <span>${word ? `"${word}"` : 'Waiting for input'}</span>
+        <span class="hash-value" style="color:${hash.border}">${positions[index] ?? '-'}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderStats() {
+  insertedCountEl.textContent = insertedWords.size;
+  bitsSetEl.textContent = bits.filter(Boolean).length;
+  testsCountEl.textContent = tests;
+  falsePositivesEl.textContent = falsePositives;
+  const estimate = insertedWords.size === 0
+    ? 0
+    : ((1 - Math.exp((-HASHES.length * insertedWords.size) / BIT_COUNT)) ** HASHES.length) * 100;
+  fprEstimateEl.textContent = `${estimate.toFixed(2)}%`;
+}
+
+function renderHistory() {
+  historyEl.innerHTML = history.map((item) => `
+    <div class="history-item">
+      <span class="pill" style="background:${item.color};color:#061018">${item.label}</span>
+      <strong>${item.word}</strong> -> ${item.detail}
+    </div>
+  `).join('');
+}
+
+function renderAll(word = '', positions = []) {
+  renderBits();
+  renderHashes(word, positions);
+  renderStats();
+  renderHistory();
+}
+
+function setButtonsDisabled(disabled) {
+  addBtn.disabled = disabled;
+  testBtn.disabled = disabled;
+  randomBtn.disabled = disabled;
+  resetBtn.disabled = disabled;
+  wordInput.disabled = disabled;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function animateHashes(word) {
+  const positions = positionsFor(word);
+  activeHashes = [];
+  renderAll(word, positions);
+  for (let i = 0; i < positions.length; i += 1) {
+    activeHashes = [{ position: positions[i] }];
+    renderAll(word, positions);
+    await sleep(280);
+  }
+  activeHashes = positions.map((position) => ({ position }));
+  renderAll(word, positions);
+  await sleep(220);
+  activeHashes = [];
+  renderAll(word, positions);
+  return positions;
+}
+
+function pushHistory(word, label, detail, color) {
+  history.unshift({ word, label, detail, color });
+  history = history.slice(0, 6);
+  renderHistory();
+}
+
+async function handleAdd(word) {
+  if (!word || animating) return;
+  animating = true;
+  setButtonsDisabled(true);
+  const positions = await animateHashes(word);
+  positions.forEach((position) => {
+    bits[position] = 1;
+  });
+  insertedWords.add(word);
+  resultTextEl.innerHTML = `Added <strong>${word}</strong>. All hashed positions are set to 1.`;
+  pushHistory(word, 'Added', positions.join(', '), '#58a6ff');
+  animating = false;
+  setButtonsDisabled(false);
+  renderAll(word, positions);
+}
+
+async function handleTest(word) {
+  if (!word || animating) return;
+  animating = true;
+  setButtonsDisabled(true);
+  const positions = await animateHashes(word);
+  const allSet = positions.every((position) => bits[position] === 1);
+  const actual = insertedWords.has(word);
+  tests += 1;
+
+  if (allSet && actual) {
+    resultTextEl.innerHTML = `<strong style="color:var(--hit)">True positive:</strong> "${word}" was inserted earlier, so the Bloom filter correctly says possibly present.`;
+    pushHistory(word, 'True+', 'possibly present and actually inserted', '#3fb950');
+  } else if (!allSet) {
+    resultTextEl.innerHTML = `<strong style="color:var(--miss)">True negative:</strong> at least one hashed bit is 0, so "${word}" is definitely not present.`;
+    pushHistory(word, 'True-', 'definitely not present', '#8b949e');
+  } else {
+    falsePositives += 1;
+    resultTextEl.innerHTML = `<strong style="color:var(--fp)">False positive:</strong> all bits are 1, but "${word}" was never inserted.`;
+    pushHistory(word, 'False+', 'possibly present but actually absent', '#ff7b72');
+  }
+
+  animating = false;
+  setButtonsDisabled(false);
+  renderAll(word, positions);
+}
+
+function randomWord() {
+  const syllables = ['al', 'be', 'con', 'data', 'flux', 'graph', 'heap', 'io', 'mesh', 'node', 'query', 'sort', 'tree'];
+  return Array.from({ length: 2 + Math.floor(Math.random() * 2) }, () => syllables[Math.floor(Math.random() * syllables.length)]).join('');
+}
+
+addBtn.addEventListener('click', () => handleAdd(normalize(wordInput.value)));
+testBtn.addEventListener('click', () => handleTest(normalize(wordInput.value)));
+randomBtn.addEventListener('click', () => {
+  const word = randomWord();
+  wordInput.value = word;
+  handleTest(word);
+});
+resetBtn.addEventListener('click', () => {
+  bits = Array(BIT_COUNT).fill(0);
+  insertedWords = new Set(['graph', 'heap', 'queue']);
+  insertedWords.forEach((word) => positionsFor(word).forEach((position) => {
+    bits[position] = 1;
+  }));
+  tests = 0;
+  falsePositives = 0;
+  history = [];
+  activeHashes = [];
+  resultTextEl.textContent = 'Bloom filters can say "definitely not present" or "possibly present".';
+  renderAll();
+});
+wordInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    handleAdd(normalize(wordInput.value));
+  }
+});
+
+resetBtn.click();
+</script>
+</body>
+</html>

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Segment Tree — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header, .controls, .stats, .panel, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  header {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1420px; margin: 0 auto; padding: 28px 22px 40px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  input[type=number], input[type=range] {
+    accent-color: var(--accent);
+  }
+  input[type=number] {
+    width: 84px;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 10px;
+  }
+  button {
+    background: var(--accent);
+    color: #08111b;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.22rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; }
+  .panel { padding: 16px; }
+  svg { width: 100%; height: 540px; display: block; background: radial-gradient(circle at top, rgba(163,113,247,0.08), transparent 25%), #091119; border-radius: 12px; }
+  .array-row {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .cell {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .cell strong { display: block; font-size: 0.74rem; color: var(--muted); margin-bottom: 6px; }
+  .cell.active { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(88,166,255,0.25) inset; }
+  .cell.covered { border-color: var(--gold); }
+  .cell.lazy { border-color: var(--violet); }
+  .log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 620px;
+    overflow: auto;
+  }
+  .log-item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.86rem;
+  }
+  .log-item.active { border-color: var(--accent); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1100px) {
+    .layout, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🌳 Segment Tree</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Range Sum · Query / Point Update / Lazy Propagation</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <input id="left-input" type="number" min="0" max="7" value="2">
+    <input id="right-input" type="number" min="0" max="7" value="6">
+    <button id="query-btn">Range Query</button>
+    <input id="index-input" type="number" min="0" max="7" value="4">
+    <input id="value-input" type="number" value="9">
+    <button id="update-btn" class="secondary">Point Update</button>
+    <input id="lazy-left-input" type="number" min="0" max="7" value="1">
+    <input id="lazy-right-input" type="number" min="0" max="7" value="5">
+    <input id="delta-input" type="number" value="3">
+    <button id="lazy-btn" class="secondary">Range Add (Lazy)</button>
+    <button id="array-btn" class="secondary">🔀 New Array</button>
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Reset</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">520</span>ms</label>
+      <input id="speed-slider" type="range" min="120" max="1400" step="20" value="520">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="range-value">[2,6]</div><div class="stat-label">Active Range</div></div>
+    <div class="stat"><div class="stat-value" id="result-value">-</div><div class="stat-label">Current Result</div></div>
+    <div class="stat"><div class="stat-value" id="node-value">1</div><div class="stat-label">Tree Node</div></div>
+    <div class="stat"><div class="stat-value" id="lazy-value">0</div><div class="stat-label">Lazy Tag</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <svg id="tree-svg" viewBox="0 0 980 540"></svg>
+      <div class="array-row" id="array-row"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Current node / update path</div>
+        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Query segments being combined</div>
+        <div class="legend-item"><div class="swatch" style="background:#a371f7"></div>Lazy tag present</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Fully covered segment</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Step Log</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>A segment tree stores interval aggregates in a binary tree. Range queries combine only the nodes that intersect the query interval. Point updates modify a leaf and then recompute values up to the root. Lazy propagation stores postponed range updates in internal nodes until a future operation needs them.</p>
+    <ul>
+      <li>Query mode highlights which segments contribute to the final sum.</li>
+      <li>Point update mode shows the path from leaf to root.</li>
+      <li>Range add mode shows lazy tags being attached and later pushed downward.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const treeSvg = document.getElementById('tree-svg');
+const arrayRow = document.getElementById('array-row');
+const logEl = document.getElementById('log');
+const rangeValue = document.getElementById('range-value');
+const resultValue = document.getElementById('result-value');
+const nodeValue = document.getElementById('node-value');
+const lazyValue = document.getElementById('lazy-value');
+const statusValue = document.getElementById('status-value');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const arrayBtn = document.getElementById('array-btn');
+const queryBtn = document.getElementById('query-btn');
+const updateBtn = document.getElementById('update-btn');
+const lazyBtn = document.getElementById('lazy-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+
+const leftInput = document.getElementById('left-input');
+const rightInput = document.getElementById('right-input');
+const indexInput = document.getElementById('index-input');
+const valueInput = document.getElementById('value-input');
+const lazyLeftInput = document.getElementById('lazy-left-input');
+const lazyRightInput = document.getElementById('lazy-right-input');
+const deltaInput = document.getElementById('delta-input');
+
+let arr = [];
+let tree = [];
+let lazy = [];
+let coords = {};
+let frames = [];
+let frameIndex = 0;
+let timer = null;
+let speed = 520;
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function cloneState() {
+  return { tree: tree.slice(), lazy: lazy.slice(), arr: arr.slice() };
+}
+
+function build(node, l, r) {
+  if (l === r) {
+    tree[node] = arr[l];
+    return tree[node];
+  }
+  const mid = Math.floor((l + r) / 2);
+  tree[node] = build(node * 2, l, mid) + build(node * 2 + 1, mid + 1, r);
+  return tree[node];
+}
+
+function rebuildTree() {
+  tree = Array(32).fill(0);
+  lazy = Array(32).fill(0);
+  build(1, 0, arr.length - 1);
+}
+
+function capture(message, meta = {}) {
+  frames.push({
+    state: cloneState(),
+    message,
+    activeNode: meta.activeNode || 1,
+    range: meta.range || null,
+    covered: meta.covered || [],
+    path: meta.path || [],
+    result: meta.result ?? null,
+    lazyNode: meta.lazyNode || null
+  });
+}
+
+function push(node, l, r) {
+  if (lazy[node] === 0 || l === r) return;
+  const mid = Math.floor((l + r) / 2);
+  const leftLen = mid - l + 1;
+  const rightLen = r - mid;
+  tree[node * 2] += lazy[node] * leftLen;
+  tree[node * 2 + 1] += lazy[node] * rightLen;
+  lazy[node * 2] += lazy[node];
+  lazy[node * 2 + 1] += lazy[node];
+  lazy[node] = 0;
+}
+
+function query(node, l, r, ql, qr, sumRef) {
+  capture(`Visit node ${node} covering [${l}, ${r}]`, { activeNode: node, range: [ql, qr] });
+  if (qr < l || r < ql) {
+    capture(`Node ${node} is outside the query range`, { activeNode: node, range: [ql, qr], result: sumRef.value });
+    return 0;
+  }
+  if (ql <= l && r <= qr) {
+    sumRef.value += tree[node];
+    capture(`Take segment [${l}, ${r}] into the answer`, {
+      activeNode: node,
+      range: [ql, qr],
+      covered: [node],
+      result: sumRef.value
+    });
+    return tree[node];
+  }
+  push(node, l, r);
+  const mid = Math.floor((l + r) / 2);
+  const leftSum = query(node * 2, l, mid, ql, qr, sumRef);
+  const rightSum = query(node * 2 + 1, mid + 1, r, ql, qr, sumRef);
+  capture(`Combine children of node ${node}`, {
+    activeNode: node,
+    range: [ql, qr],
+    covered: [node * 2, node * 2 + 1],
+    result: leftSum + rightSum
+  });
+  return leftSum + rightSum;
+}
+
+function pointUpdate(node, l, r, idx, value, path) {
+  path = path.concat(node);
+  capture(`Follow update path at node ${node} covering [${l}, ${r}]`, { activeNode: node, range: [idx, idx], path });
+  if (l === r) {
+    arr[idx] = value;
+    tree[node] = value;
+    capture(`Write new value ${value} at array index ${idx}`, { activeNode: node, range: [idx, idx], path, result: value });
+    return;
+  }
+  push(node, l, r);
+  const mid = Math.floor((l + r) / 2);
+  if (idx <= mid) pointUpdate(node * 2, l, mid, idx, value, path);
+  else pointUpdate(node * 2 + 1, mid + 1, r, idx, value, path);
+  tree[node] = tree[node * 2] + tree[node * 2 + 1];
+  capture(`Recompute node ${node} = ${tree[node]}`, { activeNode: node, range: [idx, idx], path, result: tree[node] });
+}
+
+function rangeAdd(node, l, r, ql, qr, delta) {
+  capture(`Visit node ${node} for lazy range add`, { activeNode: node, range: [ql, qr] });
+  if (qr < l || r < ql) return;
+  if (ql <= l && r <= qr) {
+    tree[node] += delta * (r - l + 1);
+    lazy[node] += delta;
+    capture(`Attach lazy +${delta} to node ${node}`, {
+      activeNode: node,
+      range: [ql, qr],
+      covered: [node],
+      lazyNode: node,
+      result: tree[node]
+    });
+    return;
+  }
+  if (lazy[node] !== 0) {
+    capture(`Push lazy tag from node ${node} downward`, { activeNode: node, range: [ql, qr], lazyNode: node });
+    push(node, l, r);
+  }
+  const mid = Math.floor((l + r) / 2);
+  rangeAdd(node * 2, l, mid, ql, qr, delta);
+  rangeAdd(node * 2 + 1, mid + 1, r, ql, qr, delta);
+  tree[node] = tree[node * 2] + tree[node * 2 + 1];
+  for (let i = Math.max(ql, l); i <= Math.min(qr, r); i++) arr[i] += (l === r ? 0 : 0);
+  capture(`Update parent node ${node} after lazy propagation`, { activeNode: node, range: [ql, qr], result: tree[node] });
+}
+
+function buildCoords() {
+  coords = {};
+  function walk(node, l, r, depth, x1, x2) {
+    const x = (x1 + x2) / 2;
+    const y = 60 + depth * 110;
+    coords[node] = { x, y, l, r };
+    if (l === r) return;
+    const mid = Math.floor((l + r) / 2);
+    walk(node * 2, l, mid, depth + 1, x1, x);
+    walk(node * 2 + 1, mid + 1, r, depth + 1, x, x2);
+  }
+  walk(1, 0, arr.length - 1, 0, 40, 940);
+}
+
+function renderTree(frame) {
+  const nodes = Object.keys(coords).map(Number).sort((a, b) => a - b);
+  treeSvg.innerHTML = `
+    ${nodes.map(node => {
+      if (node === 1) return '';
+      const parent = Math.floor(node / 2);
+      return `<line x1="${coords[parent].x}" y1="${coords[parent].y + 28}" x2="${coords[node].x}" y2="${coords[node].y - 28}" stroke="#5b6573" stroke-width="2"></line>`;
+    }).join('')}
+    ${nodes.map(node => {
+      const c = coords[node];
+      const active = frame.activeNode === node;
+      const covered = frame.covered.includes(node);
+      const onPath = frame.path.includes(node);
+      const hasLazy = frame.state.lazy[node] !== 0 || frame.lazyNode === node;
+      const fill = active ? '#58a6ff' : covered ? '#3fb950' : onPath ? '#e3b341' : hasLazy ? '#a371f7' : '#1f6feb';
+      return `<g>
+        <circle cx="${c.x}" cy="${c.y}" r="28" fill="${fill}" stroke="#c9d1d9"></circle>
+        <text x="${c.x}" y="${c.y - 4}" fill="#fff" font-size="14" text-anchor="middle">${frame.state.tree[node]}</text>
+        <text x="${c.x}" y="${c.y + 14}" fill="#0b1020" font-size="10" text-anchor="middle">[${c.l},${c.r}]</text>
+        <text x="${c.x}" y="${c.y + 45}" fill="${hasLazy ? '#c4b5fd' : '#8b949e'}" font-size="12" text-anchor="middle">lazy ${frame.state.lazy[node] || 0}</text>
+      </g>`;
+    }).join('')}
+  `;
+}
+
+function renderArray(frame) {
+  arrayRow.innerHTML = frame.state.arr.map((value, index) => {
+    const active = frame.range && frame.range[0] <= index && index <= frame.range[1];
+    const covered = frame.range && frame.result != null && frame.range[0] <= index && index <= frame.range[1];
+    const hasLazy = frame.state.lazy.some((tag, node) => tag !== 0 && coords[node] && coords[node].l <= index && index <= coords[node].r);
+    return `<div class="cell ${active ? 'active' : ''} ${covered ? 'covered' : ''} ${hasLazy ? 'lazy' : ''}">
+      <strong>idx ${index}</strong>${value}
+    </div>`;
+  }).join('');
+}
+
+function renderLog() {
+  logEl.innerHTML = frames.map((frame, index) => `
+    <div class="log-item ${index === frameIndex ? 'active' : ''}">
+      <strong>${index + 1}. ${frame.message}</strong>
+      <div style="color:#8b949e;margin-top:4px">node ${frame.activeNode} · range ${frame.range ? `[${frame.range[0]}, ${frame.range[1]}]` : '-'}</div>
+    </div>`).join('');
+}
+
+function render() {
+  const frame = frames[frameIndex] || { state: cloneState(), message: 'Ready', activeNode: 1, range: null, covered: [], path: [], result: null, lazyNode: null };
+  rangeValue.textContent = frame.range ? `[${frame.range[0]},${frame.range[1]}]` : '-';
+  resultValue.textContent = frame.result == null ? '-' : frame.result;
+  nodeValue.textContent = frame.activeNode;
+  lazyValue.textContent = frame.state.lazy[frame.activeNode] || 0;
+  statusValue.textContent = frame.message;
+  renderTree(frame);
+  renderArray(frame);
+  renderLog();
+}
+
+function stepForward() {
+  if (!frames.length) return;
+  frameIndex = Math.min(frames.length - 1, frameIndex + 1);
+  render();
+}
+
+function setPlaying(playing) {
+  clearInterval(timer);
+  timer = null;
+  playBtn.disabled = playing;
+  pauseBtn.disabled = !playing;
+  if (!playing) return;
+  timer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) {
+      setPlaying(false);
+      return;
+    }
+    stepForward();
+  }, speed);
+}
+
+function loadArray() {
+  arr = Array.from({ length: 8 }, () => rand(1, 9));
+  rebuildTree();
+  buildCoords();
+  frames = [{ state: cloneState(), message: 'Ready', activeNode: 1, range: null, covered: [], path: [], result: null, lazyNode: null }];
+  frameIndex = 0;
+  setPlaying(false);
+  render();
+}
+
+function runQuery() {
+  const l = Math.min(Number(leftInput.value), Number(rightInput.value));
+  const r = Math.max(Number(leftInput.value), Number(rightInput.value));
+  frames = [];
+  const sumRef = { value: 0 };
+  const result = query(1, 0, arr.length - 1, l, r, sumRef);
+  capture(`Range query complete: sum = ${result}`, { activeNode: 1, range: [l, r], result, covered: [1] });
+  frameIndex = 0;
+  render();
+}
+
+function runPointUpdate() {
+  const idx = Number(indexInput.value);
+  const value = Number(valueInput.value);
+  frames = [];
+  pointUpdate(1, 0, arr.length - 1, idx, value, []);
+  capture(`Point update complete at index ${idx}`, { activeNode: 1, range: [idx, idx], result: value, path: [1] });
+  frameIndex = 0;
+  render();
+}
+
+function runLazy() {
+  const l = Math.min(Number(lazyLeftInput.value), Number(lazyRightInput.value));
+  const r = Math.max(Number(lazyLeftInput.value), Number(lazyRightInput.value));
+  const delta = Number(deltaInput.value);
+  frames = [];
+  rangeAdd(1, 0, arr.length - 1, l, r, delta);
+  for (let index = l; index <= r; index++) arr[index] += delta;
+  capture(`Lazy range add complete: +${delta} on [${l}, ${r}]`, { activeNode: 1, range: [l, r], result: tree[1], covered: [1] });
+  frameIndex = 0;
+  render();
+}
+
+playBtn.addEventListener('click', () => setPlaying(true));
+pauseBtn.addEventListener('click', () => setPlaying(false));
+stepBtn.addEventListener('click', stepForward);
+resetBtn.addEventListener('click', () => { frameIndex = 0; render(); });
+arrayBtn.addEventListener('click', loadArray);
+queryBtn.addEventListener('click', runQuery);
+updateBtn.addEventListener('click', runPointUpdate);
+lazyBtn.addEventListener('click', runLazy);
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = String(speed);
+  if (timer) setPlaying(true);
+});
+
+loadArray();
+</script>
+</body>
+</html>

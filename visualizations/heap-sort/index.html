@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Heap Sort Visualizer — visual-cs</title>
+<title>Heap Sort - visual-cs</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -12,61 +12,62 @@
     --border: #30363d;
     --text: #e6edf3;
     --muted: #8b949e;
-    --accent: #58a6ff;
-    --heap: #2f81f7;
+    --blue: #58a6ff;
+    --compare: #f2cc60;
+    --swap: #ff7b72;
     --sorted: #3fb950;
-    --compare: #f2a93b;
-    --swap: #ff6b6b;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: var(--bg);
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     min-height: 100vh;
   }
   header {
-    background: var(--surface);
+    background: rgba(22, 27, 34, 0.92);
     border-bottom: 1px solid var(--border);
     padding: 16px 32px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
-  header a { color: var(--accent); text-decoration: none; }
+  header a { color: var(--blue); text-decoration: none; font-size: 0.9rem; }
+  header a:hover { text-decoration: underline; }
   header h1 { font-size: 1.3rem; }
-  .main { max-width: 1220px; margin: 0 auto; padding: 28px 24px 36px; }
-  .stats, .controls, .legend, .chart-wrap, .explain {
+  .main { max-width: 1260px; margin: 0 auto; padding: 28px 24px 40px; }
+  .stats, .controls, .legend, .panel, .explain {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
   }
   .stats {
-    padding: 14px 18px;
     display: flex;
-    gap: 18px;
+    gap: 14px;
     flex-wrap: wrap;
+    padding: 14px 18px;
     margin-bottom: 16px;
   }
-  .stat { min-width: 120px; }
-  .stat-value { font-size: 1.25rem; font-weight: 800; }
-  .stat-label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat { min-width: 130px; }
+  .stat-value { font-size: 1.35rem; font-weight: 800; }
+  .stat-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
   .controls {
-    padding: 16px;
     display: flex;
     gap: 10px;
-    align-items: center;
     flex-wrap: wrap;
+    align-items: center;
+    padding: 14px 18px;
     margin-bottom: 16px;
   }
   button {
-    background: var(--accent);
-    color: #08111b;
     border: none;
     border-radius: 8px;
     padding: 10px 16px;
     font-weight: 700;
     cursor: pointer;
+    background: var(--blue);
+    color: #061018;
   }
   button.secondary {
     background: var(--surface-2);
@@ -74,283 +75,445 @@
     border: 1px solid var(--border);
   }
   button:disabled { opacity: 0.45; cursor: default; }
-  .range-group { display: flex; align-items: center; gap: 8px; color: var(--muted); margin-left: auto; }
-  input[type=range] { width: 180px; accent-color: var(--accent); }
-  .chart-wrap {
-    padding: 20px 20px 12px;
-  }
-  canvas {
-    display: block;
-    width: 100%;
-    height: 420px;
-    background: linear-gradient(180deg, rgba(88,166,255,0.08), transparent 25%), #0a1017;
-    border-radius: 10px;
-  }
+  .slider-group { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); }
+  input[type="range"] { accent-color: var(--blue); width: 160px; }
   .legend {
     display: flex;
     gap: 18px;
     flex-wrap: wrap;
-    padding: 14px 18px;
-    margin-top: 16px;
+    padding: 12px 18px;
+    margin-bottom: 16px;
     color: var(--muted);
     font-size: 0.84rem;
   }
   .legend-item { display: flex; align-items: center; gap: 8px; }
   .swatch { width: 14px; height: 14px; border-radius: 4px; }
-  .explain { margin-top: 20px; padding: 24px 28px; }
-  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .viz-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  .panel h2 { font-size: 0.95rem; margin-bottom: 12px; color: var(--muted); }
+  canvas, svg {
+    width: 100%;
+    display: block;
+    background: linear-gradient(180deg, rgba(88,166,255,0.05), transparent 35%), #0a1017;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  canvas { height: 340px; }
+  svg { height: 340px; }
+  .message {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 0.88rem;
+    min-height: 1.2rem;
+  }
+  .explain { margin-top: 18px; padding: 24px 28px; }
+  .explain h2 { color: var(--blue); margin-bottom: 12px; }
   .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
-  .explain ul { padding-left: 18px; margin-top: 12px; }
-  @media (max-width: 900px) {
-    .range-group { margin-left: 0; width: 100%; justify-content: space-between; }
+  .explain ul { padding-left: 18px; margin-top: 10px; }
+  @media (max-width: 980px) {
+    .viz-grid { grid-template-columns: 1fr; }
+    .slider-group { margin-left: 0; width: 100%; justify-content: space-between; }
   }
 </style>
 </head>
 <body>
 <header>
   <a href="../../index.html">← Back to Index</a>
-  <h1>🏗️ Heap Sort Visualizer</h1>
-  <span style="color:var(--muted);font-size:0.85rem">Sorting · Max heap</span>
+  <h1>Heap Sort</h1>
+  <span style="color:var(--muted);font-size:0.85rem">Bars + Heap Tree</span>
 </header>
 
 <div class="main">
   <div class="stats">
-    <div class="stat"><div class="stat-value" id="phase-value">Ready</div><div class="stat-label">Phase</div></div>
-    <div class="stat"><div class="stat-value" id="step-value">0</div><div class="stat-label">Steps</div></div>
-    <div class="stat"><div class="stat-value" id="heap-value">40</div><div class="stat-label">Heap Size</div></div>
-    <div class="stat"><div class="stat-value" id="status-value" style="font-size:1rem;color:var(--muted)">Paused</div><div class="stat-label">Status</div></div>
+    <div class="stat"><div class="stat-value" id="phase">Ready</div><div class="stat-label">Phase</div></div>
+    <div class="stat"><div class="stat-value" id="comparisons" style="color:var(--compare)">0</div><div class="stat-label">Comparisons</div></div>
+    <div class="stat"><div class="stat-value" id="swaps" style="color:var(--swap)">0</div><div class="stat-label">Swaps</div></div>
+    <div class="stat"><div class="stat-value" id="heap-size" style="color:var(--blue)">0</div><div class="stat-label">Heap Size</div></div>
+    <div class="stat"><div class="stat-value" id="status" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
   </div>
 
   <div class="controls">
-    <button id="generate-btn" class="secondary">Generate Random Array</button>
-    <button id="sort-btn">Sort</button>
+    <button id="auto-btn">Auto</button>
+    <button id="step-btn" class="secondary">Step</button>
     <button id="pause-btn" class="secondary" disabled>Pause</button>
-    <button id="resume-btn" class="secondary" disabled>Resume</button>
-    <div class="range-group">
-      <label for="speed-slider">Speed</label>
-      <input id="speed-slider" type="range" min="10" max="180" value="55">
-      <span id="speed-value">55 ms</span>
+    <button id="reset-btn" class="secondary">Reset</button>
+    <button id="randomize-btn" class="secondary">Randomize</button>
+    <div class="slider-group">
+      <label for="speed-slider">Speed <span id="speed-label">140</span> ms</label>
+      <input id="speed-slider" type="range" min="40" max="500" step="20" value="140">
     </div>
   </div>
 
-  <div class="chart-wrap">
-    <canvas id="chart" width="1160" height="420"></canvas>
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:var(--blue)"></div>Heap</div>
+    <div class="legend-item"><div class="swatch" style="background:var(--compare)"></div>Compare</div>
+    <div class="legend-item"><div class="swatch" style="background:var(--swap)"></div>Swap</div>
+    <div class="legend-item"><div class="swatch" style="background:var(--sorted)"></div>Sorted</div>
   </div>
 
-  <div class="legend">
-    <div class="legend-item"><div class="swatch" style="background:#2f81f7"></div>Heap portion</div>
-    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Sorted portion</div>
-    <div class="legend-item"><div class="swatch" style="background:#f2a93b"></div>Currently comparing</div>
-    <div class="legend-item"><div class="swatch" style="background:#ff6b6b"></div>Swapping</div>
+  <div class="viz-grid">
+    <div class="panel">
+      <h2>Array View</h2>
+      <canvas id="bars" width="720" height="340"></canvas>
+      <div class="message" id="message">Build a max heap, then keep moving the root to the end.</div>
+    </div>
+    <div class="panel">
+      <h2>Heap Tree</h2>
+      <svg id="tree" viewBox="0 0 520 340" aria-label="Heap tree"></svg>
+    </div>
   </div>
 
   <div class="explain">
-    <h2>Heap sort in two phases</h2>
-    <p>The algorithm first turns the array into a max heap, then repeatedly swaps the root with the last heap element and shrinks the heap boundary. This visualizer colors the active heap blue and the finished suffix green.</p>
+    <h2>How It Works</h2>
+    <p>Heap sort keeps the largest value at the root of a max heap. First it heapifies the array bottom-up, then it swaps the root into the sorted suffix and restores heap order on the remaining prefix.</p>
     <ul>
-      <li><strong style="color:var(--text)">Building Heap</strong> restores heap order from the bottom up.</li>
-      <li><strong style="color:var(--text)">Extracting Max</strong> moves the largest element to the sorted portion on each pass.</li>
+      <li>Yellow marks comparisons between parent and child candidates.</li>
+      <li>Red marks an actual swap in both the array and the heap tree.</li>
+      <li>Green marks indices that have left the heap and reached final sorted positions.</li>
     </ul>
   </div>
 </div>
 
 <script>
-  const SIZE = 40;
-  const chart = document.getElementById('chart');
-  const ctx = chart.getContext('2d');
-  const generateBtn = document.getElementById('generate-btn');
-  const sortBtn = document.getElementById('sort-btn');
-  const pauseBtn = document.getElementById('pause-btn');
-  const resumeBtn = document.getElementById('resume-btn');
-  const speedSlider = document.getElementById('speed-slider');
-  const speedValue = document.getElementById('speed-value');
-  const phaseValue = document.getElementById('phase-value');
-  const stepValue = document.getElementById('step-value');
-  const heapValue = document.getElementById('heap-value');
-  const statusValue = document.getElementById('status-value');
+const SIZE = 15;
+const barsCanvas = document.getElementById('bars');
+const barCtx = barsCanvas.getContext('2d');
+const treeSvg = document.getElementById('tree');
 
-  let values = [];
-  let heapSize = SIZE;
-  let stepCount = 0;
-  let comparing = [];
-  let swapping = [];
-  let sorting = false;
-  let paused = false;
-  let phase = 'Ready';
+const autoBtn = document.getElementById('auto-btn');
+const stepBtn = document.getElementById('step-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const resetBtn = document.getElementById('reset-btn');
+const randomizeBtn = document.getElementById('randomize-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+const phaseEl = document.getElementById('phase');
+const comparisonsEl = document.getElementById('comparisons');
+const swapsEl = document.getElementById('swaps');
+const heapSizeEl = document.getElementById('heap-size');
+const statusEl = document.getElementById('status');
+const messageEl = document.getElementById('message');
 
-  function randomArray() {
-    return Array.from({ length: SIZE }, () => 20 + Math.floor(Math.random() * 360));
+let baseArray = [];
+let actions = [];
+let actionIndex = 0;
+let state = null;
+let timer = null;
+
+function shuffle(values) {
+  for (let i = values.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [values[i], values[j]] = [values[j], values[i]];
   }
+  return values;
+}
 
-  function updateStats() {
-    phaseValue.textContent = phase;
-    stepValue.textContent = String(stepCount);
-    heapValue.textContent = String(heapSize);
-  }
+function makeArray() {
+  return shuffle(Array.from({ length: SIZE }, (_, index) => index + 1));
+}
 
-  function render() {
-    ctx.clearRect(0, 0, chart.width, chart.height);
-    const width = chart.width;
-    const height = chart.height;
-    const padding = 22;
-    const barWidth = (width - padding * 2) / values.length;
-    const maxValue = Math.max(...values, 1);
+function buildActions(input) {
+  const arr = input.slice();
+  let heapSize = arr.length;
+  let phase = 'Build Heap';
+  let comparisons = 0;
+  let swaps = 0;
+  const sorted = new Set();
+  const steps = [];
 
-    ctx.fillStyle = 'rgba(139,148,158,0.22)';
-    for (let i = 0; i < 5; i += 1) {
-      const y = padding + ((height - padding * 2) / 4) * i;
-      ctx.fillRect(padding, y, width - padding * 2, 1);
-    }
-
-    values.forEach((value, index) => {
-      const x = padding + index * barWidth + 1;
-      const barHeight = (value / maxValue) * (height - padding * 2);
-      const y = height - padding - barHeight;
-      let color = index >= heapSize ? '#3fb950' : '#2f81f7';
-      if (comparing.includes(index)) color = '#f2a93b';
-      if (swapping.includes(index)) color = '#ff6b6b';
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, Math.max(6, barWidth - 3), barHeight);
+  function snapshot(type, extra) {
+    steps.push({
+      type,
+      array: arr.slice(),
+      heapSize,
+      phase,
+      comparisons,
+      swaps,
+      sorted: Array.from(sorted),
+      active: extra.active || [],
+      message: extra.message || ''
     });
   }
 
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  async function waitTurn() {
-    while (paused) {
-      await sleep(40);
-    }
-    await sleep(Number(speedSlider.value));
-  }
-
-  async function compare(indices) {
-    comparing = [...indices];
-    swapping = [];
-    stepCount += 1;
-    render();
-    updateStats();
-    await waitTurn();
-  }
-
-  async function swap(i, j) {
-    swapping = [i, j];
-    comparing = [];
-    stepCount += 1;
-    [values[i], values[j]] = [values[j], values[i]];
-    render();
-    updateStats();
-    await waitTurn();
-  }
-
-  async function heapify(n, i) {
-    let largest = i;
-    const left = 2 * i + 1;
-    const right = 2 * i + 2;
-
-    if (left < n) {
-      await compare([largest, left]);
-      if (values[left] > values[largest]) largest = left;
-    }
-    if (right < n) {
-      await compare([largest, right]);
-      if (values[right] > values[largest]) largest = right;
-    }
-
-    if (largest !== i) {
-      await swap(i, largest);
-      await heapify(n, largest);
+  function siftDown(start, end) {
+    let root = start;
+    while (true) {
+      const left = root * 2 + 1;
+      if (left >= end) {
+        return;
+      }
+      let candidate = root;
+      comparisons += 1;
+      snapshot('compare', {
+        active: [candidate, left],
+        message: `Compare parent ${arr[candidate]} with left child ${arr[left]}.`
+      });
+      if (arr[left] > arr[candidate]) {
+        candidate = left;
+      }
+      const right = left + 1;
+      if (right < end) {
+        comparisons += 1;
+        snapshot('compare', {
+          active: [candidate, right],
+          message: `Compare current candidate ${arr[candidate]} with right child ${arr[right]}.`
+        });
+        if (arr[right] > arr[candidate]) {
+          candidate = right;
+        }
+      }
+      if (candidate === root) {
+        return;
+      }
+      const fromValue = arr[root];
+      const toValue = arr[candidate];
+      [arr[root], arr[candidate]] = [arr[candidate], arr[root]];
+      swaps += 1;
+      snapshot('swap', {
+        active: [root, candidate],
+        message: `Swap ${fromValue} with ${toValue} to restore heap order.`
+      });
+      root = candidate;
     }
   }
 
-  async function heapSort() {
-    if (sorting) return;
-    sorting = true;
-    paused = false;
-    phase = 'Building Heap';
-    statusValue.textContent = 'Sorting…';
-    sortBtn.disabled = true;
-    generateBtn.disabled = true;
-    pauseBtn.disabled = false;
-    resumeBtn.disabled = true;
-    heapSize = values.length;
-    stepCount = 0;
-    updateStats();
-    render();
-
-    for (let i = Math.floor(values.length / 2) - 1; i >= 0; i -= 1) {
-      await heapify(values.length, i);
-    }
-
-    phase = 'Extracting Max';
-    updateStats();
-
-    for (let end = values.length - 1; end > 0; end -= 1) {
-      await swap(0, end);
-      heapSize = end;
-      updateStats();
-      comparing = [];
-      swapping = [end];
-      render();
-      await waitTurn();
-      swapping = [];
-      await heapify(end, 0);
-    }
-
-    heapSize = 0;
-    comparing = [];
-    swapping = [];
-    phase = 'Done';
-    statusValue.textContent = 'Sorted';
-    sorting = false;
-    pauseBtn.disabled = true;
-    resumeBtn.disabled = true;
-    sortBtn.disabled = false;
-    generateBtn.disabled = false;
-    updateStats();
-    render();
+  snapshot('ready', { message: 'Build a max heap from the unsorted array.' });
+  for (let i = Math.floor(arr.length / 2) - 1; i >= 0; i -= 1) {
+    snapshot('phase', { active: [i], message: `Heapify subtree rooted at index ${i}.` });
+    siftDown(i, arr.length);
   }
 
-  function resetArray() {
-    values = randomArray();
-    heapSize = values.length;
-    stepCount = 0;
-    comparing = [];
-    swapping = [];
-    sorting = false;
-    paused = false;
-    phase = 'Ready';
-    statusValue.textContent = 'Paused';
-    pauseBtn.disabled = true;
-    resumeBtn.disabled = true;
-    sortBtn.disabled = false;
-    generateBtn.disabled = false;
-    updateStats();
-    render();
+  phase = 'Extract Max';
+  snapshot('phase', { active: [0], message: 'The max heap is ready. Move the root into the sorted suffix.' });
+  for (let end = arr.length - 1; end > 0; end -= 1) {
+    const rootValue = arr[0];
+    const tailValue = arr[end];
+    [arr[0], arr[end]] = [arr[end], arr[0]];
+    swaps += 1;
+    snapshot('swap', {
+      active: [0, end],
+      message: `Swap root ${rootValue} with tail ${tailValue}.`
+    });
+    heapSize = end;
+    sorted.add(end);
+    snapshot('sorted', {
+      active: [end],
+      message: `Value ${arr[end]} is now locked in its final sorted position.`
+    });
+    siftDown(0, end);
+  }
+  heapSize = 0;
+  sorted.add(0);
+  phase = 'Done';
+  snapshot('done', { active: [0], message: 'All values are sorted.' });
+  return steps;
+}
+
+function initialState() {
+  return {
+    type: 'initial',
+    array: baseArray.slice(),
+    heapSize: baseArray.length,
+    phase: 'Ready',
+    comparisons: 0,
+    swaps: 0,
+    sorted: [],
+    active: [],
+    message: 'Build a max heap, then keep moving the root to the end.'
+  };
+}
+
+function hslForValue(value, max) {
+  const hue = 210 - (value / max) * 80;
+  return `hsl(${hue}, 80%, 56%)`;
+}
+
+function renderBars() {
+  const width = barsCanvas.width;
+  const height = barsCanvas.height;
+  barCtx.clearRect(0, 0, width, height);
+  barCtx.fillStyle = '#0a1017';
+  barCtx.fillRect(0, 0, width, height);
+
+  const n = state.array.length;
+  const barWidth = width / n;
+  const maxBarHeight = height - 48;
+  const sortedSet = new Set(state.sorted);
+  const activeSet = new Set(state.active);
+
+  for (let i = 0; i < n; i += 1) {
+    const value = state.array[i];
+    const barHeight = (value / n) * maxBarHeight;
+    const x = i * barWidth + 2;
+    const y = height - barHeight - 26;
+    let color = hslForValue(value, n);
+    if (i < state.heapSize) color = '#58a6ff';
+    if (activeSet.has(i)) color = state.type === 'swap' ? '#ff7b72' : '#f2cc60';
+    if (sortedSet.has(i)) color = '#3fb950';
+    barCtx.fillStyle = color;
+    barCtx.beginPath();
+    barCtx.roundRect(x, y, Math.max(10, barWidth - 4), barHeight, [4, 4, 0, 0]);
+    barCtx.fill();
+    barCtx.fillStyle = '#9fb3c8';
+    barCtx.font = '11px sans-serif';
+    barCtx.textAlign = 'center';
+    barCtx.fillText(String(value), x + Math.max(10, barWidth - 4) / 2, height - 10);
+  }
+}
+
+function renderTree() {
+  const sortedSet = new Set(state.sorted);
+  const activeSet = new Set(state.active);
+  const heapCount = state.array.length;
+  const width = 520;
+  const levelGap = 72;
+  const top = 34;
+  const positions = new Map();
+  const edges = [];
+
+  for (let i = 0; i < heapCount; i += 1) {
+    const level = Math.floor(Math.log2(i + 1));
+    const levelStart = 2 ** level - 1;
+    const indexInLevel = i - levelStart;
+    const nodesInLevel = 2 ** level;
+    const x = ((indexInLevel + 1) / (nodesInLevel + 1)) * width;
+    const y = top + level * levelGap;
+    positions.set(i, { x, y });
+    if (i > 0) {
+      const parent = Math.floor((i - 1) / 2);
+      edges.push([parent, i]);
+    }
   }
 
-  generateBtn.addEventListener('click', resetArray);
-  sortBtn.addEventListener('click', heapSort);
-  pauseBtn.addEventListener('click', () => {
-    if (!sorting) return;
-    paused = true;
-    statusValue.textContent = 'Paused';
-    pauseBtn.disabled = true;
-    resumeBtn.disabled = false;
-  });
-  resumeBtn.addEventListener('click', () => {
-    if (!sorting) return;
-    paused = false;
-    statusValue.textContent = 'Sorting…';
-    pauseBtn.disabled = false;
-    resumeBtn.disabled = true;
-  });
-  speedSlider.addEventListener('input', () => {
-    speedValue.textContent = `${speedSlider.value} ms`;
-  });
+  const lines = edges.map(([from, to]) => {
+    const p1 = positions.get(from);
+    const p2 = positions.get(to);
+    const stroke = to < state.heapSize ? '#334155' : '#1d2733';
+    return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${stroke}" stroke-width="2" />`;
+  }).join('');
 
-  resetArray();
+  const nodes = state.array.map((value, index) => {
+    const pos = positions.get(index);
+    let fill = index < state.heapSize ? '#132338' : '#10161f';
+    let stroke = index < state.heapSize ? '#58a6ff' : '#30363d';
+    let text = '#e6edf3';
+    if (activeSet.has(index)) {
+      fill = state.type === 'swap' ? '#4c1f26' : '#4c4014';
+      stroke = state.type === 'swap' ? '#ff7b72' : '#f2cc60';
+    }
+    if (sortedSet.has(index)) {
+      fill = '#12311c';
+      stroke = '#3fb950';
+    }
+    return `
+      <g>
+        <circle cx="${pos.x}" cy="${pos.y}" r="20" fill="${fill}" stroke="${stroke}" stroke-width="2.5" />
+        <text x="${pos.x}" y="${pos.y + 5}" text-anchor="middle" font-size="12" font-weight="700" fill="${text}">${value}</text>
+        <text x="${pos.x}" y="${pos.y + 34}" text-anchor="middle" font-size="10" fill="#8b949e">${index}</text>
+      </g>
+    `;
+  }).join('');
+
+  treeSvg.innerHTML = `${lines}${nodes}`;
+}
+
+function renderStats() {
+  phaseEl.textContent = state.phase;
+  comparisonsEl.textContent = state.comparisons;
+  swapsEl.textContent = state.swaps;
+  heapSizeEl.textContent = state.heapSize;
+  messageEl.textContent = state.message;
+  if (state.type === 'done') {
+    statusEl.textContent = 'Done';
+    statusEl.style.color = '#3fb950';
+  } else if (timer) {
+    statusEl.textContent = 'Auto';
+    statusEl.style.color = '#58a6ff';
+  } else {
+    statusEl.textContent = 'Ready';
+    statusEl.style.color = '#8b949e';
+  }
+}
+
+function render() {
+  renderBars();
+  renderTree();
+  renderStats();
+}
+
+function stopAuto() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+  pauseBtn.disabled = true;
+  autoBtn.disabled = false;
+  renderStats();
+}
+
+function applyNextAction() {
+  if (actionIndex >= actions.length) {
+    stopAuto();
+    return;
+  }
+  state = actions[actionIndex];
+  actionIndex += 1;
+  render();
+  if (state.type === 'done') {
+    stopAuto();
+  }
+}
+
+function resetToBase() {
+  stopAuto();
+  actionIndex = 0;
+  state = initialState();
+  render();
+}
+
+function randomize() {
+  baseArray = makeArray();
+  actions = buildActions(baseArray);
+  resetToBase();
+}
+
+autoBtn.addEventListener('click', () => {
+  if (timer) return;
+  autoBtn.disabled = true;
+  pauseBtn.disabled = false;
+  statusEl.textContent = 'Auto';
+  statusEl.style.color = '#58a6ff';
+  timer = setInterval(applyNextAction, Number(speedSlider.value));
+});
+
+pauseBtn.addEventListener('click', () => {
+  stopAuto();
+});
+
+stepBtn.addEventListener('click', () => {
+  stopAuto();
+  applyNextAction();
+});
+
+resetBtn.addEventListener('click', resetToBase);
+randomizeBtn.addEventListener('click', randomize);
+
+speedSlider.addEventListener('input', (event) => {
+  speedLabel.textContent = event.target.value;
+  if (timer) {
+    stopAuto();
+    autoBtn.click();
+  }
+});
+
+baseArray = makeArray();
+actions = buildActions(baseArray);
+state = initialState();
+render();
 </script>
 </body>
 </html>

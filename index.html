@@ -303,10 +303,61 @@
     <div class="card-desc">Insert and delete values in a self-balancing BST. Rotations pulse red with LL / RR / LR / RL labels while the tree rebalances in real time.</div>
     <div class="card-meta">
       <span>🔁 Rotations</span>
-      <span>🖐 Pan + zoom</span>
-      <span>📏 Height stats</span>
+      <span>⏯ Replay controls</span>
+      <span>📏 Balance factors</span>
     </div>
     <a class="view-btn" style="background:#7ee787;color:#0d1117" href="./visualizations/avl-tree/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #34d399;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Floyd-Warshall</div>
+        <span class="tag graph">Graph</span>
+      </div>
+      <div class="card-icon">🧮</div>
+    </div>
+    <div class="card-desc">See all-pairs shortest paths emerge as the distance matrix updates. The current pivot node, matrix cell, and best path on the graph stay synchronized step by step.</div>
+    <div class="card-meta">
+      <span>📋 Matrix state</span>
+      <span>🧭 Path highlight</span>
+      <span>⏯ Step replay</span>
+    </div>
+    <a class="view-btn" style="background:#34d399;color:#0d1117" href="./visualizations/floyd-warshall/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #f59e0b;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Topological Sort</div>
+        <span class="tag graph">Graph</span>
+      </div>
+      <div class="card-icon">🧩</div>
+    </div>
+    <div class="card-desc">Compare Kahn's queue-based algorithm and DFS topological order on the same DAG. Watch edge removal, recursion, and output order side by side.</div>
+    <div class="card-meta">
+      <span>↔ Side by side</span>
+      <span>📚 Queue vs stack</span>
+      <span>🎨 Order coloring</span>
+    </div>
+    <a class="view-btn" style="background:#f59e0b;color:#0d1117" href="./visualizations/topological-sort/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #a78bfa;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Segment Tree</div>
+        <span class="tag graph">Data Structure</span>
+      </div>
+      <div class="card-icon">🌳</div>
+    </div>
+    <div class="card-desc">Inspect range sum queries, point updates, and lazy propagation on a full segment tree. The array and tree stay linked so every covered interval is visible.</div>
+    <div class="card-meta">
+      <span>➕ Lazy tags</span>
+      <span>📍 Update path</span>
+      <span>📦 Segment combine</span>
+    </div>
+    <a class="view-btn" style="background:#a78bfa;color:#0d1117" href="./visualizations/segment-tree/index.html">View →</a>
   </div>
 
   <div class="card" style="--card-accent: #f2cc60;">
@@ -341,6 +392,40 @@
       <span>👣 Step counter</span>
     </div>
     <a class="view-btn" style="background:#79c0ff;color:#0d1117" href="./visualizations/heap-sort/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #58a6ff;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">BFS vs DFS</div>
+        <span class="tag graph">Graph</span>
+      </div>
+      <div class="card-icon">🧠</div>
+    </div>
+    <div class="card-desc">Build your own graph, then compare breadth-first and depth-first traversal on the same node set. Queue and stack contents update live as the run advances.</div>
+    <div class="card-meta">
+      <span>🖱 Add nodes</span>
+      <span>🔗 Drag to connect</span>
+      <span>📚 Queue vs stack</span>
+    </div>
+    <a class="view-btn" style="background:#58a6ff" href="./visualizations/bfs-dfs/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #d2a8ff;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Bloom Filter</div>
+        <span class="tag search">Probabilistic</span>
+      </div>
+      <div class="card-icon">🫧</div>
+    </div>
+    <div class="card-desc">Watch three hash functions map words into a compact bit array. Test words to see true negatives, true positives, and occasional false positives.</div>
+    <div class="card-meta">
+      <span>🔣 Word input</span>
+      <span>🎯 Hash animation</span>
+      <span>📈 FPR stats</span>
+    </div>
+    <a class="view-btn" style="background:#d2a8ff;color:#0d1117" href="./visualizations/bloom-filter/index.html">View →</a>
   </div>
 
   <div class="card" style="--card-accent: #ff6b6b;">
@@ -447,7 +532,7 @@
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-value">14</div><div class="stat-label">Visualizations</div></div>
+  <div class="stat"><div class="stat-value">19</div><div class="stat-label">Visualizations</div></div>
   <div class="stat"><div class="stat-value">0</div><div class="stat-label">Dependencies</div></div>
   <div class="stat"><div class="stat-value">∞</div><div class="stat-label">Fun</div></div>
 </div>

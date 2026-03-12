@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Topological Sort — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header, .controls, .stats, .panel, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  header {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1420px; margin: 0 auto; padding: 28px 22px 40px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  button {
+    background: var(--accent);
+    color: #08111b;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
+  input[type=range] { accent-color: var(--accent); }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.22rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  svg { width: 100%; height: 520px; display: block; background: radial-gradient(circle at top, rgba(63,185,80,0.08), transparent 25%), #091119; border-radius: 12px; }
+  .panel h3 { margin-bottom: 12px; }
+  .subinfo {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .chip {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+  .order {
+    margin-top: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1100px) {
+    .layout, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🧩 Topological Sort</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Kahn + DFS side by side on the same DAG</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Reset</button>
+    <button id="graph-btn" class="secondary">🔀 New DAG</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">520</span>ms</label>
+      <input id="speed-slider" type="range" min="120" max="1400" step="20" value="520">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="step-value">0</div><div class="stat-label">Step</div></div>
+    <div class="stat"><div class="stat-value" id="node-value">-</div><div class="stat-label">Current Node</div></div>
+    <div class="stat"><div class="stat-value" id="queue-value">0</div><div class="stat-label">Kahn Queue</div></div>
+    <div class="stat"><div class="stat-value" id="stack-value">0</div><div class="stat-label">DFS Stack</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <h3>Kahn Algorithm (BFS-based)</h3>
+      <svg id="kahn-svg" viewBox="0 0 620 520"></svg>
+      <div class="subinfo">
+        <div class="chip" id="queue-chip">Queue: []</div>
+        <div class="chip" id="indegree-chip">Indegree changes update live</div>
+      </div>
+      <div class="order" id="kahn-order"></div>
+    </div>
+    <div class="panel">
+      <h3>DFS Topological Order</h3>
+      <svg id="dfs-svg" viewBox="0 0 620 520"></svg>
+      <div class="subinfo">
+        <div class="chip" id="stack-chip">DFS stack: []</div>
+        <div class="chip" id="finish-chip">Completion order colors the nodes</div>
+      </div>
+      <div class="order" id="dfs-order"></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Active node</div>
+    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Output order / completed</div>
+    <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Edge being removed or explored</div>
+    <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Queued / on recursion stack</div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Kahn's algorithm repeatedly removes nodes with indegree 0, while DFS records nodes when recursion finishes and reverses that finish order to get a topological ordering.</p>
+    <ul>
+      <li>The same DAG is rendered twice so you can compare the two strategies directly.</li>
+      <li>Kahn highlights queue operations and edge removals.</li>
+      <li>DFS highlights active recursion paths and colors nodes by completion order.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const kahnSvg = document.getElementById('kahn-svg');
+const dfsSvg = document.getElementById('dfs-svg');
+const stepValue = document.getElementById('step-value');
+const nodeValue = document.getElementById('node-value');
+const queueValue = document.getElementById('queue-value');
+const stackValue = document.getElementById('stack-value');
+const statusValue = document.getElementById('status-value');
+const queueChip = document.getElementById('queue-chip');
+const indegreeChip = document.getElementById('indegree-chip');
+const stackChip = document.getElementById('stack-chip');
+const finishChip = document.getElementById('finish-chip');
+const kahnOrder = document.getElementById('kahn-order');
+const dfsOrder = document.getElementById('dfs-order');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const graphBtn = document.getElementById('graph-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+
+const positions = [
+  { x: 90, y: 90 }, { x: 280, y: 90 }, { x: 470, y: 90 },
+  { x: 180, y: 250 }, { x: 380, y: 250 }, { x: 280, y: 420 }
+];
+
+let graph = null;
+let frames = [];
+let frameIndex = 0;
+let timer = null;
+let speed = 520;
+
+function buildDag() {
+  const nodes = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const edges = [];
+  for (let from = 0; from < nodes.length; from++) {
+    for (let to = from + 1; to < nodes.length; to++) {
+      if (Math.random() < 0.38) edges.push([from, to]);
+    }
+  }
+  for (let i = 0; i < nodes.length - 1; i++) {
+    if (!edges.some(edge => edge[0] === i && edge[1] === i + 1)) edges.push([i, i + 1]);
+  }
+  return { nodes, edges };
+}
+
+function cloneFrame(frame) {
+  return JSON.parse(JSON.stringify(frame));
+}
+
+function buildFrames() {
+  frames = [];
+  const n = graph.nodes.length;
+  const adj = Array.from({ length: n }, () => []);
+  const indeg = Array(n).fill(0);
+  for (const [u, v] of graph.edges) {
+    adj[u].push(v);
+    indeg[v] += 1;
+  }
+
+  const base = {
+    node: null,
+    status: 'Start traversal',
+    kahn: { queue: [], order: [], indeg: indeg.slice(), removedEdges: [], active: null, queueSet: [] },
+    dfs: { stack: [], order: [], active: null, onStack: [], done: [], edge: null }
+  };
+  frames.push(cloneFrame(base));
+
+  const queue = [];
+  indeg.forEach((value, index) => { if (value === 0) queue.push(index); });
+  base.kahn.queue = queue.slice();
+  base.kahn.queueSet = queue.slice();
+  frames.push(cloneFrame(base));
+
+  const kahnState = cloneFrame(base).kahn;
+  while (queue.length) {
+    const node = queue.shift();
+    kahnState.active = node;
+    kahnState.queue = queue.slice();
+    kahnState.queueSet = queue.slice();
+    kahnState.order.push(node);
+    frames.push({
+      node,
+      status: `Kahn removes ${graph.nodes[node]} from the queue`,
+      kahn: JSON.parse(JSON.stringify(kahnState)),
+      dfs: cloneFrame(base).dfs
+    });
+    for (const next of adj[node]) {
+      kahnState.removedEdges = [[node, next]];
+      kahnState.indeg[next] -= 1;
+      if (kahnState.indeg[next] === 0) {
+        queue.push(next);
+      }
+      kahnState.queue = queue.slice();
+      kahnState.queueSet = queue.slice();
+      frames.push({
+        node: next,
+        status: `Kahn updates indegree of ${graph.nodes[next]}`,
+        kahn: JSON.parse(JSON.stringify(kahnState)),
+        dfs: cloneFrame(base).dfs
+      });
+    }
+    kahnState.removedEdges = [];
+  }
+
+  const visited = Array(n).fill(false);
+  const finished = [];
+  const dfsState = { stack: [], order: [], active: null, onStack: [], done: [], edge: null };
+  function dfs(u) {
+    visited[u] = true;
+    dfsState.stack.push(u);
+    dfsState.onStack = dfsState.stack.slice();
+    dfsState.active = u;
+    frames.push({
+      node: u,
+      status: `DFS enters ${graph.nodes[u]}`,
+      kahn: cloneFrame(base).kahn,
+      dfs: JSON.parse(JSON.stringify(dfsState))
+    });
+    for (const v of adj[u]) {
+      dfsState.edge = [u, v];
+      frames.push({
+        node: v,
+        status: `DFS explores edge ${graph.nodes[u]} → ${graph.nodes[v]}`,
+        kahn: cloneFrame(base).kahn,
+        dfs: JSON.parse(JSON.stringify(dfsState))
+      });
+      if (!visited[v]) dfs(v);
+    }
+    dfsState.stack.pop();
+    finished.push(u);
+    dfsState.order = finished.slice().reverse();
+    dfsState.done = finished.slice();
+    dfsState.onStack = dfsState.stack.slice();
+    dfsState.active = u;
+    dfsState.edge = null;
+    frames.push({
+      node: u,
+      status: `DFS finishes ${graph.nodes[u]}`,
+      kahn: cloneFrame(base).kahn,
+      dfs: JSON.parse(JSON.stringify(dfsState))
+    });
+  }
+  for (let i = 0; i < n; i++) {
+    if (!visited[i]) dfs(i);
+  }
+}
+
+function colorByOrder(index, total) {
+  const hue = 210 - (index / Math.max(total, 1)) * 160;
+  return `hsl(${hue}, 70%, 55%)`;
+}
+
+function renderGraph(svg, sideState, type) {
+  svg.innerHTML = `
+    <defs>
+      <marker id="${type}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6e7681"></path>
+      </marker>
+    </defs>
+    ${graph.edges.map(([u, v]) => {
+      const a = positions[u];
+      const b = positions[v];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len;
+      const uy = dy / len;
+      const x1 = a.x + ux * 30;
+      const y1 = a.y + uy * 30;
+      const x2 = b.x - ux * 30;
+      const y2 = b.y - uy * 30;
+      const activeEdge = type === 'kahn'
+        ? sideState.removedEdges.some(edge => edge[0] === u && edge[1] === v)
+        : sideState.edge && sideState.edge[0] === u && sideState.edge[1] === v;
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${activeEdge ? '#f78166' : '#6e7681'}" stroke-width="${activeEdge ? 4 : 2.2}" marker-end="url(#${type}-arrow)" opacity="${activeEdge ? 1 : 0.8}"></line>`;
+    }).join('')}
+    ${graph.nodes.map((label, index) => {
+      let fill = '#1f6feb';
+      if (type === 'kahn') {
+        if (sideState.order.includes(index)) fill = colorByOrder(sideState.order.indexOf(index), graph.nodes.length);
+        else if (sideState.queueSet.includes(index)) fill = '#e3b341';
+        if (sideState.active === index) fill = '#58a6ff';
+      } else {
+        if (sideState.done.includes(index)) fill = colorByOrder(sideState.done.indexOf(index), graph.nodes.length);
+        else if (sideState.onStack.includes(index)) fill = '#e3b341';
+        if (sideState.active === index) fill = '#58a6ff';
+      }
+      return `<g>
+        <circle cx="${positions[index].x}" cy="${positions[index].y}" r="28" fill="${fill}" stroke="#c9d1d9"></circle>
+        <text x="${positions[index].x}" y="${positions[index].y + 5}" fill="#fff" font-size="18" text-anchor="middle">${label}</text>
+      </g>`;
+    }).join('')}
+  `;
+}
+
+function render() {
+  const frame = frames[frameIndex] || frames[0];
+  if (!frame) return;
+  stepValue.textContent = frameIndex + 1;
+  nodeValue.textContent = frame.node == null ? '-' : graph.nodes[frame.node];
+  queueValue.textContent = frame.kahn.queue.length;
+  stackValue.textContent = frame.dfs.stack.length;
+  statusValue.textContent = frame.status;
+  queueChip.textContent = `Queue: [${frame.kahn.queue.map(i => graph.nodes[i]).join(', ')}]`;
+  indegreeChip.textContent = `Indegree: [${frame.kahn.indeg.map((value, i) => `${graph.nodes[i]}:${value}`).join('  ')}]`;
+  stackChip.textContent = `DFS stack: [${frame.dfs.stack.map(i => graph.nodes[i]).join(', ')}]`;
+  finishChip.textContent = `Finish order: [${frame.dfs.done.map(i => graph.nodes[i]).join(', ')}]`;
+  kahnOrder.innerHTML = `<strong>Kahn order:</strong> ${frame.kahn.order.map(i => graph.nodes[i]).join(' → ') || 'pending'}`;
+  dfsOrder.innerHTML = `<strong>DFS topo order:</strong> ${frame.dfs.order.map(i => graph.nodes[i]).join(' → ') || 'pending'}`;
+  renderGraph(kahnSvg, frame.kahn, 'kahn');
+  renderGraph(dfsSvg, frame.dfs, 'dfs');
+}
+
+function stepForward() {
+  if (!frames.length) return;
+  frameIndex = Math.min(frames.length - 1, frameIndex + 1);
+  render();
+}
+
+function setPlaying(playing) {
+  clearInterval(timer);
+  timer = null;
+  playBtn.disabled = playing;
+  pauseBtn.disabled = !playing;
+  if (!playing) return;
+  timer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) {
+      setPlaying(false);
+      return;
+    }
+    stepForward();
+  }, speed);
+}
+
+function rebuild() {
+  graph = buildDag();
+  buildFrames();
+  frameIndex = 0;
+  setPlaying(false);
+  render();
+}
+
+playBtn.addEventListener('click', () => setPlaying(true));
+pauseBtn.addEventListener('click', () => setPlaying(false));
+stepBtn.addEventListener('click', stepForward);
+resetBtn.addEventListener('click', () => { frameIndex = 0; render(); });
+graphBtn.addEventListener('click', rebuild);
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = String(speed);
+  if (timer) setPlaying(true);
+});
+
+rebuild();
+</script>
+</body>
+</html>

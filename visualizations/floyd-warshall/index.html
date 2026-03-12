@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floyd-Warshall — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header, .controls, .stats, .panel, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  header {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1380px; margin: 0 auto; padding: 28px 22px 40px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  button {
+    background: var(--accent);
+    color: #08111b;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
+  input[type=range] { accent-color: var(--accent); }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.24rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  .graph {
+    min-height: 620px;
+    background: radial-gradient(circle at top, rgba(63,185,80,0.08), transparent 25%), #091119;
+  }
+  svg { width: 100%; height: 620px; display: block; }
+  .matrix table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .matrix th, .matrix td {
+    border: 1px solid var(--border);
+    text-align: center;
+    padding: 8px 6px;
+    font-size: 0.86rem;
+    background: var(--panel);
+  }
+  .matrix th { color: var(--muted); background: #0b121b; }
+  .matrix td.current { background: rgba(227,179,65,0.18); color: #fff4cc; }
+  .matrix td.updated { background: rgba(63,185,80,0.2); color: #c8ffd7; }
+  .matrix td.pivot { outline: 1px solid var(--accent); }
+  .pathbox, .stepbox {
+    margin-top: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+  .stepbox strong, .pathbox strong { color: var(--text); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1100px) {
+    .layout, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🧮 Floyd-Warshall</h1>
+  <span style="color:var(--muted);font-size:0.84rem">All-Pairs Shortest Path · Matrix + Graph</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Reset</button>
+    <button id="graph-btn" class="secondary">🔀 New Graph</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">500</span>ms</label>
+      <input id="speed-slider" type="range" min="120" max="1200" step="20" value="500">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="k-value">0</div><div class="stat-label">Pivot k</div></div>
+    <div class="stat"><div class="stat-value" id="ij-value">0,0</div><div class="stat-label">Cell i,j</div></div>
+    <div class="stat"><div class="stat-value" id="updates-value">0</div><div class="stat-label">Updates</div></div>
+    <div class="stat"><div class="stat-value" id="best-value">∞</div><div class="stat-label">Current Distance</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel graph">
+      <svg id="graph-svg" viewBox="0 0 640 620"></svg>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Current pivot node k</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Improved shortest path</div>
+        <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Current source/target pair</div>
+        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Candidate path through k</div>
+      </div>
+    </div>
+    <div class="panel matrix">
+      <table id="matrix-table"></table>
+      <div class="stepbox" id="step-box"></div>
+      <div class="pathbox" id="path-box"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Floyd-Warshall tries every node <code>k</code> as an intermediate pivot. For each pair <code>(i, j)</code>, it checks whether going through <code>k</code> improves the current best distance.</p>
+    <ul>
+      <li>The matrix shows the complete all-pairs state after every check.</li>
+      <li>The graph highlights the current pair <code>i → j</code>, the pivot <code>k</code>, and any improved shortest path.</li>
+      <li>If a shorter route is found, the corresponding matrix cell flashes green and the path display updates immediately.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const graphSvg = document.getElementById('graph-svg');
+const matrixTable = document.getElementById('matrix-table');
+const stepBox = document.getElementById('step-box');
+const pathBox = document.getElementById('path-box');
+const kValue = document.getElementById('k-value');
+const ijValue = document.getElementById('ij-value');
+const updatesValue = document.getElementById('updates-value');
+const bestValue = document.getElementById('best-value');
+const statusValue = document.getElementById('status-value');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const graphBtn = document.getElementById('graph-btn');
+
+const positions = [
+  { x: 320, y: 80 },
+  { x: 540, y: 210 },
+  { x: 470, y: 470 },
+  { x: 170, y: 470 },
+  { x: 100, y: 210 }
+];
+
+let data = null;
+let steps = [];
+let stepIndex = 0;
+let timer = null;
+let speed = 500;
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function deepMatrix(matrix) {
+  return matrix.map(row => row.slice());
+}
+
+function pathToString(path) {
+  return path.length ? path.join(' → ') : 'no path';
+}
+
+function buildGraph() {
+  const nodes = ['A', 'B', 'C', 'D', 'E'];
+  const edges = [];
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = 0; j < nodes.length; j++) {
+      if (i === j) continue;
+      if (Math.random() < 0.4) edges.push({ from: i, to: j, weight: rand(2, 12) });
+    }
+  }
+  for (let i = 0; i < nodes.length - 1; i++) {
+    if (!edges.some(edge => edge.from === i && edge.to === i + 1)) {
+      edges.push({ from: i, to: i + 1, weight: rand(2, 9) });
+    }
+  }
+
+  const n = nodes.length;
+  const dist = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => i === j ? 0 : Infinity));
+  const next = Array.from({ length: n }, () => Array(n).fill(null));
+  for (const edge of edges) {
+    if (edge.weight < dist[edge.from][edge.to]) {
+      dist[edge.from][edge.to] = edge.weight;
+      next[edge.from][edge.to] = edge.to;
+    }
+  }
+  for (let i = 0; i < n; i++) next[i][i] = i;
+  return { nodes, edges, dist, next };
+}
+
+function reconstructPath(next, i, j, labels) {
+  if (next[i][j] == null) return [];
+  const path = [labels[i]];
+  let curr = i;
+  let guard = 0;
+  while (curr !== j && guard < 20) {
+    curr = next[curr][j];
+    if (curr == null) return [];
+    path.push(labels[curr]);
+    guard += 1;
+  }
+  return path;
+}
+
+function buildSteps() {
+  const labels = data.nodes;
+  const dist = deepMatrix(data.dist);
+  const next = data.next.map(row => row.slice());
+  steps = [];
+  let updates = 0;
+
+  for (let k = 0; k < labels.length; k++) {
+    for (let i = 0; i < labels.length; i++) {
+      for (let j = 0; j < labels.length; j++) {
+        const viaK = dist[i][k] + dist[k][j];
+        const before = dist[i][j];
+        let updated = false;
+        if (dist[i][k] !== Infinity && dist[k][j] !== Infinity && viaK < dist[i][j]) {
+          dist[i][j] = viaK;
+          next[i][j] = next[i][k];
+          updated = true;
+          updates += 1;
+        }
+        steps.push({
+          k, i, j, updated, updates,
+          before, after: dist[i][j], viaK,
+          matrix: deepMatrix(dist),
+          next: next.map(row => row.slice()),
+          candidatePath: reconstructPath(next, i, k, labels).concat(reconstructPath(next, k, j, labels).slice(1)),
+          bestPath: reconstructPath(next, i, j, labels)
+        });
+      }
+    }
+  }
+}
+
+function render() {
+  const step = steps[stepIndex] || steps[0];
+  if (!step) return;
+  kValue.textContent = data.nodes[step.k];
+  ijValue.textContent = `${data.nodes[step.i]}, ${data.nodes[step.j]}`;
+  updatesValue.textContent = step.updates;
+  bestValue.textContent = step.after === Infinity ? '∞' : String(step.after);
+  statusValue.textContent = step.updated ? 'Distance improved through current pivot' : 'No shorter route through current pivot';
+
+  const labels = data.nodes;
+  matrixTable.innerHTML = `
+    <tr><th></th>${labels.map(label => `<th>${label}</th>`).join('')}</tr>
+    ${step.matrix.map((row, i) => `
+      <tr>
+        <th>${labels[i]}</th>
+        ${row.map((value, j) => {
+          const classes = [
+            i === step.k || j === step.k ? 'pivot' : '',
+            i === step.i && j === step.j ? 'current' : '',
+            i === step.i && j === step.j && step.updated ? 'updated' : ''
+          ].filter(Boolean).join(' ');
+          return `<td class="${classes}">${value === Infinity ? '∞' : value}</td>`;
+        }).join('')}
+      </tr>`).join('')}
+  `;
+
+  stepBox.innerHTML = `
+    <strong>Check</strong> d(${labels[step.i]}, ${labels[step.j]})
+    <br>Current = ${step.before === Infinity ? '∞' : step.before}
+    <br>Via ${labels[step.k]} = ${step.viaK === Infinity ? '∞' : step.viaK}
+    <br>Result = ${step.updated ? 'update cell' : 'keep existing distance'}
+  `;
+
+  pathBox.innerHTML = `
+    <strong>Shortest path ${labels[step.i]} → ${labels[step.j]}</strong>
+    <br>${pathToString(step.bestPath)}
+    <br><span style="color:${step.updated ? '#3fb950' : '#8b949e'}">Candidate via ${labels[step.k]}: ${pathToString(step.candidatePath)}</span>
+  `;
+
+  renderGraph(step);
+}
+
+function renderGraph(step) {
+  const edgeKeySet = new Set();
+  const best = step.bestPath;
+  for (let index = 0; index < best.length - 1; index++) {
+    const from = data.nodes.indexOf(best[index]);
+    const to = data.nodes.indexOf(best[index + 1]);
+    edgeKeySet.add(`${from}-${to}`);
+  }
+
+  graphSvg.innerHTML = `
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6e7681"></path>
+      </marker>
+      <marker id="arrow-good" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#3fb950"></path>
+      </marker>
+      <marker id="arrow-warn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#e3b341"></path>
+      </marker>
+    </defs>
+    ${data.edges.map(edge => {
+      const from = positions[edge.from];
+      const to = positions[edge.to];
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const length = Math.hypot(dx, dy) || 1;
+      const ux = dx / length;
+      const uy = dy / length;
+      const x1 = from.x + ux * 34;
+      const y1 = from.y + uy * 34;
+      const x2 = to.x - ux * 34;
+      const y2 = to.y - uy * 34;
+      const key = `${edge.from}-${edge.to}`;
+      const inBest = edgeKeySet.has(key);
+      const isCandidate = step.candidatePath.includes(data.nodes[edge.from]) && step.candidatePath.includes(data.nodes[edge.to]);
+      const stroke = inBest ? '#3fb950' : (isCandidate ? '#e3b341' : '#6e7681');
+      const marker = inBest ? 'url(#arrow-good)' : (isCandidate ? 'url(#arrow-warn)' : 'url(#arrow)');
+      return `
+        <g>
+          <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${inBest ? 4 : 2.2}" marker-end="${marker}" opacity="${inBest || isCandidate ? 1 : 0.7}"></line>
+          <text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 8}" fill="#c9d1d9" font-size="13" text-anchor="middle">${edge.weight}</text>
+        </g>`;
+    }).join('')}
+    ${data.nodes.map((label, index) => {
+      const pos = positions[index];
+      const fill = index === step.k ? '#58a6ff' : (index === step.i || index === step.j ? '#f78166' : '#1f6feb');
+      return `
+        <g>
+          <circle cx="${pos.x}" cy="${pos.y}" r="30" fill="${fill}" stroke="#c9d1d9"></circle>
+          <text x="${pos.x}" y="${pos.y + 5}" fill="#fff" font-size="18" text-anchor="middle">${label}</text>
+        </g>`;
+    }).join('')}
+  `;
+}
+
+function stepForward() {
+  if (!steps.length) return;
+  stepIndex = Math.min(steps.length - 1, stepIndex + 1);
+  render();
+}
+
+function setPlaying(playing) {
+  clearInterval(timer);
+  timer = null;
+  playBtn.disabled = playing;
+  pauseBtn.disabled = !playing;
+  if (!playing) return;
+  timer = setInterval(() => {
+    if (stepIndex >= steps.length - 1) {
+      setPlaying(false);
+      return;
+    }
+    stepForward();
+  }, speed);
+}
+
+function reset() {
+  stepIndex = 0;
+  render();
+}
+
+function rebuild() {
+  data = buildGraph();
+  buildSteps();
+  stepIndex = 0;
+  setPlaying(false);
+  render();
+}
+
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = String(speed);
+  if (timer) setPlaying(true);
+});
+playBtn.addEventListener('click', () => setPlaying(true));
+pauseBtn.addEventListener('click', () => setPlaying(false));
+stepBtn.addEventListener('click', stepForward);
+resetBtn.addEventListener('click', reset);
+graphBtn.addEventListener('click', rebuild);
+
+rebuild();
+</script>
+</body>
+</html>

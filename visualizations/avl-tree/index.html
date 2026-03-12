@@ -3,106 +3,105 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AVL Tree Visualizer — visual-cs</title>
+<title>AVL Tree — visual-cs</title>
 <style>
   :root {
     --bg: #0d1117;
     --surface: #161b22;
-    --surface-2: #0f1620;
+    --panel: #111720;
     --border: #30363d;
     --text: #e6edf3;
     --muted: #8b949e;
-    --accent: #58a6ff;
-    --good: #3fb950;
-    --warn: #ff6b6b;
-    --node: #1f6feb;
+    --accent: #7ee787;
+    --accent-2: #58a6ff;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --danger: #ff7b72;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: var(--bg);
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     min-height: 100vh;
   }
   header {
-    background: var(--surface);
+    background: rgba(22,27,34,0.92);
     border-bottom: 1px solid var(--border);
-    padding: 16px 32px;
+    padding: 16px 28px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 16px;
   }
-  header a { color: var(--accent); text-decoration: none; font-size: 0.92rem; }
-  header a:hover { text-decoration: underline; }
+  header a { color: var(--accent-2); text-decoration: none; font-size: 0.9rem; }
   header h1 { font-size: 1.3rem; }
-  .main {
-    max-width: 1320px;
-    margin: 0 auto;
-    padding: 28px 24px 36px;
-  }
-  .toolbar, .stats, .legend, .explain {
+  .main { max-width: 1320px; margin: 0 auto; padding: 28px 22px 40px; }
+  .toolbar, .stats, .legend, .panel, .explain {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
   }
   .toolbar {
     display: flex;
-    gap: 12px;
-    align-items: center;
+    gap: 10px;
     flex-wrap: wrap;
+    align-items: center;
     padding: 16px;
     margin-bottom: 16px;
   }
+  input[type=number], input[type=range] {
+    accent-color: var(--accent);
+  }
   input[type=number] {
     width: 140px;
-    background: var(--surface-2);
+    background: var(--panel);
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 12px;
-    outline: none;
   }
-  input[type=number]:focus { border-color: var(--accent); }
   button {
-    background: var(--accent);
-    color: #08111b;
     border: none;
     border-radius: 8px;
-    padding: 10px 16px;
+    padding: 10px 14px;
     font-weight: 700;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.2s;
+    background: var(--accent);
+    color: #08110c;
   }
-  button:hover { opacity: 0.88; }
   button.secondary {
-    background: var(--surface-2);
+    background: var(--panel);
     color: var(--text);
     border: 1px solid var(--border);
   }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider-group { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
   .stats {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
     margin-bottom: 16px;
   }
-  .stat { min-width: 110px; }
-  .stat-value { font-size: 1.35rem; font-weight: 800; }
-  .stat-label { font-size: 0.76rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
-  .stat small { color: var(--muted); font-size: 0.8rem; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.25rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 16px;
+  }
   .workspace {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
     position: relative;
+    overflow: hidden;
+    min-height: 680px;
   }
   canvas {
     display: block;
     width: 100%;
     height: 680px;
-    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 30%), #091019;
+    background: radial-gradient(circle at top, rgba(126,231,135,0.09), transparent 24%), #09111a;
     cursor: grab;
   }
   canvas.dragging { cursor: grabbing; }
@@ -116,471 +115,613 @@
     pointer-events: none;
   }
   .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
     width: fit-content;
     padding: 8px 12px;
     border-radius: 999px;
-    background: rgba(13, 17, 23, 0.86);
     border: 1px solid var(--border);
+    background: rgba(13,17,23,0.86);
     color: var(--muted);
     font-size: 0.84rem;
-    backdrop-filter: blur(8px);
   }
   .pill strong { color: var(--text); }
-  .pill.rotation {
-    color: #fff;
-    border-color: rgba(255, 107, 107, 0.5);
-    background: rgba(112, 22, 22, 0.76);
-    min-height: 38px;
+  .rotation-LL { border-color: rgba(255, 123, 114, 0.5); color: #ffd7d5; }
+  .rotation-RR { border-color: rgba(88, 166, 255, 0.5); color: #d2eaff; }
+  .rotation-LR { border-color: rgba(227, 179, 65, 0.5); color: #fff0b0; }
+  .rotation-RL { border-color: rgba(167, 139, 250, 0.5); color: #efe2ff; }
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  .panel h3 { font-size: 0.95rem; margin-bottom: 12px; }
+  .stack-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 280px;
+    overflow: auto;
+  }
+  .op-item, .step-item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.86rem;
+  }
+  .op-item.active, .step-item.active { border-color: var(--accent-2); box-shadow: 0 0 0 1px rgba(88,166,255,0.25) inset; }
+  .muted { color: var(--muted); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(88,166,255,0.12);
+    color: var(--accent-2);
+    font-size: 0.72rem;
+    margin-left: 6px;
   }
   .legend {
     display: flex;
+    gap: 16px;
     flex-wrap: wrap;
-    gap: 18px;
-    padding: 14px 18px;
+    padding: 12px 16px;
     margin-top: 16px;
-    font-size: 0.84rem;
     color: var(--muted);
+    font-size: 0.82rem;
   }
   .legend-item { display: flex; align-items: center; gap: 8px; }
-  .swatch {
-    width: 14px;
-    height: 14px;
-    border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.1);
-  }
-  .message { margin-left: auto; }
-  .explain {
-    margin-top: 20px;
-    padding: 24px 28px;
-  }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
   .explain h2 { color: var(--accent); margin-bottom: 12px; }
   .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
-  .explain ul { padding-left: 18px; margin-top: 12px; }
-  @media (max-width: 900px) {
-    canvas { height: 520px; }
-    .message { width: 100%; margin-left: 0; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1080px) {
+    .layout { grid-template-columns: 1fr; }
+    .workspace, canvas { min-height: 520px; height: 520px; }
+    .stats { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
   }
 </style>
 </head>
 <body>
 <header>
   <a href="../../index.html">← Back to Index</a>
-  <h1>🌲 AVL Tree Visualizer</h1>
-  <span style="color:var(--muted);font-size:0.85rem">Tree · Self-balancing BST</span>
+  <h1>🌲 AVL Tree</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Self-balancing BST · Insert / Delete / Step-through</span>
 </header>
 
 <div class="main">
   <div class="toolbar">
-    <input id="value-input" type="number" placeholder="Enter integer" />
+    <input id="value-input" type="number" placeholder="Enter integer">
     <button id="insert-btn">Insert</button>
     <button id="delete-btn" class="secondary">Delete</button>
-    <button id="sample-btn" class="secondary">Load Sample</button>
-    <button id="reset-view-btn" class="secondary">Reset View</button>
-    <div class="message pill"><strong>Tip</strong> Drag to pan · Scroll to zoom</div>
+    <button id="sample-btn" class="secondary">Load Rotation Demo</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Replay</button>
+    <button id="view-btn" class="secondary">Reset View</button>
+    <div class="slider-group">
+      <label>Speed <span id="speed-label">700</span>ms</label>
+      <input id="speed-slider" type="range" min="150" max="1600" step="50" value="700">
+    </div>
   </div>
 
   <div class="stats">
     <div class="stat"><div class="stat-value" id="height-value">0</div><div class="stat-label">Tree Height</div></div>
     <div class="stat"><div class="stat-value" id="count-value">0</div><div class="stat-label">Node Count</div></div>
     <div class="stat"><div class="stat-value" id="balance-value">0</div><div class="stat-label">Root Balance</div></div>
-    <div class="stat"><div class="stat-value" id="status-value" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+    <div class="stat"><div class="stat-value" id="rotation-value">None</div><div class="stat-label">Current Rotation</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
   </div>
 
-  <div class="workspace">
-    <canvas id="tree-canvas" width="1280" height="680"></canvas>
-    <div class="overlay">
-      <div class="pill"><strong>Pan / Zoom</strong> Keep the whole tree in view</div>
-      <div class="pill rotation" id="rotation-pill">No rotation in progress</div>
+  <div class="layout">
+    <div class="workspace panel">
+      <canvas id="tree-canvas" width="980" height="680"></canvas>
+      <div class="overlay">
+        <div class="pill"><strong>Node label</strong> value + balance factor</div>
+        <div class="pill" id="rotation-pill">No rotation in focus</div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>Step Timeline</h3>
+        <div class="stack-list" id="step-list"></div>
+      </div>
+      <div class="panel">
+        <h3>Operations</h3>
+        <div class="stack-list" id="op-list"></div>
+      </div>
     </div>
   </div>
 
   <div class="legend">
     <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Balanced node (BF = -1 / 0 / 1)</div>
-    <div class="legend-item"><div class="swatch" style="background:#ff6b6b"></div>Node involved in current rotation / unbalanced state</div>
-    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Regular node body</div>
-    <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Balance factor text</div>
+    <div class="legend-item"><div class="swatch" style="background:#ff7b72"></div>Deleted / unstable node focus</div>
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Inserted or selected node</div>
+    <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Rotation path highlight</div>
+    <div class="legend-item"><div class="swatch" style="background:#a371f7"></div>RL/LR secondary rotation</div>
   </div>
 
   <div class="explain">
-    <h2>How it works</h2>
-    <p>AVL trees maintain a balance factor of <code>-1</code>, <code>0</code>, or <code>1</code> for every node. After each insertion or deletion, the tree updates heights bottom-up and applies one of four rotations: LL, RR, LR, or RL.</p>
+    <h2>How It Works</h2>
+    <p>AVL trees maintain a balance factor on every node: <code>height(left) - height(right)</code>. After each insertion or deletion, the tree updates heights bottom-up and performs one of four rotations if a node becomes unbalanced.</p>
     <ul>
-      <li>Green nodes are currently balanced.</li>
-      <li>When rebalancing happens, the affected nodes pulse red and the rotation type appears in the overlay.</li>
-      <li>The canvas supports pan and zoom so deeper trees stay easy to inspect.</li>
+      <li><strong>LL</strong>: right-rotate the heavy subtree.</li>
+      <li><strong>RR</strong>: left-rotate the heavy subtree.</li>
+      <li><strong>LR</strong>: rotate left on the left child, then right on the node.</li>
+      <li><strong>RL</strong>: rotate right on the right child, then left on the node.</li>
+      <li>The timeline on the right stores every step so you can replay, pause, or step through operations manually.</li>
     </ul>
   </div>
 </div>
 
 <script>
-  class AVLNode {
-    constructor(key) {
-      this.key = key;
-      this.left = null;
-      this.right = null;
-      this.height = 1;
-    }
+class AVLNode {
+  constructor(key) {
+    this.key = key;
+    this.left = null;
+    this.right = null;
+    this.height = 1;
   }
+}
 
-  const canvas = document.getElementById('tree-canvas');
-  const ctx = canvas.getContext('2d');
-  const input = document.getElementById('value-input');
-  const insertBtn = document.getElementById('insert-btn');
-  const deleteBtn = document.getElementById('delete-btn');
-  const sampleBtn = document.getElementById('sample-btn');
-  const resetViewBtn = document.getElementById('reset-view-btn');
-  const heightValue = document.getElementById('height-value');
-  const countValue = document.getElementById('count-value');
-  const balanceValue = document.getElementById('balance-value');
-  const statusValue = document.getElementById('status-value');
-  const rotationPill = document.getElementById('rotation-pill');
+const canvas = document.getElementById('tree-canvas');
+const ctx = canvas.getContext('2d');
+const valueInput = document.getElementById('value-input');
+const insertBtn = document.getElementById('insert-btn');
+const deleteBtn = document.getElementById('delete-btn');
+const sampleBtn = document.getElementById('sample-btn');
+const clearBtn = document.getElementById('clear-btn');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const viewBtn = document.getElementById('view-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+const heightValue = document.getElementById('height-value');
+const countValue = document.getElementById('count-value');
+const balanceValue = document.getElementById('balance-value');
+const rotationValue = document.getElementById('rotation-value');
+const statusValue = document.getElementById('status-value');
+const rotationPill = document.getElementById('rotation-pill');
+const stepList = document.getElementById('step-list');
+const opList = document.getElementById('op-list');
 
-  let root = null;
-  let nodeCount = 0;
-  let layoutNodes = [];
-  let rotationQueue = [];
-  let activeRotation = null;
-  let animating = false;
+let root = null;
+let currentFrameIndex = 0;
+let playTimer = null;
+let speed = 700;
+let timeline = [];
+let operations = [];
+let layoutNodes = [];
 
-  const view = {
-    scale: 1,
-    offsetX: canvas.width / 2,
-    offsetY: 70,
-    dragging: false,
-    startX: 0,
-    startY: 0,
-    originX: 0,
-    originY: 0
-  };
+const view = {
+  scale: 1,
+  offsetX: canvas.width / 2,
+  offsetY: 70,
+  dragging: false,
+  startX: 0,
+  startY: 0,
+  originX: 0,
+  originY: 0
+};
 
-  function height(node) {
-    return node ? node.height : 0;
+function height(node) {
+  return node ? node.height : 0;
+}
+
+function balance(node) {
+  return node ? height(node.left) - height(node.right) : 0;
+}
+
+function updateHeight(node) {
+  node.height = 1 + Math.max(height(node.left), height(node.right));
+}
+
+function cloneTree(node) {
+  if (!node) return null;
+  const copy = new AVLNode(node.key);
+  copy.height = node.height;
+  copy.left = cloneTree(node.left);
+  copy.right = cloneTree(node.right);
+  return copy;
+}
+
+function nodeCount(node) {
+  if (!node) return 0;
+  return 1 + nodeCount(node.left) + nodeCount(node.right);
+}
+
+function rotateRight(y) {
+  const x = y.left;
+  const t2 = x.right;
+  x.right = y;
+  y.left = t2;
+  updateHeight(y);
+  updateHeight(x);
+  return x;
+}
+
+function rotateLeft(x) {
+  const y = x.right;
+  const t2 = y.left;
+  y.left = x;
+  x.right = t2;
+  updateHeight(x);
+  updateHeight(y);
+  return y;
+}
+
+function minNode(node) {
+  let curr = node;
+  while (curr && curr.left) curr = curr.left;
+  return curr;
+}
+
+function appendFrame(tree, message, meta = {}) {
+  timeline.push({
+    tree: cloneTree(tree),
+    message,
+    rotation: meta.rotation || '',
+    highlightKeys: meta.highlightKeys || [],
+    focusKey: meta.focusKey ?? null,
+    opIndex: meta.opIndex ?? (operations.length - 1)
+  });
+}
+
+function insertRec(node, key, trace, opIndex) {
+  if (!node) {
+    const created = new AVLNode(key);
+    trace.push({ message: `Insert ${key}: new leaf created`, focusKey: key, highlightKeys: [key] });
+    return created;
   }
-
-  function balanceFactor(node) {
-    return node ? height(node.left) - height(node.right) : 0;
+  if (key < node.key) {
+    node.left = insertRec(node.left, key, trace, opIndex);
+  } else if (key > node.key) {
+    node.right = insertRec(node.right, key, trace, opIndex);
+  } else {
+    trace.push({ message: `Insert ${key}: duplicate ignored`, focusKey: key, highlightKeys: [key] });
+    return node;
   }
-
-  function updateHeight(node) {
-    node.height = 1 + Math.max(height(node.left), height(node.right));
+  updateHeight(node);
+  const bf = balance(node);
+  trace.push({
+    message: `Update ${node.key}: balance factor = ${bf}`,
+    focusKey: node.key,
+    highlightKeys: [node.key]
+  });
+  if (bf > 1 && key < node.left.key) {
+    trace.push({ message: `LL rotation at ${node.key}`, rotation: 'LL', highlightKeys: [node.key, node.left.key], focusKey: node.key });
+    return rotateRight(node);
   }
-
-  function rotateRight(y) {
-    const x = y.left;
-    const t2 = x.right;
-    x.right = y;
-    y.left = t2;
-    updateHeight(y);
-    updateHeight(x);
-    return x;
+  if (bf < -1 && key > node.right.key) {
+    trace.push({ message: `RR rotation at ${node.key}`, rotation: 'RR', highlightKeys: [node.key, node.right.key], focusKey: node.key });
+    return rotateLeft(node);
   }
-
-  function rotateLeft(x) {
-    const y = x.right;
-    const t2 = y.left;
-    y.left = x;
-    x.right = t2;
-    updateHeight(x);
-    updateHeight(y);
-    return y;
+  if (bf > 1 && key > node.left.key) {
+    trace.push({
+      message: `LR rotation at ${node.key}`,
+      rotation: 'LR',
+      highlightKeys: [node.key, node.left.key, node.left.right ? node.left.right.key : key],
+      focusKey: node.key
+    });
+    node.left = rotateLeft(node.left);
+    return rotateRight(node);
   }
+  if (bf < -1 && key < node.right.key) {
+    trace.push({
+      message: `RL rotation at ${node.key}`,
+      rotation: 'RL',
+      highlightKeys: [node.key, node.right.key, node.right.left ? node.right.left.key : key],
+      focusKey: node.key
+    });
+    node.right = rotateRight(node.right);
+    return rotateLeft(node);
+  }
+  return node;
+}
 
-  function queueRotation(type, nodes) {
-    rotationQueue.push({
-      type,
-      keys: nodes.filter(Boolean).map(node => node.key)
+function deleteRec(node, key, trace) {
+  if (!node) {
+    trace.push({ message: `Delete ${key}: value not found`, focusKey: key, highlightKeys: [key] });
+    return null;
+  }
+  if (key < node.key) {
+    node.left = deleteRec(node.left, key, trace);
+  } else if (key > node.key) {
+    node.right = deleteRec(node.right, key, trace);
+  } else {
+    trace.push({ message: `Delete ${key}: remove node`, focusKey: key, highlightKeys: [key] });
+    if (!node.left || !node.right) return node.left || node.right;
+    const succ = minNode(node.right);
+    trace.push({ message: `Replace ${key} with successor ${succ.key}`, focusKey: succ.key, highlightKeys: [key, succ.key] });
+    node.key = succ.key;
+    node.right = deleteRec(node.right, succ.key, trace);
+  }
+  if (!node) return null;
+  updateHeight(node);
+  const bf = balance(node);
+  trace.push({
+    message: `Recompute ${node.key}: balance factor = ${bf}`,
+    focusKey: node.key,
+    highlightKeys: [node.key]
+  });
+  if (bf > 1 && balance(node.left) >= 0) {
+    trace.push({ message: `LL rotation at ${node.key}`, rotation: 'LL', highlightKeys: [node.key, node.left.key], focusKey: node.key });
+    return rotateRight(node);
+  }
+  if (bf > 1 && balance(node.left) < 0) {
+    trace.push({
+      message: `LR rotation at ${node.key}`,
+      rotation: 'LR',
+      highlightKeys: [node.key, node.left.key, node.left.right ? node.left.right.key : node.left.key],
+      focusKey: node.key
+    });
+    node.left = rotateLeft(node.left);
+    return rotateRight(node);
+  }
+  if (bf < -1 && balance(node.right) <= 0) {
+    trace.push({ message: `RR rotation at ${node.key}`, rotation: 'RR', highlightKeys: [node.key, node.right.key], focusKey: node.key });
+    return rotateLeft(node);
+  }
+  if (bf < -1 && balance(node.right) > 0) {
+    trace.push({
+      message: `RL rotation at ${node.key}`,
+      rotation: 'RL',
+      highlightKeys: [node.key, node.right.key, node.right.left ? node.right.left.key : node.right.key],
+      focusKey: node.key
+    });
+    node.right = rotateRight(node.right);
+    return rotateLeft(node);
+  }
+  return node;
+}
+
+function addOperation(type, value, runner) {
+  const trace = [];
+  const before = cloneTree(root);
+  const opIndex = operations.length;
+  operations.push({ type, value, label: `${type} ${value}` });
+  appendFrame(before, `Start ${type} ${value}`, { focusKey: value, highlightKeys: [value], opIndex });
+  root = runner(cloneTree(root), value, trace);
+  for (const item of trace) {
+    appendFrame(root, item.message, {
+      rotation: item.rotation,
+      focusKey: item.focusKey,
+      highlightKeys: item.highlightKeys,
+      opIndex
     });
   }
+  appendFrame(root, `${type} ${value} complete`, { focusKey: value, highlightKeys: [value], opIndex });
+  currentFrameIndex = timeline.length - 1;
+  renderFrame();
+}
 
-  function insert(node, key) {
-    if (!node) {
-      nodeCount += 1;
-      return new AVLNode(key);
-    }
-    if (key < node.key) node.left = insert(node.left, key);
-    else if (key > node.key) node.right = insert(node.right, key);
-    else {
-      statusValue.textContent = `Value ${key} already exists`;
-      return node;
-    }
+function loadSample() {
+  root = null;
+  timeline = [];
+  operations = [];
+  currentFrameIndex = 0;
+  const demo = [
+    ['Insert', 30], ['Insert', 20], ['Insert', 10],
+    ['Insert', 40], ['Insert', 50],
+    ['Insert', 25], ['Delete', 50],
+    ['Insert', 27], ['Delete', 20], ['Insert', 26]
+  ];
+  for (const [type, value] of demo) {
+    addOperation(type, value, type === 'Insert' ? insertRec : deleteRec);
+  }
+  currentFrameIndex = 0;
+  renderFrame();
+}
 
-    updateHeight(node);
-    const bf = balanceFactor(node);
+function computeLayout(tree) {
+  layoutNodes = [];
+  if (!tree) return;
+  function walk(node, depth, x, spread, parentKey) {
+    if (!node) return;
+    const y = depth * 110;
+    layoutNodes.push({ node, x, y, parentKey });
+    const nextSpread = Math.max(spread * 0.56, 62);
+    walk(node.left, depth + 1, x - spread, nextSpread, node.key);
+    walk(node.right, depth + 1, x + spread, nextSpread, node.key);
+  }
+  const spread = Math.max(120 * Math.pow(1.35, Math.max(height(tree) - 2, 0)), 130);
+  walk(tree, 0, 0, spread, null);
+}
 
-    if (bf > 1 && key < node.left.key) {
-      queueRotation('LL', [node, node.left]);
-      return rotateRight(node);
+function rotationColor(type) {
+  return ({ LL: '#ff7b72', RR: '#58a6ff', LR: '#e3b341', RL: '#a371f7' })[type] || '#3fb950';
+}
+
+function renderFrame() {
+  const frame = timeline[currentFrameIndex] || { tree: root, message: 'Ready', rotation: '', highlightKeys: [] };
+  computeLayout(frame.tree);
+  renderCanvas(frame);
+  heightValue.textContent = height(frame.tree);
+  countValue.textContent = nodeCount(frame.tree);
+  balanceValue.textContent = frame.tree ? balance(frame.tree) : 0;
+  rotationValue.textContent = frame.rotation || 'None';
+  statusValue.textContent = frame.message;
+  rotationPill.className = `pill ${frame.rotation ? `rotation-${frame.rotation}` : ''}`;
+  rotationPill.textContent = frame.rotation ? `Rotation focus: ${frame.rotation}` : 'No rotation in focus';
+  renderLists();
+}
+
+function renderCanvas(frame) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(view.offsetX, view.offsetY);
+  ctx.scale(view.scale, view.scale);
+  ctx.lineWidth = 2 / view.scale;
+
+  const map = new Map(layoutNodes.map(item => [item.node.key, item]));
+  for (const item of layoutNodes) {
+    if (item.parentKey == null) continue;
+    const parent = map.get(item.parentKey);
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(139,148,158,0.55)';
+    if (frame.highlightKeys.includes(item.node.key) && frame.highlightKeys.includes(item.parentKey)) {
+      ctx.strokeStyle = rotationColor(frame.rotation);
     }
-    if (bf < -1 && key > node.right.key) {
-      queueRotation('RR', [node, node.right]);
-      return rotateLeft(node);
-    }
-    if (bf > 1 && key > node.left.key) {
-      queueRotation('LR', [node, node.left, node.left && node.left.right]);
-      node.left = rotateLeft(node.left);
-      return rotateRight(node);
-    }
-    if (bf < -1 && key < node.right.key) {
-      queueRotation('RL', [node, node.right, node.right && node.right.left]);
-      node.right = rotateRight(node.right);
-      return rotateLeft(node);
-    }
-    return node;
+    ctx.moveTo(parent.x, parent.y + 26);
+    ctx.lineTo(item.x, item.y - 26);
+    ctx.stroke();
   }
 
-  function minNode(node) {
-    let current = node;
-    while (current.left) current = current.left;
-    return current;
-  }
-
-  function deleteNode(node, key) {
-    if (!node) return null;
-
-    if (key < node.key) node.left = deleteNode(node.left, key);
-    else if (key > node.key) node.right = deleteNode(node.right, key);
-    else {
-      nodeCount -= 1;
-      if (!node.left || !node.right) {
-        return node.left || node.right;
-      }
-      const successor = minNode(node.right);
-      node.key = successor.key;
-      nodeCount += 1;
-      node.right = deleteNode(node.right, successor.key);
-    }
-
-    if (!node) return null;
-
-    updateHeight(node);
-    const bf = balanceFactor(node);
-
-    if (bf > 1 && balanceFactor(node.left) >= 0) {
-      queueRotation('LL', [node, node.left]);
-      return rotateRight(node);
-    }
-    if (bf > 1 && balanceFactor(node.left) < 0) {
-      queueRotation('LR', [node, node.left, node.left && node.left.right]);
-      node.left = rotateLeft(node.left);
-      return rotateRight(node);
-    }
-    if (bf < -1 && balanceFactor(node.right) <= 0) {
-      queueRotation('RR', [node, node.right]);
-      return rotateLeft(node);
-    }
-    if (bf < -1 && balanceFactor(node.right) > 0) {
-      queueRotation('RL', [node, node.right, node.right && node.right.left]);
-      node.right = rotateRight(node.right);
-      return rotateLeft(node);
-    }
-    return node;
-  }
-
-  function countNodes(node) {
-    if (!node) return 0;
-    return 1 + countNodes(node.left) + countNodes(node.right);
-  }
-
-  function computeLayout() {
-    layoutNodes = [];
-    if (!root) return;
-    const gapBase = 90;
-    function walk(node, depth, x, spread, parent) {
-      if (!node) return;
-      const y = depth * 110;
-      layoutNodes.push({ node, x, y, parent });
-      const nextSpread = Math.max(spread * 0.56, 56);
-      walk(node.left, depth + 1, x - spread, nextSpread, node.key);
-      walk(node.right, depth + 1, x + spread, nextSpread, node.key);
-    }
-    const spread = Math.max(gapBase * Math.pow(1.45, Math.max(height(root) - 2, 0)), 120);
-    walk(root, 0, 0, spread, null);
-  }
-
-  function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const item of layoutNodes) {
+    const bf = balance(item.node);
+    const highlighted = frame.highlightKeys.includes(item.node.key);
+    const fill = highlighted ? rotationColor(frame.rotation || 'RR') : (Math.abs(bf) <= 1 ? '#3fb950' : '#ff7b72');
     ctx.save();
-    ctx.translate(view.offsetX, view.offsetY);
-    ctx.scale(view.scale, view.scale);
-    ctx.lineWidth = 2 / view.scale;
-
-    const map = new Map(layoutNodes.map(item => [item.node.key, item]));
-
-    for (const item of layoutNodes) {
-      if (item.parent == null) continue;
-      const parent = map.get(item.parent);
-      if (!parent) continue;
-      ctx.beginPath();
-      ctx.strokeStyle = 'rgba(139, 148, 158, 0.65)';
-      ctx.moveTo(parent.x, parent.y + 24);
-      ctx.lineTo(item.x, item.y - 24);
-      ctx.stroke();
-    }
-
-    for (const item of layoutNodes) {
-      const bf = balanceFactor(item.node);
-      const highlighted = activeRotation && activeRotation.keys.includes(item.node.key);
-      const isBalanced = Math.abs(bf) <= 1;
-      const fill = highlighted ? '#ff6b6b' : isBalanced ? '#3fb950' : '#c93c37';
-      const glow = highlighted ? 'rgba(255,107,107,0.5)' : isBalanced ? 'rgba(63,185,80,0.25)' : 'rgba(201,60,55,0.35)';
-
-      ctx.save();
-      ctx.shadowBlur = 18 / view.scale;
-      ctx.shadowColor = glow;
-      ctx.beginPath();
-      ctx.fillStyle = fill;
-      ctx.strokeStyle = highlighted ? '#ffd5d5' : '#8b949e';
-      ctx.arc(item.x, item.y, 28, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = `${16 / view.scale}px Inter, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(String(item.node.key), item.x, item.y - 4 / view.scale);
-
-      ctx.fillStyle = '#facc15';
-      ctx.font = `${11 / view.scale}px Inter, sans-serif`;
-      ctx.fillText(`BF ${bf}`, item.x, item.y + 14 / view.scale);
-    }
+    ctx.shadowBlur = 18 / view.scale;
+    ctx.shadowColor = highlighted ? fill : 'rgba(63,185,80,0.18)';
+    ctx.beginPath();
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = highlighted ? '#fff' : '#94a3b8';
+    ctx.arc(item.x, item.y, 30, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${17 / view.scale}px sans-serif`;
+    ctx.fillText(String(item.node.key), item.x, item.y - 5 / view.scale);
+    ctx.fillStyle = '#0b1020';
+    ctx.fillRect(item.x - 18 / view.scale, item.y + 9 / view.scale, 36 / view.scale, 14 / view.scale);
+    ctx.fillStyle = '#facc15';
+    ctx.font = `${10 / view.scale}px sans-serif`;
+    ctx.fillText(`BF ${bf}`, item.x, item.y + 16 / view.scale);
   }
 
-  function refreshStats(message = 'Ready') {
-    computeLayout();
-    render();
-    heightValue.textContent = height(root);
-    countValue.textContent = countNodes(root);
-    balanceValue.textContent = root ? balanceFactor(root) : 0;
-    statusValue.textContent = message;
-  }
+  ctx.restore();
+}
 
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+function renderLists() {
+  stepList.innerHTML = timeline.map((frame, index) => `
+    <div class="step-item ${index === currentFrameIndex ? 'active' : ''}">
+      <strong>${index + 1}. ${frame.message}</strong>
+      ${frame.rotation ? `<span class="badge">${frame.rotation}</span>` : ''}
+      <div class="muted">Nodes: ${frame.highlightKeys.join(', ') || 'none'}</div>
+    </div>`).join('');
 
-  async function playRotationQueue() {
-    if (animating) return;
-    animating = true;
-    while (rotationQueue.length) {
-      activeRotation = rotationQueue.shift();
-      rotationPill.textContent = `Rotation: ${activeRotation.type}`;
-      render();
-      await sleep(680);
-      activeRotation = null;
-      rotationPill.textContent = 'Tree balanced';
-      render();
-      await sleep(120);
-    }
-    animating = false;
-  }
+  opList.innerHTML = operations.map((op, index) => `
+    <div class="op-item ${timeline[currentFrameIndex] && timeline[currentFrameIndex].opIndex === index ? 'active' : ''}">
+      <strong>${op.label}</strong>
+      <div class="muted">Operation ${index + 1}</div>
+    </div>`).join('') || '<div class="op-item muted">No operations yet</div>';
+}
 
-  function parseInput() {
-    const value = Number.parseInt(input.value, 10);
-    if (Number.isNaN(value)) {
-      statusValue.textContent = 'Enter an integer first';
-      return null;
-    }
-    return value;
-  }
+function stepForward() {
+  if (!timeline.length) return;
+  currentFrameIndex = Math.min(timeline.length - 1, currentFrameIndex + 1);
+  renderFrame();
+}
 
-  async function handleInsert() {
-    const value = parseInput();
-    if (value == null) return;
-    const before = nodeCount;
-    rotationQueue = [];
-    root = insert(root, value);
-    if (before === nodeCount) {
-      refreshStats(`Value ${value} already exists`);
+function resetReplay() {
+  currentFrameIndex = 0;
+  renderFrame();
+}
+
+function setPlaying(playing) {
+  clearInterval(playTimer);
+  playTimer = null;
+  playBtn.disabled = playing;
+  pauseBtn.disabled = !playing;
+  if (!playing) return;
+  playTimer = setInterval(() => {
+    if (currentFrameIndex >= timeline.length - 1) {
+      setPlaying(false);
       return;
     }
-    refreshStats(`Inserted ${value}`);
-    await playRotationQueue();
-    refreshStats(`Inserted ${value}`);
-  }
+    stepForward();
+  }, speed);
+}
 
-  async function handleDelete() {
-    const value = parseInput();
-    if (value == null) return;
-    const before = nodeCount;
-    rotationQueue = [];
-    root = deleteNode(root, value);
-    if (before === nodeCount) {
-      refreshStats(`Value ${value} not found`);
-      return;
-    }
-    refreshStats(`Deleted ${value}`);
-    await playRotationQueue();
-    refreshStats(`Deleted ${value}`);
-  }
+function parseValue() {
+  const value = Number.parseInt(valueInput.value, 10);
+  if (Number.isNaN(value)) return null;
+  return value;
+}
 
-  async function loadSample() {
-    root = null;
-    nodeCount = 0;
-    rotationQueue = [];
-    activeRotation = null;
-    const values = [30, 20, 10, 25, 40, 50, 45, 5, 35, 60, 55];
-    for (const value of values) {
-      root = insert(root, value);
-      refreshStats(`Inserted ${value}`);
-      await playRotationQueue();
-      await sleep(120);
-    }
-    refreshStats('Sample tree loaded');
-  }
+insertBtn.addEventListener('click', () => {
+  const value = parseValue();
+  if (value == null) return;
+  addOperation('Insert', value, insertRec);
+});
 
-  insertBtn.addEventListener('click', () => { handleInsert(); });
-  deleteBtn.addEventListener('click', () => { handleDelete(); });
-  sampleBtn.addEventListener('click', () => { loadSample(); });
-  resetViewBtn.addEventListener('click', () => {
-    view.scale = 1;
-    view.offsetX = canvas.width / 2;
-    view.offsetY = 70;
-    render();
-  });
-  input.addEventListener('keydown', event => {
-    if (event.key === 'Enter') handleInsert();
-  });
+deleteBtn.addEventListener('click', () => {
+  const value = parseValue();
+  if (value == null) return;
+  addOperation('Delete', value, deleteRec);
+});
 
-  canvas.addEventListener('mousedown', event => {
-    view.dragging = true;
-    canvas.classList.add('dragging');
-    view.startX = event.clientX;
-    view.startY = event.clientY;
-    view.originX = view.offsetX;
-    view.originY = view.offsetY;
-  });
-  window.addEventListener('mousemove', event => {
-    if (!view.dragging) return;
-    view.offsetX = view.originX + (event.clientX - view.startX);
-    view.offsetY = view.originY + (event.clientY - view.startY);
-    render();
-  });
-  window.addEventListener('mouseup', () => {
-    view.dragging = false;
-    canvas.classList.remove('dragging');
-  });
-  canvas.addEventListener('wheel', event => {
-    event.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    const worldX = (mouseX - view.offsetX) / view.scale;
-    const worldY = (mouseY - view.offsetY) / view.scale;
-    const factor = event.deltaY < 0 ? 1.1 : 0.9;
-    const nextScale = Math.min(2.5, Math.max(0.35, view.scale * factor));
-    view.scale = nextScale;
-    view.offsetX = mouseX - worldX * view.scale;
-    view.offsetY = mouseY - worldY * view.scale;
-    render();
-  }, { passive: false });
+sampleBtn.addEventListener('click', loadSample);
+clearBtn.addEventListener('click', () => {
+  root = null;
+  timeline = [];
+  operations = [];
+  currentFrameIndex = 0;
+  setPlaying(false);
+  renderFrame();
+});
+playBtn.addEventListener('click', () => setPlaying(true));
+pauseBtn.addEventListener('click', () => setPlaying(false));
+stepBtn.addEventListener('click', stepForward);
+resetBtn.addEventListener('click', resetReplay);
+viewBtn.addEventListener('click', () => {
+  view.scale = 1;
+  view.offsetX = canvas.width / 2;
+  view.offsetY = 70;
+  renderFrame();
+});
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = String(speed);
+  if (playTimer) setPlaying(true);
+});
+valueInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter') insertBtn.click();
+});
 
-  refreshStats('Ready for insertions and deletions');
+canvas.addEventListener('mousedown', event => {
+  view.dragging = true;
+  canvas.classList.add('dragging');
+  view.startX = event.clientX;
+  view.startY = event.clientY;
+  view.originX = view.offsetX;
+  view.originY = view.offsetY;
+});
+window.addEventListener('mousemove', event => {
+  if (!view.dragging) return;
+  view.offsetX = view.originX + (event.clientX - view.startX);
+  view.offsetY = view.originY + (event.clientY - view.startY);
+  renderFrame();
+});
+window.addEventListener('mouseup', () => {
+  view.dragging = false;
+  canvas.classList.remove('dragging');
+});
+canvas.addEventListener('wheel', event => {
+  event.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = event.clientX - rect.left;
+  const my = event.clientY - rect.top;
+  const wx = (mx - view.offsetX) / view.scale;
+  const wy = (my - view.offsetY) / view.scale;
+  const factor = event.deltaY < 0 ? 1.1 : 0.9;
+  view.scale = Math.min(2.4, Math.max(0.35, view.scale * factor));
+  view.offsetX = mx - wx * view.scale;
+  view.offsetY = my - wy * view.scale;
+  renderFrame();
+}, { passive: false });
+
+appendFrame(null, 'Ready for insertions and deletions');
+renderFrame();
 </script>
 </body>
 </html>
