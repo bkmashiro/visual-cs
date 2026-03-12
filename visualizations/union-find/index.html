@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Union-Find — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header, .controls, .stats, .panel, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  header {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1380px; margin: 0 auto; padding: 28px 22px 40px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  input, button { border-radius: 8px; font: inherit; }
+  input[type=number] {
+    width: 76px;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+  }
+  input[type=range] { accent-color: var(--accent); }
+  button {
+    border: none;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: #08111b;
+  }
+  button.secondary {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 0.86rem; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.2rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) 340px;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  svg {
+    width: 100%;
+    height: 560px;
+    display: block;
+    background: radial-gradient(circle at top, rgba(163,113,247,0.08), transparent 26%), #091119;
+    border-radius: 12px;
+  }
+  .sets-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .set-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 12px;
+  }
+  .set-card strong { display: block; margin-bottom: 6px; }
+  .log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 560px;
+    overflow: auto;
+  }
+  .log-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 10px 12px;
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+  .log-item.active { border-color: var(--accent); color: var(--text); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .legend-item { display: flex; gap: 8px; align-items: center; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1080px) {
+    .layout, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🪢 Union-Find</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Disjoint Set Union · Union by Rank + Path Compression</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <label style="color:var(--muted)">A</label>
+    <input id="a-input" type="number" min="0" max="7" value="1">
+    <label style="color:var(--muted)">B</label>
+    <input id="b-input" type="number" min="0" max="7" value="5">
+    <button id="union-btn">Union</button>
+    <button id="find-btn" class="secondary">Find(A)</button>
+    <button id="sample-btn" class="secondary">Load Demo</button>
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Replay</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">620</span>ms</label>
+      <input id="speed-slider" type="range" min="150" max="1400" step="50" value="620">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="components-value">8</div><div class="stat-label">Components</div></div>
+    <div class="stat"><div class="stat-value" id="parent-value">-</div><div class="stat-label">Active Parent</div></div>
+    <div class="stat"><div class="stat-value" id="rank-value">0</div><div class="stat-label">Active Rank</div></div>
+    <div class="stat"><div class="stat-value" id="compression-value">0</div><div class="stat-label">Path Compress</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <svg id="tree-svg" viewBox="0 0 900 560"></svg>
+      <div class="sets-row" id="sets-row"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Current traversal path</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Chosen representative root</div>
+        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Rank comparison</div>
+        <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Compressed parent pointer</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:12px">Operation Timeline</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Union-Find maintains a forest of parent pointers. Each set is represented by a root. <code>find(x)</code> walks to the root, and path compression rewires every visited node to point directly to that root. <code>union(a, b)</code> attaches the shallower tree below the deeper tree using rank.</p>
+    <ul>
+      <li>Union by rank keeps trees shallow.</li>
+      <li>Path compression flattens paths after every find.</li>
+      <li>Together they make the amortized cost almost constant.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const N = 8;
+const aInput = document.getElementById('a-input');
+const bInput = document.getElementById('b-input');
+const unionBtn = document.getElementById('union-btn');
+const findBtn = document.getElementById('find-btn');
+const sampleBtn = document.getElementById('sample-btn');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const clearBtn = document.getElementById('clear-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+const treeSvg = document.getElementById('tree-svg');
+const setsRow = document.getElementById('sets-row');
+const logEl = document.getElementById('log');
+const componentsValue = document.getElementById('components-value');
+const parentValue = document.getElementById('parent-value');
+const rankValue = document.getElementById('rank-value');
+const compressionValue = document.getElementById('compression-value');
+const statusValue = document.getElementById('status-value');
+
+let parent = [];
+let rank = [];
+let actions = [];
+let frames = [];
+let frameIndex = 0;
+let timer = null;
+let speed = 620;
+
+function init() {
+  parent = Array.from({ length: N }, (_, i) => i);
+  rank = Array(N).fill(0);
+  frames = [];
+  frameIndex = 0;
+  actions = [];
+  capture('Ready', {});
+}
+
+function cloneState(extra) {
+  return {
+    parent: parent.slice(),
+    rank: rank.slice(),
+    extra
+  };
+}
+
+function capture(status, extra) {
+  frames.push({ status, ...cloneState(extra) });
+}
+
+function findWithFrames(x) {
+  const path = [];
+  let cur = x;
+  while (parent[cur] !== cur) {
+    path.push(cur);
+    capture(`Traverse parent of ${cur}`, { mode: 'path', active: [cur, parent[cur]], focus: x, root: null, compressed: [] });
+    cur = parent[cur];
+  }
+  path.push(cur);
+  capture(`Representative of ${x} is ${cur}`, { mode: 'root', active: [cur], focus: x, root: cur, compressed: [] });
+  const compressed = [];
+  for (let i = 0; i < path.length - 1; i += 1) {
+    if (parent[path[i]] !== cur) {
+      parent[path[i]] = cur;
+      compressed.push(path[i]);
+      capture(`Path compression: ${path[i]} -> ${cur}`, { mode: 'compress', active: [path[i], cur], focus: x, root: cur, compressed: compressed.slice() });
+    }
+  }
+  return cur;
+}
+
+function unionWithFrames(a, b) {
+  capture(`Union(${a}, ${b})`, { mode: 'start', active: [a, b], focus: a, root: null, compressed: [] });
+  const ra = findWithFrames(a);
+  const rb = findWithFrames(b);
+  if (ra === rb) {
+    capture(`Skip union: ${a} and ${b} already share root ${ra}`, { mode: 'same', active: [ra], focus: a, root: ra, compressed: [] });
+    return;
+  }
+  capture(`Compare ranks ${rank[ra]} vs ${rank[rb]}`, { mode: 'rank', active: [ra, rb], focus: a, root: null, compressed: [] });
+  if (rank[ra] < rank[rb]) {
+    parent[ra] = rb;
+    capture(`Attach root ${ra} below ${rb}`, { mode: 'link', active: [ra, rb], focus: a, root: rb, compressed: [ra] });
+  } else if (rank[ra] > rank[rb]) {
+    parent[rb] = ra;
+    capture(`Attach root ${rb} below ${ra}`, { mode: 'link', active: [rb, ra], focus: a, root: ra, compressed: [rb] });
+  } else {
+    parent[rb] = ra;
+    rank[ra] += 1;
+    capture(`Equal rank: attach ${rb} below ${ra} and increment rank`, { mode: 'link', active: [rb, ra], focus: a, root: ra, compressed: [rb] });
+  }
+}
+
+function components(state) {
+  return new Set(state.parent.map((_, i) => {
+    let cur = i;
+    while (state.parent[cur] !== cur) cur = state.parent[cur];
+    return cur;
+  })).size;
+}
+
+function render() {
+  const frame = frames[Math.min(frameIndex, frames.length - 1)];
+  const levels = {};
+  for (let i = 0; i < N; i += 1) {
+    let depth = 0;
+    let cur = i;
+    while (frame.parent[cur] !== cur) {
+      depth += 1;
+      cur = frame.parent[cur];
+    }
+    if (!levels[depth]) levels[depth] = [];
+    levels[depth].push(i);
+  }
+  const coords = {};
+  const depthKeys = Object.keys(levels).map(Number).sort((a, b) => a - b);
+  depthKeys.forEach((depth) => {
+    const row = levels[depth];
+    row.forEach((node, index) => {
+      coords[node] = { x: (900 / (row.length + 1)) * (index + 1), y: 90 + depth * 120 };
+    });
+  });
+
+  let svg = '';
+  for (let i = 0; i < N; i += 1) {
+    if (frame.parent[i] !== i) {
+      const from = coords[i];
+      const to = coords[frame.parent[i]];
+      const highlighted = frame.extra.active && frame.extra.active.includes(i) && frame.extra.active.includes(frame.parent[i]);
+      svg += `<line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="${highlighted ? '#58a6ff' : '#30363d'}" stroke-width="${highlighted ? 4 : 2}" />`;
+    }
+  }
+  for (let i = 0; i < N; i += 1) {
+    const c = coords[i];
+    let fill = '#101720';
+    let stroke = '#30363d';
+    if (frame.extra.root === i) {
+      fill = 'rgba(63,185,80,0.18)';
+      stroke = '#3fb950';
+    } else if ((frame.extra.compressed || []).includes(i)) {
+      fill = 'rgba(247,129,102,0.14)';
+      stroke = '#f78166';
+    } else if ((frame.extra.active || []).includes(i)) {
+      fill = 'rgba(88,166,255,0.18)';
+      stroke = frame.extra.mode === 'rank' ? '#e3b341' : '#58a6ff';
+    }
+    svg += `<circle cx="${c.x}" cy="${c.y}" r="28" fill="${fill}" stroke="${stroke}" stroke-width="3"></circle>`;
+    svg += `<text x="${c.x}" y="${c.y + 5}" fill="#e6edf3" text-anchor="middle" font-size="16" font-weight="700">${i}</text>`;
+    svg += `<text x="${c.x}" y="${c.y + 48}" fill="#8b949e" text-anchor="middle" font-size="12">p:${frame.parent[i]} r:${frame.rank[i]}</text>`;
+  }
+  treeSvg.innerHTML = svg;
+
+  const groups = new Map();
+  for (let i = 0; i < N; i += 1) {
+    let cur = i;
+    while (frame.parent[cur] !== cur) cur = frame.parent[cur];
+    if (!groups.has(cur)) groups.set(cur, []);
+    groups.get(cur).push(i);
+  }
+  setsRow.innerHTML = Array.from(groups.entries()).map(([root, nodes]) => `
+    <div class="set-card">
+      <strong>Root ${root}</strong>
+      <div style="color:var(--muted)">Set: ${nodes.join(', ')}</div>
+    </div>
+  `).join('');
+
+  componentsValue.textContent = components(frame);
+  parentValue.textContent = frame.extra.root != null ? frame.extra.root : '-';
+  rankValue.textContent = frame.extra.root != null ? frame.rank[frame.extra.root] : '0';
+  compressionValue.textContent = (frame.extra.compressed || []).length;
+  statusValue.textContent = frame.status;
+
+  logEl.innerHTML = actions.map((item, index) => `<div class="log-item ${index === Math.min(frameIndex, actions.length - 1) ? 'active' : ''}">${item}</div>`).join('');
+}
+
+function parseActionText(action) {
+  const m = action.match(/(union|find)\((\d+)(?:, (\d+))?\)/);
+  return m[1] === 'union'
+    ? { type: 'union', a: Number(m[2]), b: Number(m[3]) }
+    : { type: 'find', a: Number(m[2]) };
+}
+
+function rebuild(allActions) {
+  init();
+  allActions.forEach((action) => {
+    if (action.type === 'union') {
+      actions.push(`union(${action.a}, ${action.b})`);
+      unionWithFrames(action.a, action.b);
+    } else {
+      actions.push(`find(${action.a})`);
+      findWithFrames(action.a);
+    }
+  });
+  render();
+}
+
+function play() {
+  if (frames.length <= 1) return;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  timer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) {
+      stop();
+      return;
+    }
+    frameIndex += 1;
+    render();
+  }, speed);
+}
+
+function stop() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+}
+
+function actionHistory() {
+  return actions.map(parseActionText);
+}
+
+unionBtn.addEventListener('click', () => {
+  const all = actionHistory();
+  all.push({ type: 'union', a: Number(aInput.value), b: Number(bInput.value) });
+  rebuild(all);
+});
+findBtn.addEventListener('click', () => {
+  const all = actionHistory();
+  all.push({ type: 'find', a: Number(aInput.value) });
+  rebuild(all);
+});
+sampleBtn.addEventListener('click', () => {
+  rebuild([
+    { type: 'union', a: 0, b: 1 },
+    { type: 'union', a: 2, b: 3 },
+    { type: 'union', a: 1, b: 3 },
+    { type: 'union', a: 4, b: 5 },
+    { type: 'union', a: 5, b: 6 },
+    { type: 'find', a: 6 },
+    { type: 'union', a: 6, b: 7 }
+  ]);
+});
+clearBtn.addEventListener('click', init);
+playBtn.addEventListener('click', play);
+pauseBtn.addEventListener('click', stop);
+stepBtn.addEventListener('click', () => {
+  stop();
+  if (frameIndex < frames.length - 1) frameIndex += 1;
+  render();
+});
+resetBtn.addEventListener('click', () => {
+  stop();
+  frameIndex = 0;
+  render();
+});
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = speed;
+  if (timer) {
+    stop();
+    play();
+  }
+});
+
+init();
+render();
+</script>
+</body>
+</html>

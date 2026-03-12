@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LRU Cache — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header, .controls, .stats, .panel, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  header {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1320px; margin: 0 auto; padding: 28px 22px 40px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  input, button {
+    border-radius: 8px;
+    font: inherit;
+  }
+  input[type=text], input[type=number] {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+  }
+  input[type=number] { width: 90px; }
+  input[type=text] { width: 110px; }
+  input[type=range] { accent-color: var(--accent); }
+  button {
+    border: none;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: #08111b;
+  }
+  button.secondary {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.2rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) 340px;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  .workspace {
+    min-height: 560px;
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 24%), #091119;
+  }
+  .labels {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .list-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    overflow-x: auto;
+    padding-bottom: 10px;
+  }
+  .node {
+    min-width: 132px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    background: var(--panel);
+    position: relative;
+    transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+  }
+  .node.active {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 0 0 1px rgba(88,166,255,0.22) inset;
+  }
+  .node.hit { border-color: var(--good); }
+  .node.evicted { border-color: var(--warn); background: rgba(247,129,102,0.08); }
+  .node .key { font-size: 0.76rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .node .value { font-size: 1.1rem; font-weight: 800; margin-top: 6px; }
+  .arrow {
+    font-size: 1.4rem;
+    color: var(--muted);
+    flex: 0 0 auto;
+  }
+  .map-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .map-entry {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 12px;
+  }
+  .map-entry.active { border-color: var(--gold); }
+  .map-entry .small { font-size: 0.76rem; color: var(--muted); }
+  .map-entry strong { display: block; font-size: 1rem; margin-top: 6px; }
+  .log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 560px;
+    overflow: auto;
+  }
+  .log-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 10px 12px;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  .log-item.active { border-color: var(--accent); color: var(--text); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-top: 16px;
+  }
+  .legend-item { display: flex; gap: 8px; align-items: center; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1080px) {
+    .layout, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🧠 LRU Cache</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Hash Map + Doubly Linked List · Get / Put / Evict</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <label style="color:var(--muted)">Capacity</label>
+    <input id="capacity-input" type="number" min="2" max="8" value="4">
+    <input id="key-input" type="text" placeholder="key">
+    <input id="value-input" type="text" placeholder="value">
+    <button id="put-btn">Put</button>
+    <button id="get-btn" class="secondary">Get</button>
+    <button id="sample-btn" class="secondary">Load Demo</button>
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Replay</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">650</span>ms</label>
+      <input id="speed-slider" type="range" min="150" max="1400" step="50" value="650">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="size-value">0/4</div><div class="stat-label">Size</div></div>
+    <div class="stat"><div class="stat-value" id="head-value">-</div><div class="stat-label">Most Recent</div></div>
+    <div class="stat"><div class="stat-value" id="tail-value">-</div><div class="stat-label">Least Recent</div></div>
+    <div class="stat"><div class="stat-value" id="hit-value">0</div><div class="stat-label">Cache Hits</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel workspace">
+      <div class="labels"><span>MRU Head</span><span>LRU Tail</span></div>
+      <div class="list-row" id="list-row"></div>
+      <div class="map-grid" id="map-grid"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Node touched or moved</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Successful cache hit</div>
+        <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Evicted least-recent node</div>
+        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Hash map lookup focus</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:12px">Operation Log</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>An LRU cache pairs a hash map with a doubly linked list. The hash map gives <code>O(1)</code> key lookup, while the list keeps keys ordered by recency.</p>
+    <ul>
+      <li><strong>get(key)</strong> returns the value and moves the node to the head because it just became most recently used.</li>
+      <li><strong>put(key, value)</strong> inserts or updates a node, then moves it to the head.</li>
+      <li>If the cache is full, the tail node is evicted because it is the least recently used entry.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const capacityInput = document.getElementById('capacity-input');
+const keyInput = document.getElementById('key-input');
+const valueInput = document.getElementById('value-input');
+const putBtn = document.getElementById('put-btn');
+const getBtn = document.getElementById('get-btn');
+const sampleBtn = document.getElementById('sample-btn');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const clearBtn = document.getElementById('clear-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+const listRow = document.getElementById('list-row');
+const mapGrid = document.getElementById('map-grid');
+const logEl = document.getElementById('log');
+const sizeValue = document.getElementById('size-value');
+const headValue = document.getElementById('head-value');
+const tailValue = document.getElementById('tail-value');
+const hitValue = document.getElementById('hit-value');
+const statusValue = document.getElementById('status-value');
+
+let capacity = 4;
+let cacheList = [];
+let frameStates = [];
+let frameIndex = 0;
+let timer = null;
+let speed = 650;
+let hits = 0;
+let operations = [];
+
+function snapshot(status, activeKey = '', mode = '') {
+  frameStates.push({
+    list: cacheList.map((item) => ({ ...item })),
+    status,
+    activeKey,
+    mode,
+    hits,
+    capacity
+  });
+}
+
+function resetFrames() {
+  frameStates = [];
+  frameIndex = 0;
+  stopPlayback();
+}
+
+function moveToFront(key) {
+  const index = cacheList.findIndex((item) => item.key === key);
+  if (index <= 0) return;
+  const [item] = cacheList.splice(index, 1);
+  cacheList.unshift(item);
+}
+
+function put(key, value) {
+  const existing = cacheList.find((item) => item.key === key);
+  snapshot(`Hash map lookup for ${key}`, key, 'map');
+  if (existing) {
+    existing.value = value;
+    snapshot(`Update value of ${key}`, key, 'active');
+    moveToFront(key);
+    snapshot(`Move ${key} to head`, key, 'active');
+    return;
+  }
+  if (cacheList.length >= capacity) {
+    const evicted = cacheList[cacheList.length - 1];
+    snapshot(`Cache full, evict tail ${evicted.key}`, evicted.key, 'evicted');
+    cacheList.pop();
+  }
+  cacheList.unshift({ key, value });
+  snapshot(`Insert ${key} at head`, key, 'active');
+}
+
+function get(key) {
+  snapshot(`Hash map lookup for ${key}`, key, 'map');
+  const existing = cacheList.find((item) => item.key === key);
+  if (!existing) {
+    snapshot(`Miss: ${key} not found`, key, 'miss');
+    return;
+  }
+  hits += 1;
+  snapshot(`Hit: read ${key}=${existing.value}`, key, 'hit');
+  moveToFront(key);
+  snapshot(`Move ${key} to head`, key, 'hit');
+}
+
+function render() {
+  const frame = frameStates[Math.min(frameIndex, Math.max(frameStates.length - 1, 0))] || {
+    list: cacheList,
+    status: 'Ready',
+    activeKey: '',
+    mode: '',
+    hits,
+    capacity
+  };
+  const list = frame.list;
+  listRow.innerHTML = '';
+  list.forEach((item, index) => {
+    const node = document.createElement('div');
+    const modeClass = frame.activeKey === item.key
+      ? (frame.mode === 'evicted' ? 'evicted' : frame.mode === 'hit' ? 'hit' : 'active')
+      : '';
+    node.className = `node ${modeClass}`;
+    node.innerHTML = `<div class="key">${item.key}</div><div class="value">${item.value}</div>`;
+    listRow.appendChild(node);
+    if (index < list.length - 1) {
+      const arrow = document.createElement('div');
+      arrow.className = 'arrow';
+      arrow.textContent = '↔';
+      listRow.appendChild(arrow);
+    }
+  });
+  if (!list.length) {
+    listRow.innerHTML = '<div style="color:var(--muted);padding:14px 2px;">Cache is empty. Add key/value pairs or load the demo sequence.</div>';
+  }
+
+  mapGrid.innerHTML = list.map((item) => `
+    <div class="map-entry ${frame.activeKey === item.key && frame.mode === 'map' ? 'active' : ''}">
+      <div class="small">hash[${item.key}]</div>
+      <strong>${item.value}</strong>
+      <div class="small">node -> ${item.key}</div>
+    </div>
+  `).join('');
+
+  sizeValue.textContent = `${list.length}/${frame.capacity}`;
+  headValue.textContent = list[0] ? list[0].key : '-';
+  tailValue.textContent = list[list.length - 1] ? list[list.length - 1].key : '-';
+  hitValue.textContent = frame.hits;
+  statusValue.textContent = frame.status;
+
+  logEl.innerHTML = operations.map((op, index) => `
+    <div class="log-item ${index === Math.min(frameIndex, operations.length - 1) ? 'active' : ''}">${op}</div>
+  `).join('');
+}
+
+function applyAction(action) {
+  capacity = Number(capacityInput.value) || 4;
+  if (action.type === 'put') {
+    operations.push(`put(${action.key}, ${action.value})`);
+    put(action.key, action.value);
+  } else {
+    operations.push(`get(${action.key})`);
+    get(action.key);
+  }
+}
+
+function rebuildFrames(actions) {
+  resetFrames();
+  cacheList = [];
+  hits = 0;
+  operations = [];
+  snapshot('Ready');
+  actions.forEach((action) => applyAction(action));
+  render();
+}
+
+function play() {
+  if (frameStates.length <= 1) return;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  timer = setInterval(() => {
+    if (frameIndex >= frameStates.length - 1) {
+      stopPlayback();
+      return;
+    }
+    frameIndex += 1;
+    render();
+  }, speed);
+}
+
+function stopPlayback() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+}
+
+putBtn.addEventListener('click', () => {
+  const key = keyInput.value.trim();
+  const value = valueInput.value.trim();
+  if (!key || !value) return;
+  const actions = operations.map((entry) => {
+    const match = entry.match(/(put|get)\(([^,)]+)(?:, ([^)]+))?\)/);
+    return match[1] === 'put'
+      ? { type: 'put', key: match[2], value: match[3] }
+      : { type: 'get', key: match[2] };
+  });
+  actions.push({ type: 'put', key, value });
+  rebuildFrames(actions);
+  keyInput.value = '';
+  valueInput.value = '';
+});
+
+getBtn.addEventListener('click', () => {
+  const key = keyInput.value.trim();
+  if (!key) return;
+  const actions = operations.map((entry) => {
+    const match = entry.match(/(put|get)\(([^,)]+)(?:, ([^)]+))?\)/);
+    return match[1] === 'put'
+      ? { type: 'put', key: match[2], value: match[3] }
+      : { type: 'get', key: match[2] };
+  });
+  actions.push({ type: 'get', key });
+  rebuildFrames(actions);
+  keyInput.value = '';
+});
+
+sampleBtn.addEventListener('click', () => {
+  capacityInput.value = 4;
+  rebuildFrames([
+    { type: 'put', key: 'A', value: '13' },
+    { type: 'put', key: 'B', value: '21' },
+    { type: 'put', key: 'C', value: '34' },
+    { type: 'get', key: 'A' },
+    { type: 'put', key: 'D', value: '55' },
+    { type: 'put', key: 'E', value: '89' },
+    { type: 'get', key: 'C' }
+  ]);
+});
+
+clearBtn.addEventListener('click', () => {
+  capacity = Number(capacityInput.value) || 4;
+  cacheList = [];
+  operations = [];
+  hits = 0;
+  resetFrames();
+  snapshot('Cleared');
+  render();
+});
+
+playBtn.addEventListener('click', play);
+pauseBtn.addEventListener('click', stopPlayback);
+stepBtn.addEventListener('click', () => {
+  stopPlayback();
+  if (frameIndex < frameStates.length - 1) frameIndex += 1;
+  render();
+});
+resetBtn.addEventListener('click', () => {
+  stopPlayback();
+  frameIndex = 0;
+  render();
+});
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = speed;
+  if (timer) {
+    stopPlayback();
+    play();
+  }
+});
+capacityInput.addEventListener('change', () => {
+  const actions = operations.map((entry) => {
+    const match = entry.match(/(put|get)\(([^,)]+)(?:, ([^)]+))?\)/);
+    return match[1] === 'put'
+      ? { type: 'put', key: match[2], value: match[3] }
+      : { type: 'get', key: match[2] };
+  });
+  rebuildFrames(actions);
+});
+
+snapshot('Ready');
+render();
+</script>
+</body>
+</html>
