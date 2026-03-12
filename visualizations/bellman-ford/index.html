@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bellman-Ford — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header, .controls, .stats, .panel, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  header {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1420px; margin: 0 auto; padding: 28px 22px 40px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: #08111b;
+  }
+  button.secondary {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  input[type=range] { accent-color: var(--accent); }
+  .slider { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 0.86rem; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.2rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) 380px;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  svg {
+    width: 100%;
+    height: 620px;
+    display: block;
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), #091119;
+    border-radius: 12px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    background: var(--panel);
+    text-align: left;
+  }
+  th { color: var(--muted); }
+  .edge-log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 290px;
+    overflow: auto;
+    margin-top: 14px;
+  }
+  .edge-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 10px 12px;
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+  .edge-item.active { border-color: var(--accent); color: var(--text); }
+  .edge-item.relaxed { border-color: var(--good); }
+  .edge-item.negative { border-color: var(--warn); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .legend-item { display: flex; gap: 8px; align-items: center; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1100px) {
+    .layout, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>⚖️ Bellman-Ford</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Single-Source Shortest Paths · Negative Edges + Cycle Detection</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Reset</button>
+    <button id="graph-btn" class="secondary">🔀 New Graph</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">560</span>ms</label>
+      <input id="speed-slider" type="range" min="150" max="1400" step="50" value="560">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="pass-value">0</div><div class="stat-label">Pass</div></div>
+    <div class="stat"><div class="stat-value" id="edge-value">-</div><div class="stat-label">Current Edge</div></div>
+    <div class="stat"><div class="stat-value" id="relax-value">0</div><div class="stat-label">Relaxations</div></div>
+    <div class="stat"><div class="stat-value" id="cycle-value">No</div><div class="stat-label">Negative Cycle</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <svg id="graph-svg" viewBox="0 0 780 620"></svg>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Current edge being relaxed</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Distance improved</div>
+        <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Negative cycle witness edge</div>
+        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Current shortest-path tree edge</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:12px">Distance Table</h3>
+      <table id="dist-table"></table>
+      <div class="edge-log" id="edge-log"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Bellman-Ford relaxes every directed edge exactly <code>V - 1</code> times. If any edge can still improve a distance on the next pass, the graph contains a reachable negative cycle.</p>
+    <ul>
+      <li>Each pass scans the full edge list in order.</li>
+      <li>A relaxation happens when <code>dist[u] + w &lt; dist[v]</code>.</li>
+      <li>The extra final pass is used only for negative-cycle detection.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const graphSvg = document.getElementById('graph-svg');
+const distTable = document.getElementById('dist-table');
+const edgeLog = document.getElementById('edge-log');
+const passValue = document.getElementById('pass-value');
+const edgeValue = document.getElementById('edge-value');
+const relaxValue = document.getElementById('relax-value');
+const cycleValue = document.getElementById('cycle-value');
+const statusValue = document.getElementById('status-value');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const graphBtn = document.getElementById('graph-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+
+const positions = [
+  { x: 120, y: 110 },
+  { x: 380, y: 80 },
+  { x: 640, y: 170 },
+  { x: 610, y: 430 },
+  { x: 340, y: 530 },
+  { x: 120, y: 380 }
+];
+
+let graph = null;
+let frames = [];
+let frameIndex = 0;
+let timer = null;
+let speed = 560;
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function makeGraph() {
+  const nodes = ['S', 'A', 'B', 'C', 'D', 'E'];
+  const edges = [
+    { u: 0, v: 1, w: 4 },
+    { u: 0, v: 5, w: 5 },
+    { u: 1, v: 2, w: -2 },
+    { u: 1, v: 4, w: 6 },
+    { u: 2, v: 3, w: 3 },
+    { u: 2, v: 5, w: 1 },
+    { u: 5, v: 4, w: -3 },
+    { u: 4, v: 3, w: 2 }
+  ];
+  if (Math.random() < 0.5) {
+    edges.push({ u: 3, v: 1, w: -4 });
+  } else {
+    edges.push({ u: 3, v: 1, w: 2 });
+  }
+  edges.push({ u: 5, v: 2, w: rand(-1, 4) });
+  return { nodes, edges, source: 0 };
+}
+
+function buildFrames() {
+  frames = [];
+  frameIndex = 0;
+  const dist = Array(graph.nodes.length).fill(Infinity);
+  const prev = Array(graph.nodes.length).fill(null);
+  dist[graph.source] = 0;
+  let relaxations = 0;
+  frames.push({ dist: dist.slice(), prev: prev.slice(), pass: 0, edge: -1, status: 'Initialize source distance to 0', relaxations, negative: false, witness: -1 });
+  for (let pass = 1; pass < graph.nodes.length; pass += 1) {
+    let changed = false;
+    graph.edges.forEach((edge, idx) => {
+      frames.push({ dist: dist.slice(), prev: prev.slice(), pass, edge: idx, status: `Check ${graph.nodes[edge.u]} → ${graph.nodes[edge.v]} (${edge.w})`, relaxations, negative: false, witness: -1 });
+      if (dist[edge.u] !== Infinity && dist[edge.u] + edge.w < dist[edge.v]) {
+        dist[edge.v] = dist[edge.u] + edge.w;
+        prev[edge.v] = edge.u;
+        relaxations += 1;
+        changed = true;
+        frames.push({ dist: dist.slice(), prev: prev.slice(), pass, edge: idx, status: `Relax ${graph.nodes[edge.v]} to ${dist[edge.v]}`, relaxations, negative: false, witness: -1, relaxed: true });
+      }
+    });
+    if (!changed) {
+      frames.push({ dist: dist.slice(), prev: prev.slice(), pass, edge: -1, status: 'No changes in this pass, algorithm can stop early', relaxations, negative: false, witness: -1 });
+      break;
+    }
+  }
+  let negative = false;
+  let witness = -1;
+  graph.edges.forEach((edge, idx) => {
+    if (!negative && dist[edge.u] !== Infinity && dist[edge.u] + edge.w < dist[edge.v]) {
+      negative = true;
+      witness = idx;
+    }
+    frames.push({ dist: dist.slice(), prev: prev.slice(), pass: graph.nodes.length, edge: idx, status: `Cycle check on ${graph.nodes[edge.u]} → ${graph.nodes[edge.v]} (${edge.w})`, relaxations, negative, witness });
+  });
+  frames.push({ dist: dist.slice(), prev: prev.slice(), pass: graph.nodes.length, edge: -1, status: negative ? 'Negative cycle detected' : 'Shortest paths finalized', relaxations, negative, witness });
+}
+
+function formatDistance(value) {
+  return value === Infinity ? '∞' : value;
+}
+
+function render() {
+  const frame = frames[Math.min(frameIndex, frames.length - 1)];
+  let svg = '';
+  graph.edges.forEach((edge, idx) => {
+    const from = positions[edge.u];
+    const to = positions[edge.v];
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const x1 = from.x + ux * 34;
+    const y1 = from.y + uy * 34;
+    const x2 = to.x - ux * 34;
+    const y2 = to.y - uy * 34;
+    let stroke = '#30363d';
+    let width = 2;
+    if (frame.prev[edge.v] === edge.u) {
+      stroke = '#e3b341';
+      width = 4;
+    }
+    if (frame.edge === idx) {
+      stroke = frame.negative && frame.witness === idx ? '#f78166' : (frame.relaxed ? '#3fb950' : '#58a6ff');
+      width = 5;
+    }
+    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${width}" />`;
+    svg += `<polygon points="${x2},${y2} ${x2 - ux * 12 - uy * 6},${y2 - uy * 12 + ux * 6} ${x2 - ux * 12 + uy * 6},${y2 - uy * 12 - ux * 6}" fill="${stroke}" />`;
+    svg += `<text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 8}" fill="#8b949e" text-anchor="middle" font-size="13">${edge.w}</text>`;
+  });
+  graph.nodes.forEach((node, idx) => {
+    const p = positions[idx];
+    const fill = idx === graph.source ? 'rgba(88,166,255,0.18)' : '#101720';
+    const stroke = frame.negative && frame.witness >= 0 && (graph.edges[frame.witness].u === idx || graph.edges[frame.witness].v === idx) ? '#f78166' : '#58a6ff';
+    svg += `<circle cx="${p.x}" cy="${p.y}" r="30" fill="${fill}" stroke="${stroke}" stroke-width="3"></circle>`;
+    svg += `<text x="${p.x}" y="${p.y - 4}" fill="#e6edf3" text-anchor="middle" font-size="16" font-weight="700">${node}</text>`;
+    svg += `<text x="${p.x}" y="${p.y + 18}" fill="#8b949e" text-anchor="middle" font-size="12">d=${formatDistance(frame.dist[idx])}</text>`;
+  });
+  graphSvg.innerHTML = svg;
+
+  distTable.innerHTML = `
+    <tr><th>Node</th><th>Dist</th><th>Prev</th></tr>
+    ${graph.nodes.map((node, idx) => `
+      <tr>
+        <td>${node}</td>
+        <td>${formatDistance(frame.dist[idx])}</td>
+        <td>${frame.prev[idx] == null ? '-' : graph.nodes[frame.prev[idx]]}</td>
+      </tr>
+    `).join('')}
+  `;
+
+  edgeLog.innerHTML = graph.edges.map((edge, idx) => {
+    let cls = 'edge-item';
+    if (idx === frame.edge) cls += ' active';
+    if (idx === frame.edge && frame.relaxed) cls += ' relaxed';
+    if (frame.negative && frame.witness === idx) cls += ' negative';
+    return `<div class="${cls}">${graph.nodes[edge.u]} → ${graph.nodes[edge.v]} <strong style="color:var(--text)">(${edge.w})</strong></div>`;
+  }).join('');
+
+  passValue.textContent = frame.pass;
+  edgeValue.textContent = frame.edge >= 0 ? `${graph.nodes[graph.edges[frame.edge].u]}→${graph.nodes[graph.edges[frame.edge].v]}` : '-';
+  relaxValue.textContent = frame.relaxations;
+  cycleValue.textContent = frame.negative ? 'Yes' : 'No';
+  statusValue.textContent = frame.status;
+}
+
+function play() {
+  if (frames.length <= 1) return;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  timer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) {
+      stop();
+      return;
+    }
+    frameIndex += 1;
+    render();
+  }, speed);
+}
+
+function stop() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+}
+
+function resetAll() {
+  graph = makeGraph();
+  buildFrames();
+  render();
+}
+
+playBtn.addEventListener('click', play);
+pauseBtn.addEventListener('click', stop);
+stepBtn.addEventListener('click', () => {
+  stop();
+  if (frameIndex < frames.length - 1) frameIndex += 1;
+  render();
+});
+resetBtn.addEventListener('click', () => {
+  stop();
+  frameIndex = 0;
+  render();
+});
+graphBtn.addEventListener('click', () => {
+  stop();
+  resetAll();
+});
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = speed;
+  if (timer) {
+    stop();
+    play();
+  }
+});
+
+resetAll();
+</script>
+</body>
+</html>

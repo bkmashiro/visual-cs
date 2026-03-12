@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kruskal MST — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header, .controls, .stats, .panel, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  header {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1380px; margin: 0 auto; padding: 28px 22px 40px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: #08111b;
+  }
+  button.secondary {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  input[type=range] { accent-color: var(--accent); }
+  .slider { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 0.86rem; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.2rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) 360px;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  svg {
+    width: 100%;
+    height: 600px;
+    display: block;
+    background: radial-gradient(circle at top, rgba(63,185,80,0.08), transparent 26%), #091119;
+    border-radius: 12px;
+  }
+  .edge-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 600px;
+    overflow: auto;
+  }
+  .edge-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 10px 12px;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  .edge-item.active { border-color: var(--accent); color: var(--text); }
+  .edge-item.accepted { border-color: var(--good); }
+  .edge-item.rejected { border-color: var(--warn); }
+  .sets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .set-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 10px 12px;
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .legend-item { display: flex; gap: 8px; align-items: center; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1100px) {
+    .layout, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🌉 Kruskal MST</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Minimum Spanning Tree · Edge Sort + Union-Find</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Reset</button>
+    <button id="graph-btn" class="secondary">🔀 New Graph</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">560</span>ms</label>
+      <input id="speed-slider" type="range" min="150" max="1400" step="50" value="560">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="edge-value">-</div><div class="stat-label">Current Edge</div></div>
+    <div class="stat"><div class="stat-value" id="weight-value">0</div><div class="stat-label">Current Weight</div></div>
+    <div class="stat"><div class="stat-value" id="mst-weight-value">0</div><div class="stat-label">MST Weight</div></div>
+    <div class="stat"><div class="stat-value" id="picked-value">0</div><div class="stat-label">Edges Picked</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <svg id="graph-svg" viewBox="0 0 760 600"></svg>
+      <div class="sets" id="sets"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Current candidate edge</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Accepted MST edge</div>
+        <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Rejected cycle edge</div>
+        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Sorted edge queue focus</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:12px">Sorted Edge Queue</h3>
+      <div class="edge-list" id="edge-list"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Kruskal sorts all edges by weight, then scans from lightest to heaviest. An edge is accepted only if it connects two different components.</p>
+    <ul>
+      <li>Union-Find quickly checks whether the endpoints already belong to the same set.</li>
+      <li>Accepted edges become part of the MST and merge two components.</li>
+      <li>Rejected edges would create a cycle, so they are skipped.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const graphSvg = document.getElementById('graph-svg');
+const edgeList = document.getElementById('edge-list');
+const setsEl = document.getElementById('sets');
+const edgeValue = document.getElementById('edge-value');
+const weightValue = document.getElementById('weight-value');
+const mstWeightValue = document.getElementById('mst-weight-value');
+const pickedValue = document.getElementById('picked-value');
+const statusValue = document.getElementById('status-value');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const graphBtn = document.getElementById('graph-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+
+const positions = [
+  { x: 130, y: 120 },
+  { x: 380, y: 70 },
+  { x: 620, y: 160 },
+  { x: 600, y: 420 },
+  { x: 360, y: 520 },
+  { x: 130, y: 390 }
+];
+
+let graph = null;
+let frames = [];
+let frameIndex = 0;
+let timer = null;
+let speed = 560;
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function makeGraph() {
+  const nodes = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const edges = [];
+  for (let i = 0; i < nodes.length; i += 1) {
+    for (let j = i + 1; j < nodes.length; j += 1) {
+      if (Math.random() < 0.48) {
+        edges.push({ u: i, v: j, w: rand(1, 14) });
+      }
+    }
+  }
+  for (let i = 0; i < nodes.length - 1; i += 1) {
+    if (!edges.some((edge) => (edge.u === i && edge.v === i + 1) || (edge.u === i + 1 && edge.v === i))) {
+      edges.push({ u: i, v: i + 1, w: rand(1, 9) });
+    }
+  }
+  return { nodes, edges };
+}
+
+function find(parent, x) {
+  while (parent[x] !== x) {
+    parent[x] = parent[parent[x]];
+    x = parent[x];
+  }
+  return x;
+}
+
+function union(parent, rank, a, b) {
+  const ra = find(parent, a);
+  const rb = find(parent, b);
+  if (ra === rb) return false;
+  if (rank[ra] < rank[rb]) parent[ra] = rb;
+  else if (rank[ra] > rank[rb]) parent[rb] = ra;
+  else {
+    parent[rb] = ra;
+    rank[ra] += 1;
+  }
+  return true;
+}
+
+function componentsFrom(parent) {
+  const groups = new Map();
+  for (let i = 0; i < parent.length; i += 1) {
+    let root = i;
+    while (parent[root] !== root) root = parent[root];
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root).push(i);
+  }
+  return groups;
+}
+
+function buildFrames() {
+  frames = [];
+  frameIndex = 0;
+  const parent = Array.from({ length: graph.nodes.length }, (_, i) => i);
+  const rank = Array(graph.nodes.length).fill(0);
+  const sortedEdges = graph.edges.slice().sort((a, b) => a.w - b.w);
+  const chosen = [];
+  let mstWeight = 0;
+  frames.push({ parent: parent.slice(), sortedEdges, chosen: [], status: 'Sort edges by weight', current: -1, decision: {}, mstWeight });
+  sortedEdges.forEach((edge, index) => {
+    const ru = find(parent, edge.u);
+    const rv = find(parent, edge.v);
+    frames.push({ parent: parent.slice(), sortedEdges, chosen: chosen.slice(), status: `Inspect edge ${graph.nodes[edge.u]}-${graph.nodes[edge.v]} (${edge.w})`, current: index, decision: { type: 'consider' }, mstWeight });
+    if (ru !== rv) {
+      union(parent, rank, edge.u, edge.v);
+      chosen.push(index);
+      mstWeight += edge.w;
+      frames.push({ parent: parent.slice(), sortedEdges, chosen: chosen.slice(), status: `Accept edge ${graph.nodes[edge.u]}-${graph.nodes[edge.v]}`, current: index, decision: { type: 'accept' }, mstWeight });
+    } else {
+      frames.push({ parent: parent.slice(), sortedEdges, chosen: chosen.slice(), status: `Reject edge ${graph.nodes[edge.u]}-${graph.nodes[edge.v]} to avoid a cycle`, current: index, decision: { type: 'reject' }, mstWeight });
+    }
+  });
+  frames.push({ parent: parent.slice(), sortedEdges, chosen: chosen.slice(), status: 'MST complete', current: -1, decision: { type: 'done' }, mstWeight });
+}
+
+function render() {
+  const frame = frames[Math.min(frameIndex, frames.length - 1)];
+  let svg = '';
+  frame.sortedEdges.forEach((edge, index) => {
+    const a = positions[edge.u];
+    const b = positions[edge.v];
+    const accepted = frame.chosen.includes(index);
+    const current = frame.current === index;
+    let stroke = '#30363d';
+    let width = 2;
+    if (accepted) {
+      stroke = '#3fb950';
+      width = 5;
+    } else if (current && frame.decision.type === 'reject') {
+      stroke = '#f78166';
+      width = 4;
+    } else if (current) {
+      stroke = '#58a6ff';
+      width = 4;
+    }
+    svg += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${stroke}" stroke-width="${width}" />`;
+    svg += `<text x="${(a.x + b.x) / 2}" y="${(a.y + b.y) / 2 - 8}" fill="#8b949e" text-anchor="middle" font-size="13">${edge.w}</text>`;
+  });
+  graph.nodes.forEach((label, index) => {
+    const c = positions[index];
+    svg += `<circle cx="${c.x}" cy="${c.y}" r="28" fill="#101720" stroke="#58a6ff" stroke-width="3"></circle>`;
+    svg += `<text x="${c.x}" y="${c.y + 5}" fill="#e6edf3" text-anchor="middle" font-size="16" font-weight="700">${label}</text>`;
+  });
+  graphSvg.innerHTML = svg;
+
+  edgeList.innerHTML = frame.sortedEdges.map((edge, index) => {
+    let cls = 'edge-item';
+    if (index === frame.current) cls += ' active';
+    if (frame.chosen.includes(index)) cls += ' accepted';
+    if (index === frame.current && frame.decision.type === 'reject') cls += ' rejected';
+    return `<div class="${cls}">${graph.nodes[edge.u]} - ${graph.nodes[edge.v]} <strong style="color:var(--text)">(${edge.w})</strong></div>`;
+  }).join('');
+
+  const groups = componentsFrom(frame.parent);
+  setsEl.innerHTML = Array.from(groups.entries()).map(([root, nodes]) => `
+    <div class="set-card">
+      <strong>${graph.nodes[root]}</strong>
+      <div style="color:var(--muted)">Set: ${nodes.map((n) => graph.nodes[n]).join(', ')}</div>
+    </div>
+  `).join('');
+
+  const currentEdge = frame.current >= 0 ? frame.sortedEdges[frame.current] : null;
+  edgeValue.textContent = currentEdge ? `${graph.nodes[currentEdge.u]}-${graph.nodes[currentEdge.v]}` : '-';
+  weightValue.textContent = currentEdge ? currentEdge.w : 0;
+  mstWeightValue.textContent = frame.mstWeight;
+  pickedValue.textContent = frame.chosen.length;
+  statusValue.textContent = frame.status;
+}
+
+function play() {
+  if (frames.length <= 1) return;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  timer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) {
+      stop();
+      return;
+    }
+    frameIndex += 1;
+    render();
+  }, speed);
+}
+
+function stop() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+}
+
+function resetAll() {
+  graph = makeGraph();
+  buildFrames();
+  render();
+}
+
+playBtn.addEventListener('click', play);
+pauseBtn.addEventListener('click', stop);
+stepBtn.addEventListener('click', () => {
+  stop();
+  if (frameIndex < frames.length - 1) frameIndex += 1;
+  render();
+});
+resetBtn.addEventListener('click', () => {
+  stop();
+  frameIndex = 0;
+  render();
+});
+graphBtn.addEventListener('click', () => {
+  stop();
+  resetAll();
+});
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = speed;
+  if (timer) {
+    stop();
+    play();
+  }
+});
+
+resetAll();
+</script>
+</body>
+</html>
