@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DP Visualizer — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header, .controls, .stats, .panel, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  header {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1380px; margin: 0 auto; padding: 28px 22px 40px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  input, button { border-radius: 8px; font: inherit; }
+  input[type=text] {
+    width: 180px;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+  }
+  input[type=range] { accent-color: var(--accent); }
+  button {
+    border: none;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: #08111b;
+  }
+  button.secondary {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 0.86rem; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.2rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) 340px;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  .table-wrap {
+    overflow: auto;
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), #091119;
+    border-radius: 12px;
+    padding: 14px;
+  }
+  table {
+    border-collapse: collapse;
+    margin: 0 auto;
+  }
+  th, td {
+    min-width: 54px;
+    height: 54px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    font-size: 0.9rem;
+  }
+  th { color: var(--muted); }
+  td.active { background: rgba(88,166,255,0.2); border-color: #58a6ff; }
+  td.match { background: rgba(63,185,80,0.18); border-color: #3fb950; }
+  td.take-top, td.take-left { background: rgba(227,179,65,0.16); border-color: #e3b341; }
+  td.path { background: rgba(163,113,247,0.2); border-color: #a371f7; }
+  .log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 620px;
+    overflow: auto;
+  }
+  .log-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 10px 12px;
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+  .log-item.active { border-color: var(--accent); color: var(--text); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .legend-item { display: flex; gap: 8px; align-items: center; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1080px) {
+    .layout, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🧩 DP Visualizer</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Longest Common Subsequence · Table Filling + Backtracking</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <label style="color:var(--muted)">String A</label>
+    <input id="a-input" type="text" value="ALGORITHM">
+    <label style="color:var(--muted)">String B</label>
+    <input id="b-input" type="text" value="LOGARITHM">
+    <button id="build-btn">Build Table</button>
+    <button id="sample-btn" class="secondary">Load Demo</button>
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Replay</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">420</span>ms</label>
+      <input id="speed-slider" type="range" min="120" max="1200" step="20" value="420">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="cell-value">0,0</div><div class="stat-label">Current Cell</div></div>
+    <div class="stat"><div class="stat-value" id="char-value">-</div><div class="stat-label">Characters</div></div>
+    <div class="stat"><div class="stat-value" id="lcs-value">0</div><div class="stat-label">LCS Length</div></div>
+    <div class="stat"><div class="stat-value" id="subseq-value">-</div><div class="stat-label">Recovered LCS</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <div class="table-wrap">
+        <table id="dp-table"></table>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Current DP cell</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Character match (diagonal + 1)</div>
+        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Take max from top/left</div>
+        <div class="legend-item"><div class="swatch" style="background:#a371f7"></div>Backtracked LCS path</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:12px">Step Log</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>The Longest Common Subsequence DP table stores <code>dp[i][j]</code>: the LCS length between prefixes <code>A[0..i-1]</code> and <code>B[0..j-1]</code>.</p>
+    <ul>
+      <li>If the two characters match, take the diagonal value plus one.</li>
+      <li>Otherwise, carry forward the better value from the top or left cell.</li>
+      <li>After filling the table, backtracking reconstructs one actual LCS string.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const aInput = document.getElementById('a-input');
+const bInput = document.getElementById('b-input');
+const buildBtn = document.getElementById('build-btn');
+const sampleBtn = document.getElementById('sample-btn');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+const dpTable = document.getElementById('dp-table');
+const logEl = document.getElementById('log');
+const cellValue = document.getElementById('cell-value');
+const charValue = document.getElementById('char-value');
+const lcsValue = document.getElementById('lcs-value');
+const subseqValue = document.getElementById('subseq-value');
+const statusValue = document.getElementById('status-value');
+
+let frames = [];
+let frameIndex = 0;
+let timer = null;
+let speed = 420;
+let stringA = '';
+let stringB = '';
+let steps = [];
+
+function cloneMatrix(matrix) {
+  return matrix.map((row) => row.slice());
+}
+
+function rebuild() {
+  stringA = aInput.value.trim().toUpperCase() || 'ABCBDAB';
+  stringB = bInput.value.trim().toUpperCase() || 'BDCABA';
+  const rows = stringA.length + 1;
+  const cols = stringB.length + 1;
+  const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
+  frames = [];
+  frameIndex = 0;
+  steps = [];
+  frames.push({ dp: cloneMatrix(dp), active: null, type: 'init', path: [], lcs: '', status: 'Initialize base row and column to 0' });
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      if (stringA[i - 1] === stringB[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+        steps.push(`dp[${i}][${j}] = dp[${i - 1}][${j - 1}] + 1`);
+        frames.push({ dp: cloneMatrix(dp), active: { i, j }, type: 'match', path: [], lcs: '', status: `Match ${stringA[i - 1]} == ${stringB[j - 1]}` });
+      } else {
+        const takeTop = dp[i - 1][j] >= dp[i][j - 1];
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+        steps.push(`dp[${i}][${j}] = max(top, left)`);
+        frames.push({ dp: cloneMatrix(dp), active: { i, j, takeTop }, type: takeTop ? 'top' : 'left', path: [], lcs: '', status: `Mismatch ${stringA[i - 1]} vs ${stringB[j - 1]}` });
+      }
+    }
+  }
+  let i = stringA.length;
+  let j = stringB.length;
+  const path = [];
+  const chars = [];
+  while (i > 0 && j > 0) {
+    path.push(`${i}-${j}`);
+    if (stringA[i - 1] === stringB[j - 1]) {
+      chars.push(stringA[i - 1]);
+      frames.push({ dp: cloneMatrix(dp), active: { i, j }, type: 'path', path: path.slice(), lcs: chars.slice().reverse().join(''), status: `Backtrack match ${stringA[i - 1]}` });
+      i -= 1;
+      j -= 1;
+    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+      frames.push({ dp: cloneMatrix(dp), active: { i, j }, type: 'path', path: path.slice(), lcs: chars.slice().reverse().join(''), status: 'Backtrack upward' });
+      i -= 1;
+    } else {
+      frames.push({ dp: cloneMatrix(dp), active: { i, j }, type: 'path', path: path.slice(), lcs: chars.slice().reverse().join(''), status: 'Backtrack leftward' });
+      j -= 1;
+    }
+  }
+  frames.push({ dp: cloneMatrix(dp), active: null, type: 'done', path: path.slice(), lcs: chars.slice().reverse().join(''), status: 'LCS recovered' });
+  render();
+}
+
+function render() {
+  const frame = frames[Math.min(frameIndex, frames.length - 1)];
+  const rows = stringA.length + 1;
+  const cols = stringB.length + 1;
+  let html = '<tr><th></th><th>∅</th>';
+  for (let j = 0; j < stringB.length; j += 1) html += `<th>${stringB[j]}</th>`;
+  html += '</tr>';
+  for (let i = 0; i < rows; i += 1) {
+    html += `<tr><th>${i === 0 ? '∅' : stringA[i - 1]}</th>`;
+    for (let j = 0; j < cols; j += 1) {
+      if (j === 0) {
+        html += `<td>${frame.dp[i][j]}</td>`;
+        continue;
+      }
+      let cls = '';
+      if (frame.active && frame.active.i === i && frame.active.j === j) {
+        cls = frame.type === 'match' ? 'match' : frame.type === 'top' || frame.type === 'left' ? `take-${frame.type}` : 'active';
+      }
+      if (frame.path.includes(`${i}-${j}`)) cls = 'path';
+      html += `<td class="${cls}">${frame.dp[i][j]}</td>`;
+    }
+    html += '</tr>';
+  }
+  dpTable.innerHTML = html;
+
+  cellValue.textContent = frame.active ? `${frame.active.i},${frame.active.j}` : '-';
+  charValue.textContent = frame.active ? `${stringA[frame.active.i - 1] || '∅'} / ${stringB[frame.active.j - 1] || '∅'}` : '-';
+  lcsValue.textContent = frame.dp[stringA.length][stringB.length];
+  subseqValue.textContent = frame.lcs || '-';
+  statusValue.textContent = frame.status;
+
+  logEl.innerHTML = steps.map((step, idx) => `<div class="log-item ${idx === Math.min(frameIndex - 1, steps.length - 1) ? 'active' : ''}">${step}</div>`).join('');
+}
+
+function play() {
+  if (frames.length <= 1) return;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  timer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) {
+      stop();
+      return;
+    }
+    frameIndex += 1;
+    render();
+  }, speed);
+}
+
+function stop() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+}
+
+buildBtn.addEventListener('click', () => {
+  stop();
+  rebuild();
+});
+sampleBtn.addEventListener('click', () => {
+  aInput.value = 'SUBSEQUENCE';
+  bInput.value = 'CONSEQUENCE';
+  stop();
+  rebuild();
+});
+playBtn.addEventListener('click', play);
+pauseBtn.addEventListener('click', stop);
+stepBtn.addEventListener('click', () => {
+  stop();
+  if (frameIndex < frames.length - 1) frameIndex += 1;
+  render();
+});
+resetBtn.addEventListener('click', () => {
+  stop();
+  frameIndex = 0;
+  render();
+});
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = speed;
+  if (timer) {
+    stop();
+    play();
+  }
+});
+
+rebuild();
+</script>
+</body>
+</html>

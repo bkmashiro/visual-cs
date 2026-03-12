@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B-Tree — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header, .controls, .stats, .panel, .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  header {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+  }
+  header a { color: var(--accent); text-decoration: none; }
+  .main { max-width: 1440px; margin: 0 auto; padding: 28px 22px 40px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  input, button { border-radius: 8px; font: inherit; }
+  input[type=number] {
+    width: 110px;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+  }
+  input[type=range] { accent-color: var(--accent); }
+  button {
+    border: none;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: #08111b;
+  }
+  button.secondary {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 0.86rem; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.2rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) 360px;
+    gap: 16px;
+  }
+  .panel { padding: 16px; }
+  svg {
+    width: 100%;
+    height: 640px;
+    display: block;
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), #091119;
+    border-radius: 12px;
+  }
+  .log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 640px;
+    overflow: auto;
+  }
+  .log-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 10px 12px;
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+  .log-item.active { border-color: var(--accent); color: var(--text); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .legend-item { display: flex; gap: 8px; align-items: center; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; }
+  @media (max-width: 1100px) {
+    .layout, .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🗂️ B-Tree</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Order 4 · Search / Insert / Delete with Split + Merge</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <input id="value-input" type="number" placeholder="integer">
+    <button id="insert-btn">Insert</button>
+    <button id="delete-btn" class="secondary">Delete</button>
+    <button id="search-btn" class="secondary">Search</button>
+    <button id="sample-btn" class="secondary">Load Demo</button>
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Replay</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">620</span>ms</label>
+      <input id="speed-slider" type="range" min="150" max="1500" step="50" value="620">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="height-value">0</div><div class="stat-label">Height</div></div>
+    <div class="stat"><div class="stat-value" id="keys-value">0</div><div class="stat-label">Key Count</div></div>
+    <div class="stat"><div class="stat-value" id="node-value">-</div><div class="stat-label">Active Node</div></div>
+    <div class="stat"><div class="stat-value" id="op-value">-</div><div class="stat-label">Operation</div></div>
+    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <svg id="tree-svg" viewBox="0 0 1120 640"></svg>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Current descent or search path</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Inserted/found key</div>
+        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Split / borrow / merge focus</div>
+        <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Deleted key or shrinking root</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:12px">Step Timeline</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>This page uses a B-Tree of order 4 (minimum degree 2). Every node stores up to three keys and four children.</p>
+    <ul>
+      <li>Insertion splits any full child on the way down so the recursive descent never enters a full node.</li>
+      <li>Deletion borrows from siblings when possible, otherwise merges two minimum children around a separator key.</li>
+      <li>Search follows the separator keys until it finds the target or reaches a leaf.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const T = 2;
+const valueInput = document.getElementById('value-input');
+const insertBtn = document.getElementById('insert-btn');
+const deleteBtn = document.getElementById('delete-btn');
+const searchBtn = document.getElementById('search-btn');
+const sampleBtn = document.getElementById('sample-btn');
+const playBtn = document.getElementById('play-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stepBtn = document.getElementById('step-btn');
+const resetBtn = document.getElementById('reset-btn');
+const clearBtn = document.getElementById('clear-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+const treeSvg = document.getElementById('tree-svg');
+const logEl = document.getElementById('log');
+const heightValue = document.getElementById('height-value');
+const keysValue = document.getElementById('keys-value');
+const nodeValue = document.getElementById('node-value');
+const opValue = document.getElementById('op-value');
+const statusValue = document.getElementById('status-value');
+
+let root = null;
+let history = [];
+let frames = [];
+let frameIndex = 0;
+let timer = null;
+let speed = 620;
+let nextId = 1;
+
+function newNode(leaf = true) {
+  return { id: nextId += 1, leaf, keys: [], children: [] };
+}
+
+function cloneNode(node) {
+  if (!node) return null;
+  return {
+    id: node.id,
+    leaf: node.leaf,
+    keys: node.keys.slice(),
+    children: node.children.map(cloneNode)
+  };
+}
+
+function height(node) {
+  if (!node) return 0;
+  let h = 1;
+  let cur = node;
+  while (!cur.leaf) {
+    h += 1;
+    cur = cur.children[0];
+  }
+  return h;
+}
+
+function keyCount(node) {
+  if (!node) return 0;
+  return node.keys.length + node.children.reduce((sum, child) => sum + keyCount(child), 0);
+}
+
+function capture(status, extra = {}) {
+  frames.push({ tree: cloneNode(root), status, extra });
+}
+
+function searchNode(node, key) {
+  let i = 0;
+  capture(`Search in node [${node.keys.join(', ')}]`, { type: 'search', nodeId: node.id, key });
+  while (i < node.keys.length && key > node.keys[i]) i += 1;
+  if (i < node.keys.length && key === node.keys[i]) {
+    capture(`Found ${key}`, { type: 'found', nodeId: node.id, key, keyIndex: i });
+    return true;
+  }
+  if (node.leaf) {
+    capture(`${key} not found in leaf`, { type: 'miss', nodeId: node.id, key });
+    return false;
+  }
+  return searchNode(node.children[i], key);
+}
+
+function splitChild(parent, index) {
+  const full = parent.children[index];
+  const right = newNode(full.leaf);
+  const median = full.keys[T - 1];
+  right.keys = full.keys.slice(T);
+  full.keys = full.keys.slice(0, T - 1);
+  if (!full.leaf) {
+    right.children = full.children.slice(T);
+    full.children = full.children.slice(0, T);
+  }
+  parent.keys.splice(index, 0, median);
+  parent.children.splice(index + 1, 0, right);
+  capture(`Split child around median ${median}`, { type: 'split', nodeId: parent.id, childIds: [full.id, right.id], key: median });
+}
+
+function insertNonFull(node, key) {
+  let i = node.keys.length - 1;
+  capture(`Descend into node [${node.keys.join(', ')}]`, { type: 'path', nodeId: node.id, key });
+  if (node.leaf) {
+    while (i >= 0 && key < node.keys[i]) i -= 1;
+    node.keys.splice(i + 1, 0, key);
+    capture(`Insert ${key} into leaf`, { type: 'insert', nodeId: node.id, key });
+    return;
+  }
+  while (i >= 0 && key < node.keys[i]) i -= 1;
+  i += 1;
+  if (node.children[i].keys.length === 2 * T - 1) {
+    splitChild(node, i);
+    if (key > node.keys[i]) i += 1;
+  }
+  insertNonFull(node.children[i], key);
+}
+
+function insertKey(key) {
+  if (!root) {
+    root = newNode(true);
+    root.keys.push(key);
+    capture(`Create root with ${key}`, { type: 'insert', nodeId: root.id, key });
+    return;
+  }
+  if (contains(root, key)) {
+    capture(`Skip duplicate key ${key}`, { type: 'miss', nodeId: root.id, key });
+    return;
+  }
+  if (root.keys.length === 2 * T - 1) {
+    const newRoot = newNode(false);
+    newRoot.children.push(root);
+    root = newRoot;
+    capture(`Root full before insert ${key}, create new root`, { type: 'split', nodeId: newRoot.id, key });
+    splitChild(newRoot, 0);
+  }
+  insertNonFull(root, key);
+}
+
+function contains(node, key) {
+  let i = 0;
+  while (i < node.keys.length && key > node.keys[i]) i += 1;
+  if (i < node.keys.length && node.keys[i] === key) return true;
+  if (node.leaf) return false;
+  return contains(node.children[i], key);
+}
+
+function getPredecessor(node) {
+  let cur = node;
+  while (!cur.leaf) cur = cur.children[cur.children.length - 1];
+  return cur.keys[cur.keys.length - 1];
+}
+
+function getSuccessor(node) {
+  let cur = node;
+  while (!cur.leaf) cur = cur.children[0];
+  return cur.keys[0];
+}
+
+function borrowFromPrev(node, index) {
+  const child = node.children[index];
+  const sibling = node.children[index - 1];
+  child.keys.unshift(node.keys[index - 1]);
+  if (!child.leaf) child.children.unshift(sibling.children.pop());
+  node.keys[index - 1] = sibling.keys.pop();
+  capture(`Borrow from left sibling`, { type: 'rebalance', nodeId: child.id, siblingId: sibling.id });
+}
+
+function borrowFromNext(node, index) {
+  const child = node.children[index];
+  const sibling = node.children[index + 1];
+  child.keys.push(node.keys[index]);
+  if (!child.leaf) child.children.push(sibling.children.shift());
+  node.keys[index] = sibling.keys.shift();
+  capture(`Borrow from right sibling`, { type: 'rebalance', nodeId: child.id, siblingId: sibling.id });
+}
+
+function mergeChildren(node, index) {
+  const left = node.children[index];
+  const right = node.children[index + 1];
+  left.keys.push(node.keys[index], ...right.keys);
+  if (!left.leaf) left.children.push(...right.children);
+  node.keys.splice(index, 1);
+  node.children.splice(index + 1, 1);
+  capture(`Merge children around separator`, { type: 'merge', nodeId: node.id, childIds: [left.id, right.id] });
+}
+
+function fillChild(node, index) {
+  if (index > 0 && node.children[index - 1].keys.length >= T) borrowFromPrev(node, index);
+  else if (index < node.children.length - 1 && node.children[index + 1].keys.length >= T) borrowFromNext(node, index);
+  else if (index < node.children.length - 1) mergeChildren(node, index);
+  else mergeChildren(node, index - 1);
+}
+
+function removeFromNode(node, key) {
+  let idx = 0;
+  while (idx < node.keys.length && node.keys[idx] < key) idx += 1;
+  capture(`Delete scan in node [${node.keys.join(', ')}]`, { type: 'path', nodeId: node.id, key });
+  if (idx < node.keys.length && node.keys[idx] === key) {
+    if (node.leaf) {
+      node.keys.splice(idx, 1);
+      capture(`Delete ${key} from leaf`, { type: 'delete', nodeId: node.id, key });
+      return;
+    }
+    if (node.children[idx].keys.length >= T) {
+      const pred = getPredecessor(node.children[idx]);
+      node.keys[idx] = pred;
+      capture(`Replace ${key} with predecessor ${pred}`, { type: 'rebalance', nodeId: node.id, key: pred });
+      removeFromNode(node.children[idx], pred);
+    } else if (node.children[idx + 1].keys.length >= T) {
+      const succ = getSuccessor(node.children[idx + 1]);
+      node.keys[idx] = succ;
+      capture(`Replace ${key} with successor ${succ}`, { type: 'rebalance', nodeId: node.id, key: succ });
+      removeFromNode(node.children[idx + 1], succ);
+    } else {
+      mergeChildren(node, idx);
+      removeFromNode(node.children[idx], key);
+    }
+    return;
+  }
+  if (node.leaf) {
+    capture(`Key ${key} not present`, { type: 'miss', nodeId: node.id, key });
+    return;
+  }
+  const atEnd = idx === node.keys.length;
+  if (node.children[idx].keys.length < T) fillChild(node, idx);
+  const nextIndex = atEnd && idx > node.keys.length ? idx - 1 : idx;
+  removeFromNode(node.children[nextIndex], key);
+}
+
+function deleteKey(key) {
+  if (!root) {
+    capture('Tree is empty', { type: 'miss', key });
+    return;
+  }
+  if (!contains(root, key)) {
+    capture(`Skip delete: ${key} not found`, { type: 'miss', nodeId: root.id, key });
+    return;
+  }
+  removeFromNode(root, key);
+  if (root.keys.length === 0) {
+    if (root.leaf) {
+      root = null;
+      capture('Tree became empty', { type: 'delete', key });
+    } else {
+      root = root.children[0];
+      capture('Shrink root after merge', { type: 'merge', nodeId: root.id, key });
+    }
+  }
+}
+
+function parseAction(line) {
+  const match = line.match(/(insert|delete|search)\((-?\d+)\)/);
+  return { type: match[1], key: Number(match[2]) };
+}
+
+function rebuild(actions) {
+  root = null;
+  nextId = 1;
+  history = [];
+  frames = [];
+  frameIndex = 0;
+  capture('Ready');
+  actions.forEach((action) => {
+    history.push(`${action.type}(${action.key})`);
+    if (action.type === 'insert') insertKey(action.key);
+    else if (action.type === 'delete') deleteKey(action.key);
+    else if (root) searchNode(root, action.key);
+    else capture('Tree is empty', { type: 'miss', key: action.key });
+  });
+  render();
+}
+
+function layout(rootNode) {
+  if (!rootNode) return { positions: {} };
+  const levels = [];
+  const queue = [{ node: rootNode, depth: 0 }];
+  while (queue.length) {
+    const { node, depth } = queue.shift();
+    if (!levels[depth]) levels[depth] = [];
+    levels[depth].push(node);
+    node.children.forEach((child) => queue.push({ node: child, depth: depth + 1 }));
+  }
+  const positions = {};
+  levels.forEach((nodes, depth) => {
+    nodes.forEach((node, idx) => {
+      positions[node.id] = { x: (1120 / (nodes.length + 1)) * (idx + 1), y: 90 + depth * 170 };
+    });
+  });
+  return { positions };
+}
+
+function render() {
+  const frame = frames[Math.min(frameIndex, frames.length - 1)];
+  const tree = frame.tree;
+  if (!tree) {
+    treeSvg.innerHTML = '<text x="560" y="320" fill="#8b949e" text-anchor="middle" font-size="20">Empty B-Tree</text>';
+  } else {
+    const { positions } = layout(tree);
+    let svg = '';
+    const walk = (node) => {
+      const pos = positions[node.id];
+      node.children.forEach((child) => {
+        const c = positions[child.id];
+        svg += `<line x1="${pos.x}" y1="${pos.y + 22}" x2="${c.x}" y2="${c.y - 22}" stroke="#30363d" stroke-width="2"></line>`;
+        walk(child);
+      });
+      const highlight = frame.extra.nodeId === node.id || (frame.extra.childIds || []).includes(node.id);
+      const rebalance = ['split', 'merge', 'rebalance'].includes(frame.extra.type);
+      const stroke = highlight ? (rebalance ? '#e3b341' : frame.extra.type === 'delete' ? '#f78166' : frame.extra.type === 'found' || frame.extra.type === 'insert' ? '#3fb950' : '#58a6ff') : '#30363d';
+      const fill = highlight ? 'rgba(88,166,255,0.12)' : '#101720';
+      const width = Math.max(86, node.keys.length * 58);
+      svg += `<rect x="${pos.x - width / 2}" y="${pos.y - 26}" rx="14" ry="14" width="${width}" height="52" fill="${fill}" stroke="${stroke}" stroke-width="3"></rect>`;
+      node.keys.forEach((key, idx) => {
+        if (idx > 0) {
+          const sepX = pos.x - width / 2 + idx * (width / node.keys.length);
+          svg += `<line x1="${sepX}" y1="${pos.y - 26}" x2="${sepX}" y2="${pos.y + 26}" stroke="#30363d" stroke-width="2"></line>`;
+        }
+        const keyX = pos.x - width / 2 + (idx + 0.5) * (width / node.keys.length);
+        const keyColor = key === frame.extra.key ? (frame.extra.type === 'delete' ? '#f78166' : frame.extra.type === 'found' || frame.extra.type === 'insert' ? '#3fb950' : '#e6edf3') : '#e6edf3';
+        svg += `<text x="${keyX}" y="${pos.y + 6}" fill="${keyColor}" text-anchor="middle" font-size="18" font-weight="700">${key}</text>`;
+      });
+    };
+    walk(tree);
+    treeSvg.innerHTML = svg;
+  }
+
+  heightValue.textContent = height(tree);
+  keysValue.textContent = keyCount(tree);
+  nodeValue.textContent = frame.extra.nodeId || '-';
+  opValue.textContent = history[Math.min(frameIndex, history.length - 1)] || '-';
+  statusValue.textContent = frame.status;
+  logEl.innerHTML = history.map((item, idx) => `<div class="log-item ${idx === Math.min(frameIndex, history.length - 1) ? 'active' : ''}">${item}</div>`).join('');
+}
+
+function replayActions() {
+  return history.map(parseAction);
+}
+
+function play() {
+  if (frames.length <= 1) return;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  timer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) {
+      stop();
+      return;
+    }
+    frameIndex += 1;
+    render();
+  }, speed);
+}
+
+function stop() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+}
+
+function enqueue(type) {
+  const value = Number(valueInput.value);
+  if (Number.isNaN(value)) return;
+  const actions = replayActions();
+  actions.push({ type, key: value });
+  rebuild(actions);
+  valueInput.value = '';
+}
+
+insertBtn.addEventListener('click', () => enqueue('insert'));
+deleteBtn.addEventListener('click', () => enqueue('delete'));
+searchBtn.addEventListener('click', () => enqueue('search'));
+sampleBtn.addEventListener('click', () => {
+  rebuild([
+    { type: 'insert', key: 10 },
+    { type: 'insert', key: 20 },
+    { type: 'insert', key: 5 },
+    { type: 'insert', key: 6 },
+    { type: 'insert', key: 12 },
+    { type: 'insert', key: 30 },
+    { type: 'insert', key: 7 },
+    { type: 'insert', key: 17 },
+    { type: 'delete', key: 6 },
+    { type: 'delete', key: 7 },
+    { type: 'search', key: 17 }
+  ]);
+});
+clearBtn.addEventListener('click', () => rebuild([]));
+playBtn.addEventListener('click', play);
+pauseBtn.addEventListener('click', stop);
+stepBtn.addEventListener('click', () => {
+  stop();
+  if (frameIndex < frames.length - 1) frameIndex += 1;
+  render();
+});
+resetBtn.addEventListener('click', () => {
+  stop();
+  frameIndex = 0;
+  render();
+});
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = speed;
+  if (timer) {
+    stop();
+    play();
+  }
+});
+
+rebuild([]);
+</script>
+</body>
+</html>

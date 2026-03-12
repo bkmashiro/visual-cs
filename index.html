@@ -529,10 +529,129 @@
     </div>
     <a class="view-btn" style="background:#56d364;color:#0d1117" href="./visualizations/kd-tree/index.html">View →</a>
   </div>
+
+  <div class="card" style="--card-accent: #f59e0b;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">B-Tree</div>
+        <span class="tag graph">Data Structure</span>
+      </div>
+      <div class="card-icon">🗂️</div>
+    </div>
+    <div class="card-desc">Order-4 B-tree with search, insertion, and deletion. Watch keys split upward on insert and merge or borrow during delete to maintain balance.</div>
+    <div class="card-meta">
+      <span>🔀 Split/merge</span>
+      <span>🔍 Search path</span>
+      <span>⏯ Step replay</span>
+    </div>
+    <a class="view-btn" style="background:#f59e0b;color:#0d1117" href="./visualizations/b-tree/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #79c0ff;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">LRU Cache</div>
+        <span class="tag graph">Data Structure</span>
+      </div>
+      <div class="card-icon">🧠</div>
+    </div>
+    <div class="card-desc">Visualize `get` and `put` on an LRU cache backed by a doubly linked list and hash map. Tail eviction makes the least-recent item disappear on overflow.</div>
+    <div class="card-meta">
+      <span>🗃 Hash map</span>
+      <span>↔ DLL order</span>
+      <span>🧹 Eviction</span>
+    </div>
+    <a class="view-btn" style="background:#79c0ff;color:#0d1117" href="./visualizations/lru-cache/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #58a6ff;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Union-Find</div>
+        <span class="tag graph">Data Structure</span>
+      </div>
+      <div class="card-icon">🪢</div>
+    </div>
+    <div class="card-desc">See disjoint sets merge with union by rank and flatten with path compression. Parent pointers update live after each find and union.</div>
+    <div class="card-meta">
+      <span>🌲 Forest view</span>
+      <span>📉 Compression</span>
+      <span>🧩 Components</span>
+    </div>
+    <a class="view-btn" style="background:#58a6ff" href="./visualizations/union-find/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #3fb950;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Kruskal MST</div>
+        <span class="tag graph">Graph</span>
+      </div>
+      <div class="card-icon">🌉</div>
+    </div>
+    <div class="card-desc">Sort edges by weight, then use Union-Find to grow a minimum spanning tree. Accepted edges turn green, rejected cycle edges flash red.</div>
+    <div class="card-meta">
+      <span>📚 Sorted edges</span>
+      <span>🪢 DSU</span>
+      <span>⚖ MST weight</span>
+    </div>
+    <a class="view-btn" style="background:#3fb950;color:#0d1117" href="./visualizations/mst-kruskal/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #f78166;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Bellman-Ford</div>
+        <span class="tag graph">Graph</span>
+      </div>
+      <div class="card-icon">⚖️</div>
+    </div>
+    <div class="card-desc">Follow repeated edge relaxations on a directed weighted graph, including negative edges and the extra pass that exposes reachable negative cycles.</div>
+    <div class="card-meta">
+      <span>🔁 Passes</span>
+      <span>➖ Negative edges</span>
+      <span>🚨 Cycle detect</span>
+    </div>
+    <a class="view-btn" style="background:#f78166;color:#0d1117" href="./visualizations/bellman-ford/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #a371f7;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Fenwick Tree</div>
+        <span class="tag graph">Data Structure</span>
+      </div>
+      <div class="card-icon">🌲</div>
+    </div>
+    <div class="card-desc">Inspect prefix sums in a Binary Indexed Tree. Updates climb upward with `lowbit`, while queries hop downward and accumulate contributing cells.</div>
+    <div class="card-meta">
+      <span>➕ Point update</span>
+      <span>∑ Prefix query</span>
+      <span>🔢 lowbit</span>
+    </div>
+    <a class="view-btn" style="background:#a371f7;color:#0d1117" href="./visualizations/fenwick-tree/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #d2a8ff;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">DP Visualizer</div>
+        <span class="tag search">Dynamic Programming</span>
+      </div>
+      <div class="card-icon">🧩</div>
+    </div>
+    <div class="card-desc">Watch an LCS dynamic programming table fill cell by cell, then backtrack to recover one longest common subsequence through the finished grid.</div>
+    <div class="card-meta">
+      <span>📋 DP table</span>
+      <span>↘ Backtracking</span>
+      <span>⌨️ Custom strings</span>
+    </div>
+    <a class="view-btn" style="background:#d2a8ff;color:#0d1117" href="./visualizations/dp-visualizer/index.html">View →</a>
+  </div>
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-value">19</div><div class="stat-label">Visualizations</div></div>
+  <div class="stat"><div class="stat-value">26</div><div class="stat-label">Visualizations</div></div>
   <div class="stat"><div class="stat-value">0</div><div class="stat-label">Dependencies</div></div>
   <div class="stat"><div class="stat-value">∞</div><div class="stat-label">Fun</div></div>
 </div>
