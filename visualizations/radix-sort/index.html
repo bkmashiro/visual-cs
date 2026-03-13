@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radix Sort — visual-cs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated gradient background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+            z-index: -1;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        header {
+            text-align: center;
+            padding: 2rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .speed-control label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .speed-control input[type="range"] {
+            width: 120px;
+            accent-color: var(--accent);
+        }
+
+        /* Status display */
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .status-label {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* Main visualization area */
+        .visualization {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Array display */
+        .array-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .section-title {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .array-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            min-height: 120px;
+            align-items: flex-end;
+        }
+
+        .array-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .array-bar {
+            width: 50px;
+            background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+            border-radius: 8px 8px 4px 4px;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .array-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .array-bar.active {
+            background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5);
+            transform: scale(1.1);
+        }
+
+        .array-bar.sorted {
+            background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+        }
+
+        .array-bar.comparing {
+            background: linear-gradient(180deg, #ec4899 0%, #db2777 100%);
+            box-shadow: 0 4px 20px rgba(236, 72, 153, 0.5);
+        }
+
+        .array-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 4px 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .digit-highlight {
+            display: flex;
+            justify-content: center;
+            gap: 2px;
+            font-family: inherit;
+        }
+
+        .digit {
+            display: inline-block;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .digit.current {
+            background: var(--warning);
+            color: #000;
+            font-weight: 700;
+            transform: scale(1.2);
+        }
+
+        /* Buckets display */
+        .buckets-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .buckets-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 900px) {
+            .buckets-container {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        .bucket {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1rem;
+            min-height: 150px;
+            border: 2px solid rgba(255,255,255,0.05);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bucket.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .bucket-header {
+            text-align: center;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 0.75rem;
+        }
+
+        .bucket-digit {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .bucket-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .bucket-item {
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            padding: 6px 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+            animation: dropIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes dropIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Info panel */
+        .info-panel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .info-panel h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .info-panel p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        .info-panel code {
+            background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.875em;
+            color: var(--accent);
+        }
+
+        .complexity {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .complexity-item {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .complexity-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .complexity-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        /* Phase indicator */
+        .phase-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .phase {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .phase.active {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .phase.complete {
+            background: var(--success);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Message display */
+        .message {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            min-height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message.highlight {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            color: var(--text-primary);
+            border: 1px solid var(--accent);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            margin-top: 3rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Pulse animation for active elements */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .pulse {
+            animation: pulse 1s ease infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    
+    <header>
+        <h1>🔢 Radix Sort</h1>
+        <p>Non-comparative integer sorting — digit by digit, bucket by bucket</p>
+    </header>
+
+    <div class="container">
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn" onclick="start()">
+                ▶ Start
+            </button>
+            <button class="btn btn-secondary" id="stepBtn" onclick="step()">
+                ⏭ Step
+            </button>
+            <button class="btn btn-secondary" id="pauseBtn" onclick="pause()" disabled>
+                ⏸ Pause
+            </button>
+            <button class="btn btn-secondary" onclick="reset()">
+                ↻ Reset
+            </button>
+            <button class="btn btn-secondary" onclick="randomize()">
+                🎲 Randomize
+            </button>
+            <div class="speed-control">
+                <label>Speed:</label>
+                <input type="range" id="speedSlider" min="1" max="10" value="5" oninput="updateSpeed()">
+                <span id="speedValue">1x</span>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">Current Pass</span>
+                <span class="status-value" id="passDisplay">—</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Digit Position</span>
+                <span class="status-value" id="digitDisplay">—</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Comparisons</span>
+                <span class="status-value" id="compDisplay">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Array Accesses</span>
+                <span class="status-value" id="accessDisplay">0</span>
+            </div>
+        </div>
+
+        <div class="visualization">
+            <div class="array-section">
+                <div class="section-title">📊 Array State</div>
+                <div class="message" id="message">Click "Start" or "Step" to begin visualization</div>
+                <div class="phase-indicator" id="phaseIndicator"></div>
+                <div class="array-container" id="arrayContainer"></div>
+            </div>
+
+            <div class="buckets-section">
+                <div class="section-title">🪣 Buckets (0-9)</div>
+                <div class="buckets-container" id="bucketsContainer"></div>
+            </div>
+
+            <div class="info-panel">
+                <h3>How Radix Sort Works</h3>
+                <p>
+                    Radix Sort is a <strong>non-comparative</strong> sorting algorithm that sorts integers by processing 
+                    individual digits. Instead of comparing elements directly, it distributes numbers into buckets 
+                    based on each digit position, then collects them back in order.
+                </p>
+                <p>
+                    This implementation uses <strong>LSD (Least Significant Digit)</strong> approach:
+                </p>
+                <p>
+                    1. Start from the <strong>rightmost digit</strong> (ones place)<br>
+                    2. <strong>Distribute</strong> all numbers into buckets 0-9 based on current digit<br>
+                    3. <strong>Collect</strong> numbers from buckets in order (0→9)<br>
+                    4. Move to the <strong>next digit</strong> (tens, hundreds, ...)<br>
+                    5. Repeat until all digits are processed
+                </p>
+                <p>
+                    The magic: after processing all digits, the array is sorted! This works because the bucket 
+                    distribution is <code>stable</code> — equal elements maintain their relative order.
+                </p>
+                <div class="complexity">
+                    <div class="complexity-item">
+                        <div class="complexity-label">Time</div>
+                        <div class="complexity-value">O(d × n)</div>
+                    </div>
+                    <div class="complexity-item">
+                        <div class="complexity-label">Space</div>
+                        <div class="complexity-value">O(n + k)</div>
+                    </div>
+                    <div class="complexity-item">
+                        <div class="complexity-label">Stable</div>
+                        <div class="complexity-value">✓ Yes</div>
+                    </div>
+                    <div class="complexity-item">
+                        <div class="complexity-label">Best For</div>
+                        <div class="complexity-value">Integers</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · 
+        <a href="https://bkmashiro.github.io/visual-cs">vs.yuzhes.com</a>
+    </footer>
+
+    <script>
+        // State
+        let array = [];
+        let originalArray = [];
+        let buckets = Array(10).fill(null).map(() => []);
+        let isRunning = false;
+        let isPaused = false;
+        let animationTimeout = null;
+        let speed = 500;
+        let currentDigit = 0;
+        let currentPass = 0;
+        let maxDigits = 0;
+        let phase = 'idle'; // idle, distribute, collect, done
+        let distributeIndex = 0;
+        let collectBucket = 0;
+        let collectIndex = 0;
+        let comparisons = 0;
+        let accesses = 0;
+
+        // Initialize
+        function init() {
+            randomize();
+            renderBuckets();
+        }
+
+        function randomize() {
+            reset();
+            const size = 8 + Math.floor(Math.random() * 5); // 8-12 elements
+            array = [];
+            for (let i = 0; i < size; i++) {
+                array.push(Math.floor(Math.random() * 900) + 100); // 100-999
+            }
+            originalArray = [...array];
+            maxDigits = getMaxDigits(array);
+            renderArray();
+            updatePhaseIndicator();
+        }
+
+        function getMaxDigits(arr) {
+            const max = Math.max(...arr);
+            return max.toString().length;
+        }
+
+        function getDigit(num, place) {
+            return Math.floor(Math.abs(num) / Math.pow(10, place)) % 10;
+        }
+
+        function renderArray(activeIndex = -1, highlightDigit = -1) {
+            const container = document.getElementById('arrayContainer');
+            container.innerHTML = '';
+            
+            const maxVal = Math.max(...array);
+            
+            array.forEach((val, idx) => {
+                const item = document.createElement('div');
+                item.className = 'array-item';
+                
+                const bar = document.createElement('div');
+                bar.className = 'array-bar';
+                if (idx === activeIndex) bar.classList.add('active');
+                if (phase === 'done') bar.classList.add('sorted');
+                
+                const height = 30 + (val / maxVal) * 70;
+                bar.style.height = `${height}px`;
+                
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'array-value';
+                
+                if (highlightDigit >= 0) {
+                    const digits = val.toString().padStart(maxDigits, '0');
+                    const highlightPos = digits.length - 1 - highlightDigit;
+                    let html = '<div class="digit-highlight">';
+                    for (let i = 0; i < digits.length; i++) {
+                        const isCurrent = i === highlightPos;
+                        html += `<span class="digit ${isCurrent ? 'current' : ''}">${digits[i]}</span>`;
+                    }
+                    html += '</div>';
+                    valueDiv.innerHTML = html;
+                } else {
+                    valueDiv.textContent = val;
+                }
+                
+                item.appendChild(bar);
+                item.appendChild(valueDiv);
+                container.appendChild(item);
+            });
+        }
+
+        function renderBuckets() {
+            const container = document.getElementById('bucketsContainer');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < 10; i++) {
+                const bucket = document.createElement('div');
+                bucket.className = 'bucket';
+                if (phase === 'distribute' && buckets[i].length > 0 && 
+                    buckets[i][buckets[i].length - 1] === array[distributeIndex - 1]) {
+                    bucket.classList.add('active');
+                }
+                if (phase === 'collect' && i === collectBucket) {
+                    bucket.classList.add('active');
+                }
+                
+                const header = document.createElement('div');
+                header.className = 'bucket-header';
+                header.innerHTML = `<span class="bucket-digit">${i}</span>`;
+                
+                const items = document.createElement('div');
+                items.className = 'bucket-items';
+                
+                buckets[i].forEach(val => {
+                    const item = document.createElement('div');
+                    item.className = 'bucket-item';
+                    item.textContent = val;
+                    items.appendChild(item);
+                });
+                
+                bucket.appendChild(header);
+                bucket.appendChild(items);
+                container.appendChild(bucket);
+            }
+        }
+
+        function updatePhaseIndicator() {
+            const container = document.getElementById('phaseIndicator');
+            const phases = [];
+            
+            for (let i = 0; i < maxDigits; i++) {
+                const placeName = i === 0 ? 'Ones' : i === 1 ? 'Tens' : i === 2 ? 'Hundreds' : `10^${i}`;
+                let className = 'phase';
+                if (i < currentPass) className += ' complete';
+                else if (i === currentPass && phase !== 'idle' && phase !== 'done') className += ' active';
+                phases.push(`<span class="${className}">${placeName}</span>`);
+            }
+            
+            container.innerHTML = phases.join('');
+        }
+
+        function updateStats() {
+            document.getElementById('passDisplay').textContent = phase === 'idle' ? '—' : currentPass + 1;
+            document.getElementById('digitDisplay').textContent = phase === 'idle' ? '—' : 
+                (currentDigit === 0 ? 'Ones' : currentDigit === 1 ? 'Tens' : currentDigit === 2 ? 'Hundreds' : `10^${currentDigit}`);
+            document.getElementById('compDisplay').textContent = comparisons;
+            document.getElementById('accessDisplay').textContent = accesses;
+        }
+
+        function setMessage(msg, highlight = false) {
+            const el = document.getElementById('message');
+            el.textContent = msg;
+            el.className = highlight ? 'message highlight' : 'message';
+        }
+
+        function reset() {
+            clearTimeout(animationTimeout);
+            isRunning = false;
+            isPaused = false;
+            phase = 'idle';
+            currentDigit = 0;
+            currentPass = 0;
+            distributeIndex = 0;
+            collectBucket = 0;
+            collectIndex = 0;
+            comparisons = 0;
+            accesses = 0;
+            buckets = Array(10).fill(null).map(() => []);
+            
+            if (originalArray.length > 0) {
+                array = [...originalArray];
+            }
+            
+            updateButtons();
+            updateStats();
+            renderArray();
+            renderBuckets();
+            updatePhaseIndicator();
+            setMessage('Click "Start" or "Step" to begin visualization');
+        }
+
+        function updateButtons() {
+            document.getElementById('startBtn').disabled = isRunning && !isPaused;
+            document.getElementById('stepBtn').disabled = isRunning && !isPaused;
+            document.getElementById('pauseBtn').disabled = !isRunning || isPaused;
+            document.getElementById('startBtn').innerHTML = isPaused ? '▶ Resume' : '▶ Start';
+        }
+
+        function updateSpeed() {
+            const slider = document.getElementById('speedSlider');
+            const value = parseInt(slider.value);
+            speed = 1000 / value;
+            document.getElementById('speedValue').textContent = value + 'x';
+        }
+
+        async function start() {
+            if (phase === 'done') reset();
+            if (isPaused) {
+                isPaused = false;
+                isRunning = true;
+                updateButtons();
+                run();
+                return;
+            }
+            
+            isRunning = true;
+            isPaused = false;
+            updateButtons();
+            run();
+        }
+
+        function pause() {
+            isPaused = true;
+            clearTimeout(animationTimeout);
+            updateButtons();
+        }
+
+        async function run() {
+            if (!isRunning || isPaused) return;
+            
+            const hasMore = await step();
+            if (hasMore && isRunning && !isPaused) {
+                animationTimeout = setTimeout(run, speed);
+            }
+        }
+
+        async function step() {
+            if (phase === 'done') return false;
+            
+            if (phase === 'idle') {
+                phase = 'distribute';
+                currentDigit = 0;
+                currentPass = 0;
+                distributeIndex = 0;
+                buckets = Array(10).fill(null).map(() => []);
+                setMessage(`Pass ${currentPass + 1}: Distributing by ${currentDigit === 0 ? 'ones' : currentDigit === 1 ? 'tens' : 'hundreds'} digit`);
+                updatePhaseIndicator();
+                updateStats();
+            }
+            
+            if (phase === 'distribute') {
+                if (distributeIndex < array.length) {
+                    const val = array[distributeIndex];
+                    const digit = getDigit(val, currentDigit);
+                    buckets[digit].push(val);
+                    accesses++;
+                    
+                    setMessage(`Distributing ${val}: digit ${digit} → bucket ${digit}`, true);
+                    renderArray(distributeIndex, currentDigit);
+                    renderBuckets();
+                    updateStats();
+                    
+                    distributeIndex++;
+                    return true;
+                } else {
+                    // Move to collect phase
+                    phase = 'collect';
+                    collectBucket = 0;
+                    collectIndex = 0;
+                    array = [];
+                    setMessage('Collecting from buckets 0 → 9...');
+                    renderBuckets();
+                    return true;
+                }
+            }
+            
+            if (phase === 'collect') {
+                // Find next non-empty bucket
+                while (collectBucket < 10 && buckets[collectBucket].length === 0) {
+                    collectBucket++;
+                }
+                
+                if (collectBucket < 10) {
+                    const val = buckets[collectBucket].shift();
+                    array.push(val);
+                    accesses++;
+                    
+                    setMessage(`Collecting ${val} from bucket ${collectBucket}`, true);
+                    renderArray(-1, currentDigit);
+                    renderBuckets();
+                    updateStats();
+                    return true;
+                } else {
+                    // Finished this pass
+                    currentPass++;
+                    currentDigit++;
+                    
+                    if (currentDigit >= maxDigits) {
+                        // All done!
+                        phase = 'done';
+                        isRunning = false;
+                        setMessage('✅ Sorting complete! Array is now sorted.', true);
+                        renderArray();
+                        renderBuckets();
+                        updateButtons();
+                        updatePhaseIndicator();
+                        return false;
+                    } else {
+                        // Start next pass
+                        phase = 'distribute';
+                        distributeIndex = 0;
+                        buckets = Array(10).fill(null).map(() => []);
+                        setMessage(`Pass ${currentPass + 1}: Distributing by ${currentDigit === 0 ? 'ones' : currentDigit === 1 ? 'tens' : 'hundreds'} digit`);
+                        renderArray(-1, currentDigit);
+                        renderBuckets();
+                        updatePhaseIndicator();
+                        updateStats();
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
