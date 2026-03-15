@@ -36,6 +36,7 @@
 | [字典树](./visualizations/trie/) | 搜索 | 前缀树，实时匹配 |
 | [KD 树](./visualizations/kd-tree/) | 数据结构 | 二维空间划分与最近邻搜索 |
 | [基数排序](./visualizations/radix-sort/) | 排序 | 非比较排序，按位分桶 |
+| [计数排序](./visualizations/counting-sort/) | 排序 | 线性时间，适用于有界整数 |
 
 ---
 

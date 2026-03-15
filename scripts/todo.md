@@ -1,7 +1,6 @@
 # Visual-CS Todo Queue
 
 ## Upcoming
-- counting-sort — Counting Sort (linear-time sort for bounded integers)
 - insertion-sort — Insertion Sort (simple quadratic sort)
 - shell-sort — Shell Sort (gap-based insertion sort)
 - prims-algorithm — Prim's Algorithm (MST via greedy vertex expansion)
@@ -17,4 +16,5 @@
 - huffman-coding — Huffman Coding (optimal prefix-free compression)
 
 ## Done
+- counting-sort — Counting Sort (linear-time sort for bounded integers) ✅ 2026-03-15
 - radix-sort — Radix Sort (non-comparative integer sorting) ✅ 2026-03-13

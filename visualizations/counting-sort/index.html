@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Counting Sort — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #6366f1;
+    --accent2: #a78bfa;
+    --bar-default: #58a6ff;
+    --bar-counting: #f59e0b;
+    --bar-placing: #3fb950;
+    --bar-sorted: #7ee787;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+  header h1 span { color: var(--accent); }
+  header a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  header a:hover { border-color: var(--accent); color: var(--text); }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .intro {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .intro h2 {
+    font-size: 1.1rem;
+    color: var(--accent2);
+    margin-bottom: 8px;
+  }
+  .intro p {
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-size: 0.9rem;
+  }
+  .intro code {
+    background: rgba(99,102,241,0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.85em;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  button:hover { opacity: 0.85; transform: scale(1.02); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  button.secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  button.secondary:hover { border-color: var(--accent); }
+
+  .slider-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  input[type="range"] {
+    width: 100px;
+    accent-color: var(--accent);
+  }
+
+  .stats {
+    display: flex;
+    gap: 24px;
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .stats span { display: flex; gap: 6px; align-items: center; }
+  .stats .value { color: var(--accent2); font-weight: 700; font-size: 1rem; }
+
+  .visualization {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .section-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  /* Main array visualization */
+  .array-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    min-height: 200px;
+  }
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    height: 160px;
+  }
+  .bar {
+    flex: 1;
+    max-width: 40px;
+    background: var(--bar-default);
+    border-radius: 4px 4px 0 0;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+  .bar.counting { background: var(--bar-counting); box-shadow: 0 0 12px var(--bar-counting); }
+  .bar.placing { background: var(--bar-placing); box-shadow: 0 0 12px var(--bar-placing); }
+  .bar.sorted { background: var(--bar-sorted); }
+  .bar-label {
+    position: absolute;
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* Count array visualization */
+  .count-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .count-array {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .count-cell {
+    width: 48px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .count-index {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .count-value {
+    background: var(--border);
+    padding: 8px 4px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  .count-value.active {
+    background: var(--bar-counting);
+    color: #000;
+    box-shadow: 0 0 12px var(--bar-counting);
+  }
+  .count-value.cumulative {
+    background: var(--accent2);
+    color: #000;
+  }
+
+  /* Output array */
+  .output-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    min-height: 80px;
+  }
+  .output-array {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .output-cell {
+    width: 40px;
+    height: 40px;
+    background: var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  .output-cell.filled {
+    background: var(--bar-sorted);
+    color: #000;
+  }
+  .output-cell.placing {
+    background: var(--bar-placing);
+    color: #000;
+    box-shadow: 0 0 12px var(--bar-placing);
+  }
+
+  /* Phase indicator */
+  .phase-indicator {
+    text-align: center;
+    padding: 12px;
+    background: rgba(99,102,241,0.15);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--accent2);
+    font-weight: 600;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: auto;
+    padding-top: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 16px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Counting<span>Sort</span></h1>
+  <a href="../../index.html">← Back to Gallery</a>
+</header>
+
+<main>
+  <div class="intro">
+    <h2>How Counting Sort Works</h2>
+    <p>
+      Counting Sort is a <strong>non-comparative</strong> sorting algorithm that counts occurrences of each value.
+      It works in three phases: <strong>Count</strong> (tally each element), <strong>Cumulate</strong> (convert counts to positions),
+      and <strong>Place</strong> (build sorted output by placing elements at their correct positions).
+      Time complexity: <code>O(n + k)</code> where k is the range of input values. 
+      <em>Best for small integer ranges.</em>
+    </p>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">▶ Start</button>
+    <button id="stepBtn" class="secondary">Step</button>
+    <button id="resetBtn" class="secondary">Reset</button>
+    <div class="slider-group">
+      <label>Speed:</label>
+      <input type="range" id="speedSlider" min="1" max="10" value="5">
+    </div>
+    <div class="slider-group">
+      <label>Size:</label>
+      <input type="range" id="sizeSlider" min="8" max="24" value="12">
+    </div>
+    <div class="stats">
+      <span>Elements: <span class="value" id="elemCount">12</span></span>
+      <span>Range: <span class="value" id="rangeDisplay">0–9</span></span>
+      <span>Step: <span class="value" id="stepCount">0</span></span>
+    </div>
+  </div>
+
+  <div class="phase-indicator" id="phaseIndicator">Ready — Press Start or Step</div>
+
+  <div class="visualization">
+    <div class="array-container">
+      <div class="section-label">Input Array</div>
+      <div class="bars" id="inputBars"></div>
+    </div>
+
+    <div class="count-container">
+      <div class="section-label">Count Array</div>
+      <div class="count-array" id="countArray"></div>
+    </div>
+
+    <div class="output-container">
+      <div class="section-label">Output Array (Sorted)</div>
+      <div class="output-array" id="outputArray"></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-color" style="background:var(--bar-default)"></div>Default</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--bar-counting)"></div>Counting</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--bar-placing)"></div>Placing</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--bar-sorted)"></div>Sorted</div>
+  </div>
+</main>
+
+<footer>
+  <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS
+</footer>
+
+<script>
+(function() {
+  const MAX_VALUE = 9;
+  let arr = [];
+  let countArr = [];
+  let outputArr = [];
+  let steps = [];
+  let stepIndex = 0;
+  let running = false;
+  let speed = 5;
+  let size = 12;
+  let animationId = null;
+
+  const inputBars = document.getElementById('inputBars');
+  const countArrayEl = document.getElementById('countArray');
+  const outputArrayEl = document.getElementById('outputArray');
+  const phaseIndicator = document.getElementById('phaseIndicator');
+  const startBtn = document.getElementById('startBtn');
+  const stepBtn = document.getElementById('stepBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const speedSlider = document.getElementById('speedSlider');
+  const sizeSlider = document.getElementById('sizeSlider');
+  const elemCount = document.getElementById('elemCount');
+  const rangeDisplay = document.getElementById('rangeDisplay');
+  const stepCount = document.getElementById('stepCount');
+
+  function generateArray() {
+    arr = Array.from({ length: size }, () => Math.floor(Math.random() * (MAX_VALUE + 1)));
+    countArr = new Array(MAX_VALUE + 1).fill(0);
+    outputArr = new Array(size).fill(null);
+    steps = [];
+    stepIndex = 0;
+    generateSteps();
+    render();
+    updateStats();
+  }
+
+  function generateSteps() {
+    const tempCount = new Array(MAX_VALUE + 1).fill(0);
+    const tempOutput = new Array(size).fill(null);
+
+    // Phase 1: Count occurrences
+    for (let i = 0; i < arr.length; i++) {
+      tempCount[arr[i]]++;
+      steps.push({
+        phase: 'count',
+        desc: `Counting element ${arr[i]} at index ${i}`,
+        inputHighlight: i,
+        countHighlight: arr[i],
+        countState: [...tempCount],
+        outputState: [...tempOutput]
+      });
+    }
+
+    // Phase 2: Cumulative sum
+    for (let i = 1; i <= MAX_VALUE; i++) {
+      tempCount[i] += tempCount[i - 1];
+      steps.push({
+        phase: 'cumulate',
+        desc: `Cumulating: count[${i}] = count[${i}] + count[${i-1}]`,
+        countHighlight: i,
+        countState: [...tempCount],
+        outputState: [...tempOutput],
+        cumulative: true
+      });
+    }
+
+    // Phase 3: Place elements (stable, iterate backwards)
+    for (let i = arr.length - 1; i >= 0; i--) {
+      const val = arr[i];
+      tempCount[val]--;
+      const pos = tempCount[val];
+      tempOutput[pos] = val;
+      steps.push({
+        phase: 'place',
+        desc: `Placing ${val} at output[${pos}]`,
+        inputHighlight: i,
+        countHighlight: val,
+        outputHighlight: pos,
+        countState: [...tempCount],
+        outputState: [...tempOutput]
+      });
+    }
+
+    // Final step
+    steps.push({
+      phase: 'done',
+      desc: 'Sorting complete!',
+      countState: [...tempCount],
+      outputState: [...tempOutput],
+      allSorted: true
+    });
+  }
+
+  function render(step = null) {
+    // Render input bars
+    inputBars.innerHTML = '';
+    const maxVal = MAX_VALUE;
+    arr.forEach((val, i) => {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.style.height = `${(val / maxVal) * 140 + 20}px`;
+      if (step && step.inputHighlight === i) {
+        bar.classList.add(step.phase === 'count' ? 'counting' : 'placing');
+      }
+      if (step && step.allSorted) {
+        bar.classList.add('sorted');
+      }
+      const label = document.createElement('div');
+      label.className = 'bar-label';
+      label.textContent = val;
+      bar.appendChild(label);
+      inputBars.appendChild(bar);
+    });
+
+    // Render count array
+    const currentCount = step ? step.countState : countArr;
+    countArrayEl.innerHTML = '';
+    for (let i = 0; i <= MAX_VALUE; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'count-cell';
+      cell.innerHTML = `
+        <div class="count-index">${i}</div>
+        <div class="count-value ${step && step.countHighlight === i ? (step.cumulative ? 'cumulative' : 'active') : ''}">${currentCount[i]}</div>
+      `;
+      countArrayEl.appendChild(cell);
+    }
+
+    // Render output array
+    const currentOutput = step ? step.outputState : outputArr;
+    outputArrayEl.innerHTML = '';
+    currentOutput.forEach((val, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'output-cell';
+      if (val !== null) {
+        cell.classList.add('filled');
+        cell.textContent = val;
+      }
+      if (step && step.outputHighlight === i) {
+        cell.classList.add('placing');
+      }
+      outputArrayEl.appendChild(cell);
+    });
+
+    // Update phase indicator
+    if (step) {
+      phaseIndicator.textContent = step.desc;
+      phaseIndicator.style.background = step.phase === 'count' ? 'rgba(245,158,11,0.2)' :
+                                         step.phase === 'cumulate' ? 'rgba(167,139,250,0.2)' :
+                                         step.phase === 'place' ? 'rgba(63,185,80,0.2)' :
+                                         'rgba(126,231,135,0.3)';
+    }
+  }
+
+  function updateStats() {
+    elemCount.textContent = size;
+    rangeDisplay.textContent = `0–${MAX_VALUE}`;
+    stepCount.textContent = stepIndex;
+  }
+
+  function executeStep() {
+    if (stepIndex >= steps.length) {
+      running = false;
+      startBtn.textContent = '▶ Start';
+      return false;
+    }
+    const step = steps[stepIndex];
+    render(step);
+    stepIndex++;
+    stepCount.textContent = stepIndex;
+    return true;
+  }
+
+  function runAnimation() {
+    if (!running) return;
+    if (executeStep()) {
+      const delay = 600 - (speed - 1) * 55;
+      animationId = setTimeout(runAnimation, delay);
+    }
+  }
+
+  startBtn.addEventListener('click', () => {
+    if (running) {
+      running = false;
+      clearTimeout(animationId);
+      startBtn.textContent = '▶ Start';
+    } else {
+      if (stepIndex >= steps.length) {
+        generateArray();
+      }
+      running = true;
+      startBtn.textContent = '⏸ Pause';
+      runAnimation();
+    }
+  });
+
+  stepBtn.addEventListener('click', () => {
+    if (running) {
+      running = false;
+      clearTimeout(animationId);
+      startBtn.textContent = '▶ Start';
+    }
+    if (stepIndex >= steps.length) {
+      generateArray();
+    }
+    executeStep();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    running = false;
+    clearTimeout(animationId);
+    startBtn.textContent = '▶ Start';
+    generateArray();
+    phaseIndicator.textContent = 'Ready — Press Start or Step';
+    phaseIndicator.style.background = 'rgba(99,102,241,0.15)';
+  });
+
+  speedSlider.addEventListener('input', (e) => {
+    speed = parseInt(e.target.value);
+  });
+
+  sizeSlider.addEventListener('input', (e) => {
+    size = parseInt(e.target.value);
+    running = false;
+    clearTimeout(animationId);
+    startBtn.textContent = '▶ Start';
+    generateArray();
+    phaseIndicator.textContent = 'Ready — Press Start or Step';
+    phaseIndicator.style.background = 'rgba(99,102,241,0.15)';
+  });
+
+  // Initialize
+  generateArray();
+  phaseIndicator.textContent = 'Ready — Press Start or Step';
+})();
+</script>
+
+</body>
+</html>
