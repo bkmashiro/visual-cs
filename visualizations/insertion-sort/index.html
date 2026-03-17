@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insertion Sort — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #fbbf24;
+  --sorted: #22c55e;
+  --key: #fbbf24;
+  --shifting: #f87171;
+  --unsorted: #64748b;
+  --comparing: #818cf8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  padding: 24px;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+header h1 span { color: var(--accent); }
+.back-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.back-link:hover { color: var(--text); border-color: var(--accent); }
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.viz-area {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 20px;
+  position: relative;
+  min-height: 340px;
+}
+
+.bars-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 280px;
+  padding-top: 40px;
+}
+
+.bar {
+  flex: 1;
+  max-width: 32px;
+  border-radius: 4px 4px 0 0;
+  transition: background-color 0.15s, transform 0.25s, opacity 0.2s;
+  position: relative;
+}
+.bar::after {
+  content: attr(data-value);
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.bar.sorted { background: var(--sorted); }
+.bar.unsorted { background: var(--unsorted); }
+.bar.key { 
+  background: var(--key);
+  transform: translateY(-30px);
+  box-shadow: 0 8px 25px rgba(251, 191, 36, 0.4);
+  z-index: 10;
+}
+.bar.shifting { 
+  background: var(--shifting);
+  animation: shift-pulse 0.3s ease;
+}
+.bar.comparing { background: var(--comparing); }
+.bar.placed {
+  animation: place-bounce 0.3s ease;
+}
+
+@keyframes shift-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes place-bounce {
+  0% { transform: translateY(-30px); }
+  60% { transform: translateY(5px); }
+  100% { transform: translateY(0); }
+}
+
+.controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.controls button {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.controls button:hover { opacity: 0.85; transform: scale(1.02); }
+.controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+.controls button.secondary {
+  background: var(--border);
+  color: var(--text);
+}
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+.speed-control label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.speed-control input[type="range"] {
+  width: 120px;
+  accent-color: var(--accent);
+}
+
+.stats {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.stat {
+  text-align: center;
+}
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 16px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.explanation {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+}
+.explanation h2 {
+  font-size: 1.2rem;
+  margin-bottom: 16px;
+  color: var(--accent);
+}
+.explanation h3 {
+  font-size: 1rem;
+  margin: 16px 0 8px;
+  color: var(--text);
+}
+.explanation p, .explanation ul {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+.explanation ul {
+  padding-left: 24px;
+}
+.explanation code {
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 0.85em;
+}
+.complexity-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+.complexity-table th, .complexity-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.complexity-table th {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+}
+.complexity-table td {
+  color: var(--text-muted);
+}
+
+.status-message {
+  text-align: center;
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Insertion <span>Sort</span></h1>
+  <a class="back-link" href="../../index.html">← Back to Gallery</a>
+</header>
+
+<div class="container">
+  <div class="viz-area">
+    <div class="bars-container" id="bars"></div>
+    <div class="status-message" id="status">Click "Start" to begin sorting</div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn" onclick="start()">▶ Start</button>
+    <button id="stepBtn" onclick="step()" class="secondary">→ Step</button>
+    <button id="resetBtn" onclick="reset()" class="secondary">↺ Reset</button>
+    <div class="speed-control">
+      <label for="speed">Speed:</label>
+      <input type="range" id="speed" min="1" max="10" value="5">
+      <span id="speedLabel">5x</span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value" id="comparisons">0</div>
+      <div class="stat-label">Comparisons</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="shifts">0</div>
+      <div class="stat-label">Shifts</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="pass">0</div>
+      <div class="stat-label">Current Pass</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="sortedCount">1</div>
+      <div class="stat-label">Sorted Elements</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-color" style="background: var(--sorted);"></div>
+      <span>Sorted portion</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: var(--key);"></div>
+      <span>Key element (picked up)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: var(--shifting);"></div>
+      <span>Being shifted right</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: var(--unsorted);"></div>
+      <span>Unsorted portion</span>
+    </div>
+  </div>
+
+  <div class="explanation">
+    <h2>🃏 How Insertion Sort Works</h2>
+    <p>
+      Imagine you're sorting a hand of playing cards. You pick up one card at a time and slide it 
+      left past all larger cards until it finds its correct position in the sorted portion.
+    </p>
+
+    <h3>Algorithm Steps</h3>
+    <ul>
+      <li>Start with the second element (first element is trivially sorted)</li>
+      <li>Pick up the current element as the <strong>key</strong></li>
+      <li>Compare the key with elements to its left</li>
+      <li>Shift larger elements one position to the right</li>
+      <li>Insert the key into the gap created</li>
+      <li>Repeat for all remaining elements</li>
+    </ul>
+
+    <h3>Pseudocode</h3>
+    <p>
+      <code>for i = 1 to n-1:</code><br>
+      <code>&nbsp;&nbsp;key = arr[i]</code><br>
+      <code>&nbsp;&nbsp;j = i - 1</code><br>
+      <code>&nbsp;&nbsp;while j >= 0 and arr[j] > key:</code><br>
+      <code>&nbsp;&nbsp;&nbsp;&nbsp;arr[j+1] = arr[j]</code><br>
+      <code>&nbsp;&nbsp;&nbsp;&nbsp;j = j - 1</code><br>
+      <code>&nbsp;&nbsp;arr[j+1] = key</code>
+    </p>
+
+    <h3>Time & Space Complexity</h3>
+    <table class="complexity-table">
+      <tr>
+        <th>Case</th>
+        <th>Time</th>
+        <th>When</th>
+      </tr>
+      <tr>
+        <td>Best</td>
+        <td>O(n)</td>
+        <td>Array already sorted</td>
+      </tr>
+      <tr>
+        <td>Average</td>
+        <td>O(n²)</td>
+        <td>Random order</td>
+      </tr>
+      <tr>
+        <td>Worst</td>
+        <td>O(n²)</td>
+        <td>Reverse sorted</td>
+      </tr>
+      <tr>
+        <td>Space</td>
+        <td>O(1)</td>
+        <td>In-place sorting</td>
+      </tr>
+    </table>
+
+    <h3>Key Properties</h3>
+    <ul>
+      <li><strong>Stable:</strong> Equal elements maintain their relative order</li>
+      <li><strong>In-place:</strong> Only requires O(1) extra memory</li>
+      <li><strong>Adaptive:</strong> Efficient for nearly sorted data</li>
+      <li><strong>Online:</strong> Can sort a list as it receives elements</li>
+    </ul>
+
+    <h3>When to Use</h3>
+    <p>
+      Insertion sort excels when the data is nearly sorted or the array is small. It's often used 
+      as the base case for hybrid algorithms like Timsort (used in Python and Java) when subarrays 
+      become small enough that the overhead of more complex algorithms isn't worth it.
+    </p>
+  </div>
+</div>
+
+<script>
+const ARRAY_SIZE = 20;
+let array = [];
+let originalArray = [];
+let sortedUpTo = 0;
+let currentPass = 0;
+let keyIndex = -1;
+let shiftIndex = -1;
+let comparisons = 0;
+let shifts = 0;
+let isRunning = false;
+let isPaused = false;
+let animationId = null;
+let stepResolve = null;
+
+// Generator for step-by-step sorting
+let sortGenerator = null;
+let currentStep = null;
+
+function generateArray() {
+  array = [];
+  for (let i = 0; i < ARRAY_SIZE; i++) {
+    array.push(Math.floor(Math.random() * 90) + 10);
+  }
+  originalArray = [...array];
+}
+
+function renderBars() {
+  const container = document.getElementById('bars');
+  const maxVal = Math.max(...array);
+  container.innerHTML = '';
+  
+  array.forEach((val, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.height = `${(val / maxVal) * 240}px`;
+    bar.setAttribute('data-value', val);
+    
+    // Determine bar state
+    if (i === keyIndex) {
+      bar.classList.add('key');
+    } else if (i === shiftIndex) {
+      bar.classList.add('shifting');
+    } else if (i < sortedUpTo) {
+      bar.classList.add('sorted');
+    } else {
+      bar.classList.add('unsorted');
+    }
+    
+    container.appendChild(bar);
+  });
+}
+
+function updateStats() {
+  document.getElementById('comparisons').textContent = comparisons;
+  document.getElementById('shifts').textContent = shifts;
+  document.getElementById('pass').textContent = currentPass;
+  document.getElementById('sortedCount').textContent = sortedUpTo;
+}
+
+function updateStatus(msg) {
+  document.getElementById('status').textContent = msg;
+}
+
+function getDelay() {
+  const speed = parseInt(document.getElementById('speed').value);
+  return 1000 / speed;
+}
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speedLabel').textContent = `${e.target.value}x`;
+});
+
+// Insertion Sort Generator
+function* insertionSortGenerator() {
+  sortedUpTo = 1;
+  
+  for (let i = 1; i < array.length; i++) {
+    currentPass = i;
+    const key = array[i];
+    keyIndex = i;
+    shiftIndex = -1;
+    
+    updateStatus(`Pass ${i}: Picking up key element ${key}`);
+    renderBars();
+    updateStats();
+    yield;
+    
+    let j = i - 1;
+    
+    // Shift elements
+    while (j >= 0) {
+      comparisons++;
+      shiftIndex = j;
+      updateStatus(`Comparing key ${key} with ${array[j]}`);
+      renderBars();
+      updateStats();
+      yield;
+      
+      if (array[j] > key) {
+        // Shift element right
+        array[j + 1] = array[j];
+        shifts++;
+        updateStatus(`Shifting ${array[j]} to the right`);
+        keyIndex = j; // Key moves left
+        renderBars();
+        updateStats();
+        yield;
+        j--;
+      } else {
+        break;
+      }
+    }
+    
+    // Insert key
+    array[j + 1] = key;
+    keyIndex = -1;
+    shiftIndex = -1;
+    sortedUpTo = i + 1;
+    
+    updateStatus(`Inserted key ${key} at position ${j + 1}`);
+    renderBars();
+    updateStats();
+    yield;
+  }
+  
+  // Final state
+  sortedUpTo = array.length;
+  keyIndex = -1;
+  shiftIndex = -1;
+  renderBars();
+  updateStats();
+  updateStatus(`✓ Sorting complete! ${comparisons} comparisons, ${shifts} shifts`);
+  isRunning = false;
+  updateButtons();
+}
+
+async function runSort() {
+  while (isRunning && !isPaused) {
+    const result = sortGenerator.next();
+    if (result.done) {
+      isRunning = false;
+      updateButtons();
+      return;
+    }
+    await new Promise(resolve => {
+      animationId = setTimeout(resolve, getDelay());
+    });
+  }
+}
+
+function start() {
+  if (!isRunning) {
+    isRunning = true;
+    isPaused = false;
+    if (!sortGenerator || sortGenerator.done) {
+      sortGenerator = insertionSortGenerator();
+    }
+    updateButtons();
+    runSort();
+  } else if (isPaused) {
+    isPaused = false;
+    updateButtons();
+    runSort();
+  } else {
+    isPaused = true;
+    updateButtons();
+  }
+}
+
+function step() {
+  if (!sortGenerator) {
+    sortGenerator = insertionSortGenerator();
+  }
+  const result = sortGenerator.next();
+  if (result.done) {
+    isRunning = false;
+    updateButtons();
+  }
+}
+
+function reset() {
+  isRunning = false;
+  isPaused = false;
+  if (animationId) {
+    clearTimeout(animationId);
+    animationId = null;
+  }
+  sortGenerator = null;
+  
+  array = [...originalArray];
+  sortedUpTo = 1;
+  currentPass = 0;
+  keyIndex = -1;
+  shiftIndex = -1;
+  comparisons = 0;
+  shifts = 0;
+  
+  renderBars();
+  updateStats();
+  updateStatus('Click "Start" to begin sorting');
+  updateButtons();
+}
+
+function updateButtons() {
+  const startBtn = document.getElementById('startBtn');
+  const stepBtn = document.getElementById('stepBtn');
+  
+  if (isRunning && !isPaused) {
+    startBtn.textContent = '⏸ Pause';
+    stepBtn.disabled = true;
+  } else if (isRunning && isPaused) {
+    startBtn.textContent = '▶ Resume';
+    stepBtn.disabled = false;
+  } else {
+    startBtn.textContent = '▶ Start';
+    stepBtn.disabled = false;
+  }
+}
+
+// Initialize
+generateArray();
+renderBars();
+updateStats();
+</script>
+
+</body>
+</html>
