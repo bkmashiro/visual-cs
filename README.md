@@ -38,6 +38,7 @@
 | [Radix Sort](./visualizations/radix-sort/) | Sorting | Non-comparative digit-by-digit sort |
 | [Counting Sort](./visualizations/counting-sort/) | Sorting | Linear-time sort for bounded integers |
 | [Insertion Sort](./visualizations/insertion-sort/) | Sorting | Key element slides left past larger values |
+| [Shell Sort](./visualizations/shell-sort/) | Sorting | Gap-based insertion sort with Knuth sequence |
 
 ---
 

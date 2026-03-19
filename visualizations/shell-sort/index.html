@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shell Sort — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #a78bfa;
+    --accent2: #3fb950;
+    --accent3: #f78166;
+    --bar-default: #2d333b;
+    --bar-gap: #a78bfa;
+    --bar-compare: #f59e0b;
+    --bar-shift: #f78166;
+    --bar-sorted: #3fb950;
+    --bar-key: #60a5fa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+  header h1 { font-size: 1.2rem; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+  header a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; }
+  header a:hover { color: var(--accent); }
+
+  .main { display: flex; flex: 1; gap: 0; }
+
+  .left-panel {
+    flex: 1;
+    padding: 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .right-panel {
+    width: 300px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+  }
+
+  /* ---- CONTROLS ---- */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .speed-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  input[type=range] { width: 90px; accent-color: var(--accent); }
+
+  .size-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  /* ---- GAP INDICATOR ---- */
+  .gap-indicator {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .gap-indicator .label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .gap-indicator .value { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+
+  .gap-sequence {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .gap-pill {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: var(--bar-default);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .gap-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .gap-pill.done { background: var(--bar-sorted); color: #0d1117; border-color: var(--bar-sorted); }
+
+  /* ---- VIZ ---- */
+  .viz-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    flex: 1;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #bar-canvas {
+    width: 100%;
+    height: 240px;
+    display: block;
+  }
+
+  /* ---- GHOST ROW (shows gap groups) ---- */
+  .ghost-row {
+    height: 18px;
+    display: flex;
+    gap: 2px;
+    align-items: center;
+  }
+  .ghost-cell {
+    flex: 1;
+    height: 100%;
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+
+  /* ---- STATS ---- */
+  .stats-row {
+    display: flex;
+    gap: 20px;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    flex: 1;
+    text-align: center;
+  }
+  .stat-box .sv { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+  .stat-box .sl { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; }
+  .stat-box.c2 .sv { color: var(--bar-compare); }
+  .stat-box.c3 .sv { color: var(--bar-shift); }
+  .stat-box.c4 .sv { color: var(--bar-sorted); }
+
+  /* ---- RIGHT PANEL: LOG + INFO ---- */
+  .panel-section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .log-area {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    height: 160px;
+    overflow-y: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .log-area p { margin: 0; }
+  .log-area p.highlight { color: var(--accent); }
+  .log-area p.shift { color: var(--bar-shift); }
+  .log-area p.place { color: var(--bar-sorted); }
+
+  .info-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+  }
+  .info-block h3 { color: var(--text); font-size: 0.9rem; margin-bottom: 8px; }
+  .info-block code {
+    background: #21262d;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+  }
+  .complexity-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.78rem; }
+  .complexity-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+  .complexity-table td:first-child { color: var(--text-muted); }
+  .complexity-table td:last-child { color: var(--accent); font-family: 'SF Mono', 'Fira Code', monospace; }
+
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.78rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .phase-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--accent);
+    color: #fff;
+    letter-spacing: 0.3px;
+  }
+  .phase-badge.done { background: var(--bar-sorted); color: #0d1117; }
+
+  footer {
+    text-align: center;
+    padding: 16px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>visual<span>-cs</span> · Shell Sort</h1>
+  </div>
+  <a href="../../index.html">← All visualizations</a>
+</header>
+
+<div class="main">
+  <div class="left-panel">
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn primary" id="btnPlay">▶ Play</button>
+      <button class="btn" id="btnStep">Step →</button>
+      <button class="btn" id="btnReset">↺ Reset</button>
+      <button class="btn" id="btnShuffle">🔀 Shuffle</button>
+
+      <div class="speed-wrap">
+        <span>Speed</span>
+        <input type="range" id="speedSlider" min="1" max="10" value="5">
+        <span id="speedLabel">5×</span>
+      </div>
+
+      <div class="size-wrap">
+        <span>Size</span>
+        <input type="range" id="sizeSlider" min="10" max="60" value="30" step="5">
+        <span id="sizeLabel">30</span>
+      </div>
+    </div>
+
+    <!-- Current phase + gap -->
+    <div class="gap-indicator">
+      <div>
+        <div class="label">Phase</div>
+        <div id="phaseDisplay" class="phase-badge">—</div>
+      </div>
+      <div>
+        <div class="label">Current Gap</div>
+        <div class="value" id="gapDisplay">—</div>
+      </div>
+      <div>
+        <div class="label">Gap Sequence</div>
+        <div class="gap-sequence" id="gapSeq"></div>
+      </div>
+    </div>
+
+    <!-- Bar chart -->
+    <div class="viz-area">
+      <canvas id="bar-canvas"></canvas>
+      <div class="ghost-row" id="ghostRow"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="sv" id="statGap">—</div>
+        <div class="sl">Gap</div>
+      </div>
+      <div class="stat-box c2">
+        <div class="sv" id="statComps">0</div>
+        <div class="sl">Comparisons</div>
+      </div>
+      <div class="stat-box c3">
+        <div class="sv" id="statShifts">0</div>
+        <div class="sl">Shifts</div>
+      </div>
+      <div class="stat-box c4">
+        <div class="sv" id="statSorted">0%</div>
+        <div class="sl">Sorted</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="right-panel">
+
+    <div>
+      <div class="panel-section-title">Current Step</div>
+      <div id="logArea" class="log-area"></div>
+    </div>
+
+    <div>
+      <div class="panel-section-title">Legend</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> Gap group member</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div> Key element (being inserted)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Comparing</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f78166"></div> Shifting right</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> Sorted / placed</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-section-title">Algorithm Info</div>
+      <div class="info-block">
+        <h3>Shell Sort</h3>
+        <p>A generalization of insertion sort that allows the exchange of elements far apart. Uses a diminishing <code>gap</code> sequence. When gap = 1 it becomes ordinary insertion sort on an already nearly-sorted array.</p>
+        <br>
+        <p><strong>Gap sequence (Knuth):</strong> <code>1, 4, 13, 40, 121…</code> — i.e. <code>3h+1</code></p>
+        <br>
+        <table class="complexity-table">
+          <tr><td>Best</td><td>O(n log n)</td></tr>
+          <tr><td>Average</td><td>O(n log² n)</td></tr>
+          <tr><td>Worst</td><td>O(n²) (Knuth)</td></tr>
+          <tr><td>Space</td><td>O(1)</td></tr>
+          <tr><td>Stable?</td><td>No</td></tr>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS
+</footer>
+
+<script>
+// ====================== STATE ======================
+let arr = [];
+let N = 30;
+let steps = []; // pre-computed list of animation frames
+let stepIdx = 0;
+let playing = false;
+let animTimer = null;
+let comparisons = 0;
+let shifts = 0;
+let sortedCount = 0;
+
+// Frame types: { type, arr, gap, gapIdx, keyIdx, compareIdx, shiftIdx, placedIdx, message, done }
+
+// ====================== INIT ======================
+function makeArray(n) {
+  arr = Array.from({length: n}, (_, i) => i + 1);
+  shuffle(arr);
+}
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+}
+
+// ====================== KNUTH GAP SEQUENCE ======================
+function knuthGaps(n) {
+  const gaps = [];
+  let h = 1;
+  while (h < Math.floor(n / 3)) { h = 3 * h + 1; }
+  while (h >= 1) { gaps.push(h); h = Math.floor(h / 3); }
+  return gaps;
+}
+
+// ====================== PRE-COMPUTE STEPS ======================
+function computeSteps(input) {
+  const a = [...input];
+  const n = a.length;
+  const gaps = knuthGaps(n);
+  const result = [];
+
+  // initial frame
+  result.push({ type: 'init', arr: [...a], gap: null, gapIdx: -1, keyIdx: -1, compareIdx: -1, shiftIdx: -1, placedIdx: -1, gapsDone: [], message: 'Ready. Press Play or Step.' });
+
+  let gapsDone = [];
+
+  for (let gi = 0; gi < gaps.length; gi++) {
+    const gap = gaps[gi];
+
+    result.push({
+      type: 'new-gap',
+      arr: [...a],
+      gap,
+      gapIdx: gi,
+      keyIdx: -1, compareIdx: -1, shiftIdx: -1, placedIdx: -1,
+      gapsDone: [...gapsDone],
+      message: `New gap = ${gap}. Start gap-${gap} insertion sort.`
+    });
+
+    for (let i = gap; i < n; i++) {
+      const key = a[i];
+
+      result.push({
+        type: 'pick-key',
+        arr: [...a],
+        gap,
+        gapIdx: gi,
+        keyIdx: i,
+        compareIdx: -1, shiftIdx: -1, placedIdx: -1,
+        gapsDone: [...gapsDone],
+        message: `Pick key = ${key} at index ${i}`
+      });
+
+      let j = i;
+      while (j >= gap && a[j - gap] > key) {
+        result.push({
+          type: 'compare',
+          arr: [...a],
+          gap,
+          gapIdx: gi,
+          keyIdx: i,
+          compareIdx: j - gap,
+          shiftIdx: -1, placedIdx: -1,
+          gapsDone: [...gapsDone],
+          message: `Compare a[${j-gap}]=${a[j-gap]} > key=${key} → shift right`
+        });
+
+        a[j] = a[j - gap];
+        result.push({
+          type: 'shift',
+          arr: [...a],
+          gap,
+          gapIdx: gi,
+          keyIdx: i,
+          compareIdx: j - gap,
+          shiftIdx: j,
+          placedIdx: -1,
+          gapsDone: [...gapsDone],
+          message: `Shift a[${j-gap}]=${a[j]} → a[${j}]`
+        });
+        j -= gap;
+      }
+
+      a[j] = key;
+      result.push({
+        type: 'place',
+        arr: [...a],
+        gap,
+        gapIdx: gi,
+        keyIdx: i,
+        compareIdx: -1, shiftIdx: -1,
+        placedIdx: j,
+        gapsDone: [...gapsDone],
+        message: `Place key=${key} at index ${j}`
+      });
+    }
+
+    gapsDone = [...gapsDone, gi];
+    result.push({
+      type: 'gap-done',
+      arr: [...a],
+      gap,
+      gapIdx: gi,
+      keyIdx: -1, compareIdx: -1, shiftIdx: -1, placedIdx: -1,
+      gapsDone: [...gapsDone],
+      message: `Gap ${gap} complete.`
+    });
+  }
+
+  result.push({
+    type: 'done',
+    arr: [...a],
+    gap: null,
+    gapIdx: -1,
+    keyIdx: -1, compareIdx: -1, shiftIdx: -1, placedIdx: -1,
+    gapsDone: [...gapsDone],
+    message: '✅ Array sorted!'
+  });
+
+  return { steps: result, gaps };
+}
+
+// ====================== CANVAS DRAW ======================
+const canvas = document.getElementById('bar-canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth * devicePixelRatio;
+  canvas.height = canvas.offsetHeight * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+}
+
+function drawFrame(frame) {
+  const a = frame.arr;
+  const n = a.length;
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight;
+  ctx.clearRect(0, 0, W, H);
+
+  const barW = (W - (n - 1) * 2) / n;
+  const maxVal = n;
+
+  // determine which indices are in the current gap group
+  const gap = frame.gap;
+  const gapGroup = new Set();
+  if (gap !== null && gap !== undefined) {
+    for (let k = 0; k < n; k += gap) gapGroup.add(k);
+    for (let k = 1; k < n; k += gap) gapGroup.add(k);
+    // actually all indices mod gap == same bucket — let's colour all same-bucket as key
+    if (frame.keyIdx >= 0) {
+      const bucket = frame.keyIdx % gap;
+      for (let k = bucket; k < n; k += gap) gapGroup.add(k);
+    }
+  }
+
+  for (let i = 0; i < n; i++) {
+    const x = i * (barW + 2);
+    const barH = (a[i] / maxVal) * (H - 10) + 2;
+    const y = H - barH;
+
+    let color = '#2d333b';
+
+    if (frame.type === 'done') {
+      color = 'var(--bar-sorted)';
+      // gradient from purple to green
+      const t = i / (n - 1);
+      const r = Math.round(59 + t * (63 - 59));
+      const g = Math.round(179 + t * (249 - 179));
+      const b = Math.round(80 + t * (80 - 80));
+      color = `rgb(${Math.round(59 + t * (167-59))},${Math.round(179 + t * (243-179))},${Math.round(80 + t * (86-80))})`;
+    } else if (i === frame.shiftIdx) {
+      color = '#f78166';
+    } else if (i === frame.compareIdx) {
+      color = '#f59e0b';
+    } else if (i === frame.keyIdx) {
+      color = '#60a5fa';
+    } else if (i === frame.placedIdx) {
+      color = '#3fb950';
+    } else if (gapGroup.has(i) && gap !== null) {
+      color = '#3d2f6e';
+    }
+
+    // rounded top
+    const radius = Math.min(3, barW / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + barW - radius, y);
+    ctx.quadraticCurveTo(x + barW, y, x + barW, y + radius);
+    ctx.lineTo(x + barW, y + barH);
+    ctx.lineTo(x, y + barH);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // value label if bars are wide enough
+    if (barW >= 18) {
+      ctx.fillStyle = '#8b949e';
+      ctx.font = `${Math.min(10, barW - 2)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(a[i], x + barW / 2, y - 3);
+    }
+  }
+}
+
+// ====================== GHOST ROW (gap groups) ======================
+function updateGhostRow(frame) {
+  const ghostRow = document.getElementById('ghostRow');
+  const n = frame.arr.length;
+  ghostRow.innerHTML = '';
+  const gap = frame.gap;
+
+  for (let i = 0; i < n; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'ghost-cell';
+    if (gap !== null && gap !== undefined) {
+      const bucketIdx = i % gap;
+      // color each bucket differently (hue rotate)
+      const hue = (bucketIdx * 137) % 360;
+      cell.style.background = `hsl(${hue}, 60%, 35%)`;
+      cell.title = `Bucket ${bucketIdx}`;
+    } else {
+      cell.style.background = 'var(--border)';
+    }
+    ghostRow.appendChild(cell);
+  }
+}
+
+// ====================== GAP SEQUENCE PILLS ======================
+function renderGapPills(gaps, frame) {
+  const container = document.getElementById('gapSeq');
+  container.innerHTML = '';
+  gaps.forEach((g, i) => {
+    const pill = document.createElement('div');
+    pill.className = 'gap-pill';
+    pill.textContent = g;
+    if (frame.gapsDone && frame.gapsDone.includes(i)) pill.classList.add('done');
+    else if (frame.gapIdx === i) pill.classList.add('active');
+    container.appendChild(pill);
+  });
+}
+
+// ====================== APPLY FRAME ======================
+let allGaps = [];
+
+function applyFrame(frame) {
+  drawFrame(frame);
+  updateGhostRow(frame);
+  renderGapPills(allGaps, frame);
+
+  // gap indicator
+  document.getElementById('gapDisplay').textContent = frame.gap ?? '—';
+  document.getElementById('statGap').textContent = frame.gap ?? '—';
+
+  // phase badge
+  const phaseEl = document.getElementById('phaseDisplay');
+  if (frame.type === 'done') {
+    phaseEl.textContent = '✅ Done';
+    phaseEl.className = 'phase-badge done';
+  } else if (frame.gap !== null && frame.gap !== undefined) {
+    phaseEl.textContent = `Gap = ${frame.gap}`;
+    phaseEl.className = 'phase-badge';
+  } else {
+    phaseEl.textContent = '—';
+    phaseEl.className = 'phase-badge';
+  }
+
+  // stats
+  if (frame.type === 'compare') comparisons++;
+  if (frame.type === 'shift') shifts++;
+  document.getElementById('statComps').textContent = comparisons;
+  document.getElementById('statShifts').textContent = shifts;
+
+  // sorted %
+  if (frame.type === 'done') sortedCount = frame.arr.length;
+  const pct = Math.round((sortedCount / frame.arr.length) * 100);
+  document.getElementById('statSorted').textContent = pct + '%';
+
+  // log
+  const logArea = document.getElementById('logArea');
+  const p = document.createElement('p');
+  p.textContent = frame.message;
+  if (frame.type === 'shift') p.className = 'shift';
+  else if (frame.type === 'place' || frame.type === 'done') p.className = 'place';
+  else if (frame.type === 'compare' || frame.type === 'pick-key') p.className = 'highlight';
+  logArea.appendChild(p);
+  logArea.scrollTop = logArea.scrollHeight;
+  // keep log small
+  while (logArea.children.length > 80) logArea.removeChild(logArea.firstChild);
+}
+
+// ====================== PLAYBACK ======================
+function speedMs() {
+  const s = parseInt(document.getElementById('speedSlider').value);
+  return Math.round(700 / s);
+}
+
+function doStep() {
+  if (stepIdx >= steps.length) { stopPlay(); return; }
+  applyFrame(steps[stepIdx]);
+  stepIdx++;
+  if (stepIdx >= steps.length) stopPlay();
+}
+
+function startPlay() {
+  if (stepIdx >= steps.length) return;
+  playing = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  tick();
+}
+
+function tick() {
+  if (!playing) return;
+  doStep();
+  if (playing) animTimer = setTimeout(tick, speedMs());
+}
+
+function stopPlay() {
+  playing = false;
+  clearTimeout(animTimer);
+  document.getElementById('btnPlay').textContent = '▶ Play';
+}
+
+function resetAll() {
+  stopPlay();
+  stepIdx = 0;
+  comparisons = 0;
+  shifts = 0;
+  sortedCount = 0;
+  document.getElementById('logArea').innerHTML = '';
+  const computed = computeSteps(arr);
+  steps = computed.steps;
+  allGaps = computed.gaps;
+  applyFrame(steps[0]);
+  stepIdx = 1;
+  document.getElementById('statComps').textContent = '0';
+  document.getElementById('statShifts').textContent = '0';
+  document.getElementById('statSorted').textContent = '0%';
+}
+
+// ====================== EVENTS ======================
+document.getElementById('btnPlay').addEventListener('click', () => {
+  if (playing) stopPlay(); else startPlay();
+});
+document.getElementById('btnStep').addEventListener('click', () => {
+  stopPlay();
+  doStep();
+});
+document.getElementById('btnReset').addEventListener('click', resetAll);
+document.getElementById('btnShuffle').addEventListener('click', () => {
+  makeArray(N);
+  resetAll();
+});
+
+document.getElementById('speedSlider').addEventListener('input', function() {
+  document.getElementById('speedLabel').textContent = this.value + '×';
+});
+document.getElementById('sizeSlider').addEventListener('input', function() {
+  N = parseInt(this.value);
+  document.getElementById('sizeLabel').textContent = N;
+  makeArray(N);
+  resetAll();
+});
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  if (steps.length && stepIdx > 0) drawFrame(steps[stepIdx - 1]);
+});
+
+// ====================== BOOTSTRAP ======================
+resizeCanvas();
+makeArray(N);
+resetAll();
+</script>
+</body>
+</html>
