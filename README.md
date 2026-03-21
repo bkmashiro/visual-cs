@@ -39,6 +39,7 @@
 | [Counting Sort](./visualizations/counting-sort/) | Sorting | Linear-time sort for bounded integers |
 | [Insertion Sort](./visualizations/insertion-sort/) | Sorting | Key element slides left past larger values |
 | [Shell Sort](./visualizations/shell-sort/) | Sorting | Gap-based insertion sort with Knuth sequence |
+| [Prim's Algorithm](./visualizations/prims-algorithm/) | Graph | Greedy MST via min-heap frontier expansion |
 
 ---
 

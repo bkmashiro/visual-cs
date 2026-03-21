@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prim's Algorithm — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #3fb950;
+    --accent2: #58a6ff;
+    --highlight: #f2cc60;
+    --danger: #f78166;
+    --visited: #3fb95044;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; }
+  header a:hover { color: var(--text); }
+  header h1 { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+  header .tag {
+    background: #1a3a2a;
+    color: var(--accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    height: calc(100vh - 57px);
+    overflow: hidden;
+  }
+
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    gap: 16px;
+    background: var(--bg);
+  }
+
+  canvas {
+    background: #0a0e14;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    max-width: 100%;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  button.primary:hover { opacity: 0.85; color: #000; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  label { font-size: 0.85rem; color: var(--text-muted); }
+  input[type=range] { accent-color: var(--accent); cursor: pointer; }
+
+  .sidebar {
+    width: 280px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .sidebar-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-section h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+  }
+  .stat-row strong { color: var(--text); }
+
+  .edge-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .edge-item {
+    font-size: 0.8rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+  }
+  .edge-item.mst { border-color: var(--accent); color: var(--accent); }
+  .edge-item.candidate { border-color: var(--highlight); color: var(--highlight); }
+
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.82rem;
+  }
+  .legend-row { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  }
+  .legend-line {
+    width: 24px; height: 3px; flex-shrink: 0; border-radius: 2px;
+  }
+
+  .explainer {
+    font-size: 0.83rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+  .explainer code {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.75rem;
+    color: var(--accent2);
+  }
+
+  .step-msg {
+    font-size: 0.88rem;
+    color: var(--text);
+    text-align: center;
+    min-height: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    max-width: 580px;
+    width: 100%;
+  }
+
+  .phase-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .phase-idle { background: #30363d; color: #8b949e; }
+  .phase-running { background: #1a3a2a; color: #3fb950; }
+  .phase-done { background: #1f3a5f; color: #58a6ff; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">← visual-cs</a>
+  <h1>Prim's Algorithm</h1>
+  <span class="tag">Graph · MST</span>
+</header>
+
+<div class="main">
+  <div class="canvas-area">
+    <canvas id="canvas" width="640" height="460"></canvas>
+    <div class="step-msg" id="stepMsg">Click <strong>Randomize</strong> to generate a graph, then <strong>Run</strong> to find the MST.</div>
+    <div class="controls">
+      <button id="btnRandom" class="primary" onclick="generateGraph()">🎲 Randomize</button>
+      <button id="btnRun" onclick="startOrStep()" disabled>▶ Run</button>
+      <button id="btnStep" onclick="doStep()" disabled>⏭ Step</button>
+      <button id="btnReset" onclick="resetViz()" disabled>↺ Reset</button>
+      <label>Speed
+        <input type="range" id="speedSlider" min="50" max="1000" value="400" style="width:90px;vertical-align:middle;margin-left:6px;">
+      </label>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h3>Status</h3>
+      <div class="stat-row">Phase <strong><span id="phaseLabel" class="phase-badge phase-idle">Idle</span></strong></div>
+      <div class="stat-row">Nodes in MST <strong id="statNodes">—</strong></div>
+      <div class="stat-row">MST Edges <strong id="statEdges">—</strong></div>
+      <div class="stat-row">MST Total Weight <strong id="statWeight">—</strong></div>
+      <div class="stat-row">Candidates <strong id="statCandidates">—</strong></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>MST Edges Added</h3>
+      <ul class="edge-list" id="edgeList"></ul>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Legend</h3>
+      <div class="legend">
+        <div class="legend-row">
+          <div class="legend-dot" style="background:#3fb950;"></div>
+          Node in MST
+        </div>
+        <div class="legend-row">
+          <div class="legend-dot" style="background:#f2cc60;"></div>
+          Current frontier node
+        </div>
+        <div class="legend-row">
+          <div class="legend-dot" style="background:#58a6ff;"></div>
+          Unvisited node
+        </div>
+        <div class="legend-line" style="background:#3fb950;"></div>
+        MST edge (selected)
+        <div class="legend-line" style="background:#f2cc60;"></div>
+        Candidate edges (frontier)
+        <div class="legend-line" style="background:#30363d;"></div>
+        Unselected edges
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Algorithm</h3>
+      <p class="explainer">
+        Prim's builds an MST by greedily expanding a <code>visited</code> set. Starting from any node, at each step it picks the <em>minimum-weight edge</em> crossing the cut between visited and unvisited nodes and adds its endpoint to the tree.<br><br>
+        Time: <code>O(E log V)</code> with a min-heap.<br>
+        Space: <code>O(V + E)</code>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const W = canvas.width;
+const H = canvas.height;
+
+let nodes = [];
+let edges = [];
+let adjList = [];
+
+// State
+let mstNodes = new Set();
+let mstEdges = [];
+let candidateEdges = [];
+let currentNode = -1;
+let phase = 'idle'; // idle | ready | running | done
+let animInterval = null;
+
+function speed() {
+  return 1050 - parseInt(document.getElementById('speedSlider').value);
+}
+
+// ---- Graph Generation ----
+function generateGraph() {
+  stopAnim();
+  const N = 10 + Math.floor(Math.random() * 4); // 10–13 nodes
+  nodes = [];
+  edges = [];
+  adjList = Array.from({length: N}, () => []);
+
+  // Place nodes in a somewhat circular/random layout
+  const cx = W / 2, cy = H / 2;
+  const r = Math.min(W, H) * 0.36;
+  for (let i = 0; i < N; i++) {
+    let x, y, tries = 0;
+    do {
+      const angle = (i / N) * Math.PI * 2 + (Math.random() - 0.5) * (Math.PI / N) * 1.5;
+      const dist = r * (0.5 + Math.random() * 0.5);
+      x = cx + Math.cos(angle) * dist;
+      y = cy + Math.sin(angle) * dist;
+      tries++;
+    } while (tries < 20 && nodes.some(n => Math.hypot(n.x - x, n.y - y) < 60));
+    nodes.push({ x, y, id: i });
+  }
+
+  // Create a spanning tree first (so graph is always connected)
+  const perm = [...Array(N).keys()].sort(() => Math.random() - 0.5);
+  for (let i = 1; i < N; i++) {
+    const u = perm[i];
+    const v = perm[Math.floor(Math.random() * i)];
+    const w = 1 + Math.floor(Math.random() * 15);
+    addEdge(u, v, w);
+  }
+  // Add some extra random edges
+  const extras = N + Math.floor(Math.random() * N);
+  for (let k = 0; k < extras; k++) {
+    const u = Math.floor(Math.random() * N);
+    const v = Math.floor(Math.random() * N);
+    if (u !== v && !adjList[u].some(e => e.to === v)) {
+      const w = 1 + Math.floor(Math.random() * 15);
+      addEdge(u, v, w);
+    }
+  }
+
+  resetViz();
+  document.getElementById('btnRun').disabled = false;
+  document.getElementById('btnStep').disabled = false;
+  setPhase('ready');
+  setMsg('Graph ready. Press <strong>Run</strong> or <strong>Step</strong> to start Prim\'s from node 0.');
+  drawGraph();
+}
+
+function addEdge(u, v, w) {
+  const idx = edges.length;
+  edges.push({ u, v, w });
+  adjList[u].push({ to: v, w, idx });
+  adjList[v].push({ to: u, w, idx });
+}
+
+// ---- Prim's state machine ----
+let heapArr = []; // min-heap items: {cost, to, fromEdge}
+
+function primInit() {
+  mstNodes = new Set([0]);
+  mstEdges = [];
+  candidateEdges = [];
+  heapArr = [];
+  currentNode = 0;
+  document.getElementById('edgeList').innerHTML = '';
+
+  // Push all edges from node 0
+  for (const {to, w, idx} of adjList[0]) {
+    heapPush({ cost: w, to, fromEdge: idx, from: 0 });
+  }
+  updateStats();
+}
+
+function primStep() {
+  if (mstNodes.size === nodes.length) {
+    setPhase('done');
+    setMsg('✅ MST complete! All ' + nodes.length + ' nodes connected with minimum total weight.');
+    stopAnim();
+    candidateEdges = [];
+    currentNode = -1;
+    drawGraph();
+    return false;
+  }
+
+  // Pop minimum candidate
+  candidateEdges = [...heapArr];
+  while (heapArr.length > 0) {
+    const best = heapPop();
+    if (mstNodes.has(best.to)) continue; // skip already-visited
+
+    // Add this edge
+    mstNodes.add(best.to);
+    mstEdges.push(best.fromEdge);
+    currentNode = best.to;
+
+    // Expand frontier
+    for (const {to, w, idx} of adjList[best.to]) {
+      if (!mstNodes.has(to)) {
+        heapPush({ cost: w, to, fromEdge: idx, from: best.to });
+      }
+    }
+
+    candidateEdges = heapArr.filter(e => !mstNodes.has(e.to));
+    updateStats();
+    addEdgeToList(best);
+    setMsg(`Added node <strong>${best.to}</strong> via edge (${best.from}–${best.to}, weight ${best.cost}). MST has ${mstNodes.size}/${nodes.length} nodes.`);
+    drawGraph();
+    return true;
+  }
+  // Disconnected (shouldn't happen with our generator)
+  setPhase('done');
+  setMsg('MST complete (graph may have disconnected components).');
+  stopAnim();
+  return false;
+}
+
+// Min-heap
+function heapPush(item) {
+  heapArr.push(item);
+  let i = heapArr.length - 1;
+  while (i > 0) {
+    const p = (i - 1) >> 1;
+    if (heapArr[p].cost <= heapArr[i].cost) break;
+    [heapArr[p], heapArr[i]] = [heapArr[i], heapArr[p]];
+    i = p;
+  }
+}
+function heapPop() {
+  const top = heapArr[0];
+  const last = heapArr.pop();
+  if (heapArr.length > 0) {
+    heapArr[0] = last;
+    let i = 0;
+    while (true) {
+      let s = i, l = 2*i+1, r = 2*i+2;
+      if (l < heapArr.length && heapArr[l].cost < heapArr[s].cost) s = l;
+      if (r < heapArr.length && heapArr[r].cost < heapArr[s].cost) s = r;
+      if (s === i) break;
+      [heapArr[i], heapArr[s]] = [heapArr[s], heapArr[i]];
+      i = s;
+    }
+  }
+  return top;
+}
+
+// ---- Controls ----
+let running = false;
+
+function startOrStep() {
+  if (phase === 'ready') {
+    primInit();
+    setPhase('running');
+    drawGraph();
+  }
+  if (running) {
+    stopAnim();
+  } else {
+    running = true;
+    document.getElementById('btnRun').textContent = '⏸ Pause';
+    animInterval = setInterval(() => {
+      if (!primStep()) stopAnim();
+    }, speed());
+  }
+}
+
+function doStep() {
+  stopAnim();
+  if (phase === 'ready') {
+    primInit();
+    setPhase('running');
+    drawGraph();
+    setMsg('Initialized. Node 0 is in MST. Press Step to add next edge.');
+    return;
+  }
+  if (phase === 'running') primStep();
+}
+
+function stopAnim() {
+  running = false;
+  clearInterval(animInterval);
+  document.getElementById('btnRun').textContent = '▶ Run';
+}
+
+function resetViz() {
+  stopAnim();
+  mstNodes = new Set();
+  mstEdges = [];
+  candidateEdges = [];
+  currentNode = -1;
+  heapArr = [];
+  document.getElementById('edgeList').innerHTML = '';
+  document.getElementById('statNodes').textContent = '—';
+  document.getElementById('statEdges').textContent = '—';
+  document.getElementById('statWeight').textContent = '—';
+  document.getElementById('statCandidates').textContent = '—';
+  if (nodes.length > 0) {
+    setPhase('ready');
+    document.getElementById('btnRun').disabled = false;
+    document.getElementById('btnStep').disabled = false;
+  }
+  document.getElementById('btnReset').disabled = nodes.length === 0;
+  drawGraph();
+}
+
+// ---- Stats & UI ----
+function updateStats() {
+  document.getElementById('statNodes').textContent = mstNodes.size + ' / ' + nodes.length;
+  document.getElementById('statEdges').textContent = mstEdges.length;
+  const w = mstEdges.reduce((s, i) => s + edges[i].w, 0);
+  document.getElementById('statWeight').textContent = w;
+  document.getElementById('statCandidates').textContent = heapArr.filter(e => !mstNodes.has(e.to)).length;
+}
+
+function addEdgeToList(e) {
+  const li = document.createElement('li');
+  li.className = 'edge-item mst';
+  li.innerHTML = `<span>${e.from} → ${e.to}</span><span>w = ${e.cost}</span>`;
+  li.style.opacity = '0';
+  document.getElementById('edgeList').prepend(li);
+  requestAnimationFrame(() => { li.style.transition = 'opacity 0.4s'; li.style.opacity = '1'; });
+}
+
+function setPhase(p) {
+  phase = p;
+  const el = document.getElementById('phaseLabel');
+  el.textContent = p.charAt(0).toUpperCase() + p.slice(1);
+  el.className = 'phase-badge phase-' + (p === 'ready' ? 'idle' : p);
+  document.getElementById('btnReset').disabled = p === 'idle';
+}
+
+function setMsg(html) {
+  document.getElementById('stepMsg').innerHTML = html;
+}
+
+// ---- Drawing ----
+function drawGraph() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Candidate edge indices (from heap)
+  const candidateSet = new Set(heapArr.filter(e => !mstNodes.has(e.to)).map(e => e.fromEdge));
+  const mstSet = new Set(mstEdges);
+
+  // Draw edges
+  for (let i = 0; i < edges.length; i++) {
+    const { u, v, w } = edges[i];
+    const nu = nodes[u], nv = nodes[v];
+    const isMst = mstSet.has(i);
+    const isCandidate = candidateSet.has(i) && !isMst;
+
+    ctx.beginPath();
+    ctx.moveTo(nu.x, nu.y);
+    ctx.lineTo(nv.x, nv.y);
+
+    if (isMst) {
+      ctx.strokeStyle = '#3fb950';
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 1;
+    } else if (isCandidate) {
+      ctx.strokeStyle = '#f2cc60';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.7;
+    } else {
+      ctx.strokeStyle = '#30363d';
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.5;
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Weight label
+    const mx = (nu.x + nv.x) / 2;
+    const my = (nu.y + nv.y) / 2;
+    const labelColor = isMst ? '#3fb950' : isCandidate ? '#f2cc60' : '#555';
+    ctx.fillStyle = '#0a0e14';
+    ctx.beginPath();
+    ctx.arc(mx, my, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = labelColor;
+    ctx.font = 'bold 11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(w, mx, my);
+  }
+
+  // Draw nodes
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    const inMst = mstNodes.has(i);
+    const isCurrent = i === currentNode;
+
+    // Shadow glow for current
+    if (isCurrent) {
+      ctx.shadowColor = '#f2cc60';
+      ctx.shadowBlur = 20;
+    } else if (inMst) {
+      ctx.shadowColor = '#3fb950';
+      ctx.shadowBlur = 12;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 18, 0, Math.PI * 2);
+    ctx.fillStyle = isCurrent ? '#f2cc60' : inMst ? '#3fb950' : '#1c2333';
+    ctx.fill();
+    ctx.strokeStyle = isCurrent ? '#f2cc60' : inMst ? '#3fb950' : '#58a6ff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = isCurrent ? '#000' : inMst ? '#000' : '#e6edf3';
+    ctx.font = 'bold 12px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, n.x, n.y);
+  }
+}
+
+// Init
+generateGraph();
+</script>
+</body>
+</html>
