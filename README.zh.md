@@ -40,6 +40,7 @@
 | [插入排序](./visualizations/insertion-sort/) | 排序 | 关键元素逐步向左越过更大的值 |
 | [希尔排序](./visualizations/shell-sort/) | 排序 | 基于缩减间隔的插入排序，Knuth 间隔序列 |
 | [Prim 最小生成树](./visualizations/prims-algorithm/) | 图算法 | 贪心扩展，最小堆维护前沿边，逐步构建 MST |
+| [Tarjan 强连通分量](./visualizations/tarjan-scc/) | 图算法 | 单次 DFS 求所有强连通分量，disc/low 值与栈协同工作 |
 
 ---
 

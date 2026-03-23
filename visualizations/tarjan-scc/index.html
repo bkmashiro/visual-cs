@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarjan's SCC — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #ff7b72;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header a { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+  header a:hover { color: var(--text); }
+  header h1 { font-size: 1.1rem; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+  }
+
+  /* ─── Canvas panel ─── */
+  .canvas-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 14px;
+    min-width: 0;
+  }
+  canvas {
+    background: #0a0e15;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    cursor: crosshair;
+    display: block;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+  button {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button:hover { background: #21262d; border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+  button.primary:hover { opacity: 0.85; }
+  button:disabled { opacity: 0.35; cursor: default; }
+  .speed-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  input[type=range] { width: 100px; accent-color: var(--accent); }
+  .mode-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: #161b22;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+  }
+  .mode-label span { color: var(--accent); font-weight: 700; }
+
+  /* ─── Side panel ─── */
+  .panel {
+    width: 280px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-section h3 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* Stack viz */
+  .stack-items {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 3px;
+    min-height: 40px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  .stack-item {
+    background: #21262d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+  }
+  .stack-item.top { background: #1a2a1a; border-color: #3fb950; color: #3fb950; }
+
+  /* SCC list */
+  .scc-list { display: flex; flex-direction: column; gap: 6px; }
+  .scc-chip {
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    border: 1px solid transparent;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all 0.3s;
+  }
+  .scc-chip.visible { opacity: 1; transform: translateX(0); }
+
+  /* Node state table */
+  .node-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+  .node-table th {
+    color: var(--muted);
+    font-weight: 600;
+    padding: 3px 6px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .node-table td {
+    padding: 3px 6px;
+    font-family: monospace;
+    border-bottom: 1px solid #21262d;
+  }
+  .node-table tr.active td { background: #1a2030; color: #79c0ff; }
+  .node-table tr.done td { color: var(--muted); }
+
+  /* Explanation */
+  .explain {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .explain strong { color: var(--text); }
+
+  /* Legend */
+  .legend { display: flex; flex-direction: column; gap: 6px; }
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  }
+  .legend-line {
+    width: 24px; height: 3px; border-radius: 2px; flex-shrink: 0;
+  }
+
+  footer {
+    text-align: center;
+    padding: 10px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">← visual-cs</a>
+  <h1>Tarjan's <span>SCC</span> Algorithm</h1>
+</header>
+
+<div class="main">
+  <div class="canvas-wrap">
+    <canvas id="cv" width="720" height="480"></canvas>
+    <div class="controls">
+      <div class="mode-label">Mode: <span id="modeLbl">Add Node</span></div>
+      <button id="btnMode">Toggle: Add Edge</button>
+      <button id="btnRun" class="primary">▶ Run Tarjan</button>
+      <button id="btnStep">Step →</button>
+      <button id="btnReset">Reset</button>
+      <button id="btnDemo">Load Demo</button>
+      <div class="speed-wrap">
+        Speed
+        <input type="range" id="speed" min="50" max="1200" value="500">
+      </div>
+    </div>
+    <div style="font-size:0.78rem;color:var(--muted);text-align:center;">
+      Add Node mode: click to place nodes &nbsp;|&nbsp; Add Edge mode: click node → click another &nbsp;|&nbsp; Drag nodes to rearrange
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-section">
+      <h3>Algorithm Stack</h3>
+      <div class="stack-items" id="stackViz"></div>
+    </div>
+    <div class="panel-section">
+      <h3>Discovered SCCs</h3>
+      <div class="scc-list" id="sccList"></div>
+    </div>
+    <div class="panel-section">
+      <h3>Node State</h3>
+      <table class="node-table">
+        <thead>
+          <tr><th>Node</th><th>disc</th><th>low</th><th>onStack</th></tr>
+        </thead>
+        <tbody id="nodeTable"></tbody>
+      </table>
+    </div>
+    <div class="panel-section">
+      <h3>How It Works</h3>
+      <div class="explain">
+        <strong>Tarjan's algorithm</strong> finds all Strongly Connected Components in a directed graph in <strong>O(V + E)</strong> time.<br><br>
+        It uses a single DFS traversal with a <strong>stack</strong> to track the current path. Each node gets a <em>disc</em> (discovery time) and <em>low</em> (lowest reachable disc via DFS subtree).<br><br>
+        When <code>disc[v] == low[v]</code>, node <em>v</em> is the root of an SCC — pop the stack until you reach <em>v</em>.
+      </div>
+    </div>
+    <div class="panel-section">
+      <h3>Legend</h3>
+      <div class="legend">
+        <div class="legend-row"><div class="legend-dot" style="background:#4b9fff"></div>Unvisited node</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#f59e0b"></div>Currently processing (on stack)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#22d3ee"></div>Current DFS node</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#6ee7b7"></div>SCC complete</div>
+        <div class="legend-row"><div class="legend-line" style="background:#8b949e"></div>Tree / forward edge</div>
+        <div class="legend-row"><div class="legend-line" style="background:#f59e0b"></div>Back edge (cycle!)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS
+</footer>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+let nodes = [];      // {id, x, y, label}
+let edges = [];      // {from, to}
+let mode = 'node';   // 'node' | 'edge'
+let edgeSrc = null;
+let dragging = null;
+let dragOffset = {x:0,y:0};
+
+// Animation state
+let steps = [];
+let stepIdx = 0;
+let running = false;
+let animTimer = null;
+
+const SCC_COLORS = [
+  '#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff',
+  '#f8961e','#43aa8b','#f94144','#90e0ef','#b5838d',
+];
+
+let sccColors = {};   // sccId → color
+let sccCounter = 0;
+
+// ─── Graph editing ────────────────────────────────────────────────────────────
+function nodeAt(x, y) {
+  return nodes.find(n => Math.hypot(n.x-x, n.y-y) < 20);
+}
+
+cv.addEventListener('mousedown', e => {
+  if (running) return;
+  const {x,y} = pos(e);
+  if (mode === 'node') {
+    const hit = nodeAt(x, y);
+    if (hit) { dragging = hit; dragOffset = {x: x-hit.x, y: y-hit.y}; }
+    else { addNode(x, y); }
+  } else {
+    const hit = nodeAt(x, y);
+    if (!hit) return;
+    if (!edgeSrc) { edgeSrc = hit; }
+    else {
+      if (edgeSrc.id !== hit.id && !edges.find(e => e.from===edgeSrc.id && e.to===hit.id)) {
+        edges.push({from: edgeSrc.id, to: hit.id});
+      }
+      edgeSrc = null;
+    }
+  }
+  draw();
+});
+cv.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const {x,y} = pos(e);
+  dragging.x = Math.max(20, Math.min(cv.width-20, x - dragOffset.x));
+  dragging.y = Math.max(20, Math.min(cv.height-20, y - dragOffset.y));
+  draw();
+});
+cv.addEventListener('mouseup', () => { dragging = null; });
+
+function pos(e) {
+  const r = cv.getBoundingClientRect();
+  return {x: e.clientX-r.left, y: e.clientY-r.top};
+}
+
+function addNode(x, y) {
+  const id = nodes.length;
+  nodes.push({id, x, y, label: String(id)});
+}
+
+document.getElementById('btnMode').addEventListener('click', () => {
+  mode = mode === 'node' ? 'edge' : 'node';
+  edgeSrc = null;
+  document.getElementById('modeLbl').textContent = mode === 'node' ? 'Add Node' : 'Add Edge';
+  document.getElementById('btnMode').textContent = mode === 'node' ? 'Toggle: Add Edge' : 'Toggle: Add Node';
+  draw();
+});
+
+document.getElementById('btnDemo').addEventListener('click', () => {
+  resetAll();
+  // Classic demo: 8 nodes, 3 SCCs
+  nodes = [
+    {id:0, x:120, y:120, label:'0'},
+    {id:1, x:260, y:80,  label:'1'},
+    {id:2, x:380, y:120, label:'2'},
+    {id:3, x:260, y:200, label:'3'},
+    {id:4, x:500, y:80,  label:'4'},
+    {id:5, x:620, y:140, label:'5'},
+    {id:6, x:560, y:260, label:'6'},
+    {id:7, x:420, y:300, label:'7'},
+  ];
+  edges = [
+    {from:0,to:1},{from:1,to:2},{from:2,to:3},{from:3,to:0}, // SCC A
+    {from:1,to:4},{from:4,to:5},{from:5,to:4},               // SCC B (4↔5)
+    {from:2,to:6},{from:6,to:7},{from:7,to:6},               // SCC C (6↔7)
+    {from:3,to:5},{from:5,to:6},
+  ];
+  draw();
+});
+
+document.getElementById('btnReset').addEventListener('click', () => { resetAll(); draw(); });
+
+function resetAll() {
+  nodes = []; edges = []; edgeSrc = null; dragging = null;
+  steps = []; stepIdx = 0; running = false;
+  clearTimeout(animTimer);
+  sccColors = {}; sccCounter = 0;
+  updateUI([]);
+  document.getElementById('sccList').innerHTML = '';
+  document.getElementById('nodeTable').innerHTML = '';
+  document.getElementById('stackViz').innerHTML = '';
+}
+
+// ─── Tarjan ───────────────────────────────────────────────────────────────────
+function buildSteps() {
+  const n = nodes.length;
+  const adj = {};
+  nodes.forEach(v => { adj[v.id] = []; });
+  edges.forEach(e => { adj[e.from].push(e.to); });
+
+  const disc = {}, low = {}, onStack = {}, inSCC = {};
+  nodes.forEach(v => { disc[v.id] = -1; low[v.id] = Infinity; onStack[v.id] = false; inSCC[v.id] = false; });
+
+  const stack = [];
+  let timer = 0;
+  const result = [];
+  const localSteps = [];
+
+  function snap(extra={}) {
+    localSteps.push({
+      disc: {...disc},
+      low: {...low},
+      onStack: {...onStack},
+      inSCC: {...inSCC},
+      stack: [...stack],
+      sccs: result.map(s=>[...s]),
+      ...extra,
+    });
+  }
+
+  function dfs(v) {
+    disc[v] = low[v] = timer++;
+    stack.push(v);
+    onStack[v] = true;
+    snap({cur: v, msg: `Visit ${v}: disc=${disc[v]}, push ${v} onto stack`});
+
+    for (const w of adj[v]) {
+      if (disc[w] === -1) {
+        snap({cur:v, exploring:{from:v,to:w}, msg:`Tree edge ${v}→${w}, recurse`});
+        dfs(w);
+        low[v] = Math.min(low[v], low[w]);
+        snap({cur:v, msg:`Return to ${v}, update low[${v}]=min(low[${v}],low[${w}])=${low[v]}`});
+      } else if (onStack[w]) {
+        low[v] = Math.min(low[v], disc[w]);
+        snap({cur:v, backEdge:{from:v,to:w}, msg:`Back edge ${v}→${w} (on stack), low[${v}]=${low[v]}`});
+      } else {
+        snap({cur:v, crossEdge:{from:v,to:w}, msg:`Cross edge ${v}→${w} (already in SCC, skip)`});
+      }
+    }
+
+    if (disc[v] === low[v]) {
+      const scc = [];
+      while (true) {
+        const w = stack.pop();
+        onStack[w] = false;
+        inSCC[w] = true;
+        scc.push(w);
+        if (w === v) break;
+      }
+      result.push(scc);
+      snap({cur:v, newSCC: scc, msg:`SCC found! Root=${v}: {${scc.join(', ')}}`});
+    }
+  }
+
+  nodes.forEach(v => {
+    if (disc[v.id] === -1) dfs(v.id);
+  });
+  snap({msg:'Algorithm complete'});
+
+  return localSteps;
+}
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+document.getElementById('btnRun').addEventListener('click', () => {
+  if (nodes.length === 0) return;
+  steps = buildSteps();
+  stepIdx = 0;
+  running = true;
+  updateUI(steps[0]);
+  draw(steps[0]);
+  scheduleNext();
+});
+
+document.getElementById('btnStep').addEventListener('click', () => {
+  if (steps.length === 0) { steps = buildSteps(); stepIdx = 0; running = true; }
+  if (stepIdx < steps.length) {
+    updateUI(steps[stepIdx]);
+    draw(steps[stepIdx]);
+    stepIdx++;
+  }
+});
+
+function scheduleNext() {
+  if (stepIdx >= steps.length) { running = false; return; }
+  const delay = 1250 - parseInt(document.getElementById('speed').value);
+  animTimer = setTimeout(() => {
+    updateUI(steps[stepIdx]);
+    draw(steps[stepIdx]);
+    stepIdx++;
+    scheduleNext();
+  }, delay);
+}
+
+// ─── UI update ────────────────────────────────────────────────────────────────
+function updateUI(state) {
+  if (!state) { updateUI({}); return; }
+
+  // Stack
+  const sv = document.getElementById('stackViz');
+  sv.innerHTML = '';
+  const stk = state.stack || [];
+  stk.forEach((id, i) => {
+    const el = document.createElement('div');
+    el.className = 'stack-item' + (i === stk.length-1 ? ' top' : '');
+    el.textContent = `Node ${id}`;
+    sv.appendChild(el);
+  });
+
+  // SCC list
+  const sl = document.getElementById('sccList');
+  const sccs = state.sccs || [];
+  const chips = sl.querySelectorAll('.scc-chip');
+  // Add new SCCs
+  sccs.forEach((scc, i) => {
+    if (!sccColors[i]) {
+      sccColors[i] = SCC_COLORS[sccCounter++ % SCC_COLORS.length];
+    }
+    if (!chips[i]) {
+      const chip = document.createElement('div');
+      chip.className = 'scc-chip';
+      chip.style.background = sccColors[i] + '22';
+      chip.style.borderColor = sccColors[i];
+      chip.style.color = sccColors[i];
+      chip.textContent = `SCC ${i+1}: {${scc.join(', ')}}`;
+      sl.appendChild(chip);
+      setTimeout(() => chip.classList.add('visible'), 10);
+    }
+  });
+
+  // Node table
+  const tb = document.getElementById('nodeTable');
+  tb.innerHTML = '';
+  nodes.forEach(n => {
+    const tr = document.createElement('tr');
+    const d = state.disc ? state.disc[n.id] : -1;
+    const l = state.low ? state.low[n.id] : Infinity;
+    const os = state.onStack ? state.onStack[n.id] : false;
+    if (state.cur === n.id) tr.className = 'active';
+    else if (state.inSCC && state.inSCC[n.id]) tr.className = 'done';
+    tr.innerHTML = `<td>${n.label}</td><td>${d>=0?d:'—'}</td><td>${isFinite(l)&&l!==Infinity?l:'—'}</td><td>${os?'✓':''}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ─── Drawing ──────────────────────────────────────────────────────────────────
+function draw(state={}) {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  drawGrid();
+  drawEdges(state);
+  drawNodes(state);
+  if (state.msg) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, cv.height-38, cv.width, 38);
+    ctx.fillStyle = '#e6edf3';
+    ctx.font = '13px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.msg, cv.width/2, cv.height-14);
+  }
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let x=0; x<cv.width; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,cv.height); ctx.stroke(); }
+  for (let y=0; y<cv.height; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(cv.width,y); ctx.stroke(); }
+}
+
+function nodeColor(id, state) {
+  if (!state) return '#4b9fff';
+  const {inSCC, onStack, cur, sccs=[]} = state;
+  // Assign SCC color
+  for (let i=0; i<sccs.length; i++) {
+    if (sccs[i].includes(id)) return sccColors[i] || '#6ee7b7';
+  }
+  if (cur === id) return '#22d3ee';
+  if (onStack && onStack[id]) return '#f59e0b';
+  if (state.disc && state.disc[id] >= 0) return '#a78bfa';
+  return '#4b9fff';
+}
+
+function drawEdges(state={}) {
+  const {backEdge, exploring, crossEdge} = state;
+  edges.forEach(e => {
+    const fn = nodes.find(n=>n.id===e.from);
+    const tn = nodes.find(n=>n.id===e.to);
+    if (!fn||!tn) return;
+
+    let color = '#555';
+    let width = 1.5;
+    let glow = false;
+
+    if (backEdge && backEdge.from===e.from && backEdge.to===e.to) { color='#f59e0b'; width=3; glow=true; }
+    else if (exploring && exploring.from===e.from && exploring.to===e.to) { color='#22d3ee'; width=2.5; glow=true; }
+    else if (crossEdge && crossEdge.from===e.from && crossEdge.to===e.to) { color='#6ee7b7'; width=2; }
+
+    if (glow) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10;
+    }
+    drawArrow(fn.x, fn.y, tn.x, tn.y, color, width);
+    ctx.shadowBlur = 0;
+  });
+}
+
+function drawArrow(x1, y1, x2, y2, color, width) {
+  const R = 20; // node radius
+  const dx = x2-x1, dy = y2-y1;
+  const dist = Math.hypot(dx,dy);
+  if (dist < 1) return;
+  const ux = dx/dist, uy = dy/dist;
+  const sx = x1 + ux*R, sy = y1 + uy*R;
+  const ex = x2 - ux*R, ey = y2 - uy*R;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+
+  // Arrowhead
+  const angle = Math.atan2(ey-sy, ex-sx);
+  const al = 10;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - al*Math.cos(angle-0.4), ey - al*Math.sin(angle-0.4));
+  ctx.lineTo(ex - al*Math.cos(angle+0.4), ey - al*Math.sin(angle+0.4));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawNodes(state={}) {
+  const {disc={}, low={}, sccs=[]} = state;
+
+  nodes.forEach(n => {
+    const col = nodeColor(n.id, state);
+
+    // Glow for active
+    if (state.cur === n.id || (state.onStack && state.onStack[n.id])) {
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 18;
+    }
+
+    // Circle
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 20, 0, Math.PI*2);
+    ctx.fillStyle = col + '22';
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Label
+    ctx.fillStyle = col;
+    ctx.font = 'bold 13px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(n.label, n.x, n.y);
+
+    // disc/low
+    const d = disc[n.id];
+    const l = low[n.id];
+    if (d >= 0) {
+      ctx.font = '9px monospace';
+      ctx.fillStyle = '#8b949e';
+      ctx.fillText(`d:${d} l:${isFinite(l)?l:'?'}`, n.x, n.y + 30);
+    }
+  });
+
+  // Highlight edge source in edge mode
+  if (edgeSrc) {
+    ctx.beginPath();
+    ctx.arc(edgeSrc.x, edgeSrc.y, 23, 0, Math.PI*2);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+draw();
+</script>
+</body>
+</html>
