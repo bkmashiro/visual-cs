@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convex Hull — Graham Scan vs Jarvis March</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #10b981;
+  --accent2: #3b82f6;
+  --graham: #f59e0b;
+  --jarvis: #8b5cf6;
+  --point: #e6edf3;
+  --hull: #10b981;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header h1 { font-size: 1.3rem; font-weight: 700; }
+header h1 span { color: var(--accent); }
+header a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+
+.main-container {
+  flex: 1;
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.canvas-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.canvases {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+
+.canvas-box {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.canvas-title .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.graham-dot { background: var(--graham); }
+.jarvis-dot { background: var(--jarvis); }
+
+canvas {
+  flex: 1;
+  width: 100%;
+  background: #0a0c10;
+  border-radius: 8px;
+  cursor: crosshair;
+}
+
+.controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: var(--accent);
+  color: #000;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn:hover { opacity: 0.85; transform: scale(1.02); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn.secondary {
+  background: var(--border);
+  color: var(--text);
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.speed-control input {
+  width: 100px;
+  accent-color: var(--accent);
+}
+
+.stats-row {
+  display: flex;
+  gap: 24px;
+  margin-left: auto;
+}
+.stat {
+  text-align: center;
+}
+.stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.stat-value.graham { color: var(--graham); }
+.stat-value.jarvis { color: var(--jarvis); }
+
+.info-panel {
+  width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+}
+
+.info-panel h2 {
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  color: var(--accent);
+}
+
+.info-panel h3 {
+  font-size: 0.95rem;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.info-panel p, .info-panel li {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.info-panel ul {
+  padding-left: 20px;
+  margin-top: 8px;
+}
+
+.info-panel li {
+  margin-bottom: 4px;
+}
+
+.algo-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.algo-card {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+}
+
+.algo-card h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.algo-card.graham h4 { color: var(--graham); }
+.algo-card.jarvis h4 { color: var(--jarvis); }
+
+.algo-card code {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+footer {
+  text-align: center;
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--accent); text-decoration: none; }
+
+@media (max-width: 1000px) {
+  .main-container { flex-direction: column; }
+  .info-panel { width: 100%; max-height: none; }
+  .canvases { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Convex <span>Hull</span></h1>
+  <a href="../../index.html">← Back to Gallery</a>
+</header>
+
+<div class="main-container">
+  <div class="canvas-section">
+    <div class="canvases">
+      <div class="canvas-box">
+        <div class="canvas-title">
+          <span class="dot graham-dot"></span>
+          Graham Scan
+        </div>
+        <canvas id="grahamCanvas"></canvas>
+      </div>
+      <div class="canvas-box">
+        <div class="canvas-title">
+          <span class="dot jarvis-dot"></span>
+          Jarvis March
+        </div>
+        <canvas id="jarvisCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="runBtn">▶ Run Both</button>
+      <button class="btn secondary" id="stepBtn">Step</button>
+      <button class="btn secondary" id="resetBtn">Reset</button>
+      <button class="btn secondary" id="randomBtn">Random Points</button>
+
+      <div class="speed-control">
+        <span>Speed:</span>
+        <input type="range" id="speedSlider" min="1" max="100" value="50">
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Points</div>
+          <div class="stat-value" id="pointCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Graham Steps</div>
+          <div class="stat-value graham" id="grahamSteps">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Jarvis Steps</div>
+          <div class="stat-value jarvis" id="jarvisSteps">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-panel">
+    <h2>🔷 Convex Hull</h2>
+    <p>The convex hull of a set of points is the smallest convex polygon that contains all the points — like stretching a rubber band around pushpins.</p>
+
+    <h3>How It Works</h3>
+
+    <div class="algo-compare">
+      <div class="algo-card graham">
+        <h4>Graham Scan</h4>
+        <p>Sort by polar angle from lowest point, then scan through points maintaining a left-turn-only stack.</p>
+        <code>O(n log n)</code>
+      </div>
+      <div class="algo-card jarvis">
+        <h4>Jarvis March</h4>
+        <p>Start from leftmost point, repeatedly find the point that makes the smallest counter-clockwise angle.</p>
+        <code>O(nh)</code>
+      </div>
+    </div>
+
+    <h3>Instructions</h3>
+    <ul>
+      <li><strong>Click</strong> on either canvas to add points (synced)</li>
+      <li><strong>Run Both</strong> to watch algorithms race</li>
+      <li><strong>Step</strong> to advance one step at a time</li>
+      <li><strong>Random</strong> generates 20 random points</li>
+    </ul>
+
+    <h3>Legend</h3>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--point);"></div>
+        <span>Point</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--graham);"></div>
+        <span>Graham active</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--jarvis);"></div>
+        <span>Jarvis active</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--hull);"></div>
+        <span>Final hull</span>
+      </div>
+    </div>
+
+    <h3>Complexity</h3>
+    <p><strong>Graham:</strong> O(n log n) — dominated by sorting.<br>
+    <strong>Jarvis:</strong> O(nh) — where h is hull size. Faster when h is small.</p>
+
+    <h3>Applications</h3>
+    <ul>
+      <li>Collision detection in games</li>
+      <li>Image processing (shape analysis)</li>
+      <li>Geographic information systems</li>
+      <li>Pattern recognition</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS
+</footer>
+
+<script>
+const grahamCanvas = document.getElementById('grahamCanvas');
+const jarvisCanvas = document.getElementById('jarvisCanvas');
+const grahamCtx = grahamCanvas.getContext('2d');
+const jarvisCtx = jarvisCanvas.getContext('2d');
+
+const runBtn = document.getElementById('runBtn');
+const stepBtn = document.getElementById('stepBtn');
+const resetBtn = document.getElementById('resetBtn');
+const randomBtn = document.getElementById('randomBtn');
+const speedSlider = document.getElementById('speedSlider');
+const pointCountEl = document.getElementById('pointCount');
+const grahamStepsEl = document.getElementById('grahamSteps');
+const jarvisStepsEl = document.getElementById('jarvisSteps');
+
+let points = [];
+let grahamState = null;
+let jarvisState = null;
+let running = false;
+let animationId = null;
+
+const COLORS = {
+  bg: '#0a0c10',
+  point: '#e6edf3',
+  pointHighlight: '#ffffff',
+  graham: '#f59e0b',
+  grahamLight: 'rgba(245, 158, 11, 0.3)',
+  jarvis: '#8b5cf6',
+  jarvisLight: 'rgba(139, 92, 246, 0.3)',
+  hull: '#10b981',
+  hullLight: 'rgba(16, 185, 129, 0.2)',
+  scanning: '#ef4444',
+  candidate: '#3b82f6'
+};
+
+function resizeCanvas(canvas) {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = (rect.width - 32) * dpr;
+  canvas.height = (rect.height - 50) * dpr;
+  canvas.style.width = (rect.width - 32) + 'px';
+  canvas.style.height = (rect.height - 50) + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+}
+
+function resize() {
+  resizeCanvas(grahamCanvas);
+  resizeCanvas(jarvisCanvas);
+  draw();
+}
+
+window.addEventListener('resize', resize);
+setTimeout(resize, 100);
+
+function addPoint(x, y) {
+  const rect = grahamCanvas.getBoundingClientRect();
+  const px = x - rect.left;
+  const py = y - rect.top;
+  if (px >= 0 && px <= rect.width && py >= 0 && py <= rect.height) {
+    points.push({ x: px, y: py });
+    pointCountEl.textContent = points.length;
+    resetAlgorithms();
+    draw();
+  }
+}
+
+grahamCanvas.addEventListener('click', (e) => addPoint(e.clientX, e.clientY));
+jarvisCanvas.addEventListener('click', (e) => {
+  const rect = jarvisCanvas.getBoundingClientRect();
+  const gRect = grahamCanvas.getBoundingClientRect();
+  addPoint(e.clientX - rect.left + gRect.left, e.clientY - rect.top + gRect.top);
+});
+
+function cross(o, a, b) {
+  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+
+function dist(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function polarAngle(origin, point) {
+  return Math.atan2(point.y - origin.y, point.x - origin.x);
+}
+
+// Graham Scan State Machine
+function initGraham() {
+  if (points.length < 3) return null;
+  
+  // Find lowest point (highest y in canvas coords)
+  let lowest = 0;
+  for (let i = 1; i < points.length; i++) {
+    if (points[i].y > points[lowest].y || 
+        (points[i].y === points[lowest].y && points[i].x < points[lowest].x)) {
+      lowest = i;
+    }
+  }
+  
+  const origin = points[lowest];
+  const sorted = points.slice().sort((a, b) => {
+    if (a === origin) return -1;
+    if (b === origin) return 1;
+    const angleA = polarAngle(origin, a);
+    const angleB = polarAngle(origin, b);
+    if (Math.abs(angleA - angleB) < 1e-9) {
+      return dist(origin, a) - dist(origin, b);
+    }
+    return angleA - angleB;
+  });
+  
+  return {
+    phase: 'scanning',
+    sorted: sorted,
+    stack: [sorted[0], sorted[1]],
+    index: 2,
+    steps: 0,
+    checking: null,
+    done: false
+  };
+}
+
+function stepGraham() {
+  if (!grahamState || grahamState.done) return false;
+  
+  const s = grahamState;
+  s.steps++;
+  grahamStepsEl.textContent = s.steps;
+  
+  if (s.index >= s.sorted.length) {
+    s.done = true;
+    s.checking = null;
+    return false;
+  }
+  
+  const point = s.sorted[s.index];
+  s.checking = point;
+  
+  while (s.stack.length > 1 && cross(s.stack[s.stack.length - 2], s.stack[s.stack.length - 1], point) <= 0) {
+    s.stack.pop();
+  }
+  
+  s.stack.push(point);
+  s.index++;
+  
+  return true;
+}
+
+// Jarvis March State Machine
+function initJarvis() {
+  if (points.length < 3) return null;
+  
+  // Find leftmost point
+  let leftmost = 0;
+  for (let i = 1; i < points.length; i++) {
+    if (points[i].x < points[leftmost].x ||
+        (points[i].x === points[leftmost].x && points[i].y > points[leftmost].y)) {
+      leftmost = i;
+    }
+  }
+  
+  return {
+    phase: 'wrapping',
+    hull: [points[leftmost]],
+    current: points[leftmost],
+    start: points[leftmost],
+    steps: 0,
+    scanning: null,
+    candidate: null,
+    done: false
+  };
+}
+
+function stepJarvis() {
+  if (!jarvisState || jarvisState.done) return false;
+  
+  const s = jarvisState;
+  s.steps++;
+  jarvisStepsEl.textContent = s.steps;
+  
+  let next = points[0];
+  s.candidate = next;
+  
+  for (let i = 1; i < points.length; i++) {
+    s.scanning = points[i];
+    const c = cross(s.current, next, points[i]);
+    if (next === s.current || c > 0 || (c === 0 && dist(s.current, points[i]) > dist(s.current, next))) {
+      next = points[i];
+      s.candidate = next;
+    }
+  }
+  
+  s.scanning = null;
+  
+  if (next === s.start) {
+    s.done = true;
+    s.candidate = null;
+    return false;
+  }
+  
+  s.hull.push(next);
+  s.current = next;
+  
+  return true;
+}
+
+function resetAlgorithms() {
+  grahamState = null;
+  jarvisState = null;
+  grahamStepsEl.textContent = '0';
+  jarvisStepsEl.textContent = '0';
+  running = false;
+  runBtn.textContent = '▶ Run Both';
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+}
+
+function drawPoint(ctx, p, color, radius = 5) {
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawLine(ctx, a, b, color, width = 2) {
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+
+function drawPolygon(ctx, pts, strokeColor, fillColor, lineWidth = 2) {
+  if (pts.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    ctx.lineTo(pts[i].x, pts[i].y);
+  }
+  ctx.closePath();
+  if (fillColor) {
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+  }
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = lineWidth;
+  ctx.stroke();
+}
+
+function draw() {
+  const gw = grahamCanvas.width / (window.devicePixelRatio || 1);
+  const gh = grahamCanvas.height / (window.devicePixelRatio || 1);
+  const jw = jarvisCanvas.width / (window.devicePixelRatio || 1);
+  const jh = jarvisCanvas.height / (window.devicePixelRatio || 1);
+  
+  // Clear
+  grahamCtx.fillStyle = COLORS.bg;
+  grahamCtx.fillRect(0, 0, gw, gh);
+  jarvisCtx.fillStyle = COLORS.bg;
+  jarvisCtx.fillRect(0, 0, jw, jh);
+  
+  // Draw points on both
+  for (const p of points) {
+    drawPoint(grahamCtx, p, COLORS.point, 4);
+    drawPoint(jarvisCtx, p, COLORS.point, 4);
+  }
+  
+  // Graham visualization
+  if (grahamState) {
+    const s = grahamState;
+    
+    // Draw stack as partial hull
+    if (s.stack.length >= 2) {
+      if (s.done) {
+        drawPolygon(grahamCtx, s.stack, COLORS.hull, COLORS.hullLight, 3);
+      } else {
+        for (let i = 0; i < s.stack.length - 1; i++) {
+          drawLine(grahamCtx, s.stack[i], s.stack[i + 1], COLORS.graham, 2);
+        }
+      }
+    }
+    
+    // Highlight stack points
+    for (const p of s.stack) {
+      drawPoint(grahamCtx, p, s.done ? COLORS.hull : COLORS.graham, 6);
+    }
+    
+    // Highlight current checking point
+    if (s.checking) {
+      drawPoint(grahamCtx, s.checking, COLORS.scanning, 8);
+      if (s.stack.length > 0) {
+        drawLine(grahamCtx, s.stack[s.stack.length - 1], s.checking, COLORS.scanning, 1);
+      }
+    }
+  }
+  
+  // Jarvis visualization
+  if (jarvisState) {
+    const s = jarvisState;
+    
+    // Draw hull so far
+    if (s.hull.length >= 2) {
+      if (s.done) {
+        drawPolygon(jarvisCtx, s.hull, COLORS.hull, COLORS.hullLight, 3);
+      } else {
+        for (let i = 0; i < s.hull.length - 1; i++) {
+          drawLine(jarvisCtx, s.hull[i], s.hull[i + 1], COLORS.jarvis, 2);
+        }
+      }
+    }
+    
+    // Highlight hull points
+    for (const p of s.hull) {
+      drawPoint(jarvisCtx, p, s.done ? COLORS.hull : COLORS.jarvis, 6);
+    }
+    
+    // Show scanning line
+    if (s.scanning) {
+      drawLine(jarvisCtx, s.current, s.scanning, COLORS.scanning, 1);
+    }
+    
+    // Show candidate
+    if (s.candidate && s.candidate !== s.current) {
+      drawLine(jarvisCtx, s.current, s.candidate, COLORS.candidate, 2);
+      drawPoint(jarvisCtx, s.candidate, COLORS.candidate, 7);
+    }
+  }
+}
+
+function animate() {
+  const speed = speedSlider.value;
+  const delay = Math.max(10, 500 - speed * 4);
+  
+  let grahamContinue = stepGraham();
+  let jarvisContinue = stepJarvis();
+  
+  draw();
+  
+  if (grahamContinue || jarvisContinue) {
+    animationId = setTimeout(() => {
+      if (running) animate();
+    }, delay);
+  } else {
+    running = false;
+    runBtn.textContent = '▶ Run Both';
+  }
+}
+
+runBtn.addEventListener('click', () => {
+  if (points.length < 3) return;
+  
+  if (running) {
+    running = false;
+    runBtn.textContent = '▶ Run Both';
+    if (animationId) {
+      clearTimeout(animationId);
+      animationId = null;
+    }
+  } else {
+    if (!grahamState) grahamState = initGraham();
+    if (!jarvisState) jarvisState = initJarvis();
+    
+    if (grahamState?.done && jarvisState?.done) {
+      resetAlgorithms();
+      grahamState = initGraham();
+      jarvisState = initJarvis();
+    }
+    
+    running = true;
+    runBtn.textContent = '⏸ Pause';
+    animate();
+  }
+});
+
+stepBtn.addEventListener('click', () => {
+  if (points.length < 3) return;
+  
+  if (!grahamState) grahamState = initGraham();
+  if (!jarvisState) jarvisState = initJarvis();
+  
+  stepGraham();
+  stepJarvis();
+  draw();
+});
+
+resetBtn.addEventListener('click', () => {
+  points = [];
+  pointCountEl.textContent = '0';
+  resetAlgorithms();
+  draw();
+});
+
+randomBtn.addEventListener('click', () => {
+  points = [];
+  const rect = grahamCanvas.getBoundingClientRect();
+  const margin = 30;
+  const w = rect.width - margin * 2;
+  const h = rect.height - margin * 2;
+  
+  for (let i = 0; i < 20; i++) {
+    points.push({
+      x: margin + Math.random() * w,
+      y: margin + Math.random() * h
+    });
+  }
+  
+  pointCountEl.textContent = points.length;
+  resetAlgorithms();
+  draw();
+});
+
+// Initial draw
+setTimeout(() => {
+  resize();
+  draw();
+}, 200);
+</script>
+
+</body>
+</html>
