@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Longest Common Subsequence — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --panel: #111720;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --green: #7ee787;
+  --warn: #f78166;
+  --gold: #e3b341;
+  --violet: #a371f7;
+  --pink: #f778ba;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+header h1 { font-size: 1rem; font-weight: 700; flex: 1; }
+header h1 span { color: var(--accent); }
+
+.layout {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  min-height: 0;
+}
+.sidebar {
+  width: 290px;
+  min-width: 250px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+  overflow-y: auto;
+}
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  overflow: auto;
+  gap: 20px;
+}
+
+.section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.input-group { display: flex; flex-direction: column; gap: 8px; }
+.input-group label { font-size: 0.82rem; color: var(--muted); }
+.input-group input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-group input:focus { border-color: var(--accent); }
+
+.btn {
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 9px 16px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.speed-row { display: flex; align-items: center; gap: 10px; }
+.speed-row label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.speed-row input[type=range] { flex: 1; accent-color: var(--accent); }
+
+.stat-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; }
+.stat-row .val { color: var(--accent); font-weight: 700; font-size: 1rem; }
+.stat-row .lbl { color: var(--muted); }
+
+.lcs-result-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lcs-result-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.lcs-result-string {
+  font-family: 'Courier New', monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--violet);
+  min-height: 28px;
+  word-break: break-all;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-swatch {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Matrix */
+.matrix-wrapper {
+  overflow: auto;
+  max-width: 100%;
+}
+table.dp-matrix {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-family: 'Courier New', monospace;
+}
+table.dp-matrix th, table.dp-matrix td {
+  width: 40px; height: 40px;
+  text-align: center;
+  vertical-align: middle;
+  border: 1px solid var(--border);
+  transition: background 0.22s, color 0.22s;
+  position: relative;
+}
+table.dp-matrix th {
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+table.dp-matrix td {
+  background: var(--panel);
+  color: var(--text);
+  cursor: default;
+  font-size: 0.9rem;
+}
+td.cell-empty { color: var(--muted); }
+td.cell-current { background: #1f3a5f; color: var(--accent); font-weight: 700; outline: 2px solid var(--accent); outline-offset: -2px; }
+td.cell-match { background: #1a3a1a; color: var(--green); }
+td.cell-take-up { background: #3a2a1a; color: var(--gold); }
+td.cell-take-left { background: #1a2a3a; color: var(--accent); }
+td.cell-base { background: var(--surface); color: var(--muted); }
+td.cell-traceback { background: #2a1a3a; color: var(--violet); font-weight: 700; outline: 2px solid var(--violet); outline-offset: -2px; }
+td.cell-lcs { background: #1e1430; color: var(--pink); font-weight: 700; outline: 2px solid var(--pink); outline-offset: -2px; }
+
+.strings-display {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.string-vis-wrap { display: flex; flex-direction: column; gap: 6px; }
+.string-vis {
+  display: flex;
+  gap: 0;
+}
+.char-box {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border);
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--surface);
+  transition: background 0.22s, color 0.22s;
+}
+.char-box:first-child { border-radius: 6px 0 0 6px; }
+.char-box:last-child { border-radius: 0 6px 6px 0; }
+.char-box.hl-current { background: var(--accent); color: #000; }
+.char-box.hl-lcs { background: var(--violet); color: #fff; }
+.char-box.hl-lcs-done { background: #1e1430; color: var(--pink); outline: 2px solid var(--pink); }
+
+.info-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 640px;
+  width: 100%;
+}
+.info-box h3 { color: var(--text); font-size: 0.9rem; margin-bottom: 8px; }
+.info-box code {
+  background: var(--panel);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.step-info {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  min-height: 48px;
+  max-width: 740px;
+  width: 100%;
+  color: var(--text);
+  line-height: 1.6;
+}
+.step-info .highlight { color: var(--accent); font-weight: 700; }
+.step-info .hl-green { color: var(--green); font-weight: 700; }
+.step-info .hl-gold { color: var(--gold); font-weight: 700; }
+.step-info .hl-violet { color: var(--violet); font-weight: 700; }
+.step-info .hl-pink { color: var(--pink); font-weight: 700; }
+
+.phase-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.phase-fill { background: #1f3a5f; color: var(--accent); }
+.phase-traceback { background: #2a1a3a; color: var(--violet); }
+.phase-result { background: #1e1430; color: var(--pink); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">&#8592; Back</a>
+  <h1>Longest Common <span>Subsequence</span></h1>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <div>
+      <div class="section-title">Input Strings</div>
+      <div class="input-group">
+        <label>String A</label>
+        <input type="text" id="strA" value="ABCBDAB" maxlength="14" placeholder="first string">
+      </div>
+      <div style="height:8px"></div>
+      <div class="input-group">
+        <label>String B</label>
+        <input type="text" id="strB" value="BDCAB" maxlength="14" placeholder="second string">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Playback</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnPlay">&#9654; Play</button>
+        <button class="btn btn-secondary" id="btnStep">Step</button>
+        <button class="btn btn-secondary" id="btnReset">Reset</button>
+      </div>
+      <div style="height:8px"></div>
+      <div class="speed-row">
+        <label>Speed</label>
+        <input type="range" id="speed" min="1" max="10" value="5">
+      </div>
+    </div>
+
+    <div class="lcs-result-box">
+      <div class="lcs-result-label">LCS Result</div>
+      <div class="lcs-result-string" id="lcsResult">—</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="section-title">Stats</div>
+      <div class="stat-row"><span class="lbl">LCS length</span><span class="val" id="statLen">—</span></div>
+      <div class="stat-row"><span class="lbl">Cells filled</span><span class="val" id="statCells">0</span></div>
+      <div class="stat-row"><span class="lbl">Similarity</span><span class="val" id="statSim">—</span></div>
+    </div>
+
+    <div>
+      <div class="section-title">Legend</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#1f3a5f;outline:2px solid #58a6ff;outline-offset:-2px"></div><span>Current cell</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1a3a1a"></div><span style="color:var(--green)">Match: dp[i-1][j-1]+1</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#3a2a1a"></div><span style="color:var(--gold)">No match: took dp[i-1][j]</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1a2a3a"></div><span style="color:var(--accent)">No match: took dp[i][j-1]</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#2a1a3a;outline:2px solid var(--violet);outline-offset:-2px"></div><span style="color:var(--violet)">Traceback path</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1e1430;outline:2px solid var(--pink);outline-offset:-2px"></div><span style="color:var(--pink)">LCS character</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Preset Examples</div>
+      <div class="btn-row" style="flex-direction:column">
+        <button class="btn btn-secondary" onclick="setPreset('ABCBDAB','BDCAB')">ABCBDAB / BDCAB</button>
+        <button class="btn btn-secondary" onclick="setPreset('AGGTAB','GXTXAYB')">AGGTAB / GXTXAYB</button>
+        <button class="btn btn-secondary" onclick="setPreset('ABCD','ACBD')">ABCD / ACBD</button>
+        <button class="btn btn-secondary" onclick="setPreset('XMJYAUZ','MZJAWXU')">XMJYAUZ / MZJAWXU</button>
+        <button class="btn btn-secondary" onclick="setPreset('ABC','ABC')">ABC / ABC (same)</button>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <h3>How it works</h3>
+      <p>Build a 2D table where <code>dp[i][j]</code> = LCS length of <code>A[0..i-1]</code> and <code>B[0..j-1]</code>.<br><br>
+      <strong>Recurrence:</strong><br>
+      If <code>A[i-1] == B[j-1]</code>:<br>
+      &nbsp;&nbsp;<code>dp[i][j] = dp[i-1][j-1] + 1</code><br>
+      Else:<br>
+      &nbsp;&nbsp;<code>dp[i][j] = max(dp[i-1][j], dp[i][j-1])</code><br><br>
+      After filling, <strong>traceback</strong> from <code>dp[m][n]</code> to <code>dp[0][0]</code> recovers the actual LCS string.</p>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="strings-display">
+      <div class="string-vis-wrap">
+        <div class="section-title" style="margin-bottom:2px">String A <span id="aLen" style="color:var(--accent)"></span></div>
+        <div class="string-vis" id="visA"></div>
+      </div>
+      <div class="string-vis-wrap">
+        <div class="section-title" style="margin-bottom:2px">String B <span id="bLen" style="color:var(--accent)"></span></div>
+        <div class="string-vis" id="visB"></div>
+      </div>
+    </div>
+
+    <div class="step-info" id="stepInfo">Press Play or Step to start the LCS visualization.</div>
+
+    <div class="matrix-wrapper">
+      <table class="dp-matrix" id="dpTable"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+let strA = '', strB = '';
+let dp = [], steps = [], stepIdx = 0;
+let playing = false, timer = null;
+// Track which class each cell was assigned (for correct re-styling after traceback)
+let cellClass = [];
+
+function getSpeed() { return 1100 - $('speed').value * 100; }
+
+function setPreset(a, b) {
+  $('strA').value = a; $('strB').value = b;
+  init();
+}
+
+// ── String character visualisation ──────────────────────────────────────────
+function buildStrVis(id, str, hlCurrent, hlLcsDone) {
+  // hlCurrent: index highlighted as "active" during fill
+  // hlLcsDone: Set of indices that belong to LCS (shown after traceback)
+  const el = $(id);
+  el.innerHTML = '';
+  for (let i = 0; i < str.length; i++) {
+    const d = document.createElement('div');
+    let cls = 'char-box';
+    if (hlLcsDone && hlLcsDone.has(i)) cls += ' hl-lcs-done';
+    else if (i === hlCurrent) cls += ' hl-current';
+    d.className = cls;
+    d.textContent = str[i];
+    el.appendChild(d);
+  }
+  if (!str.length) {
+    const d = document.createElement('div');
+    d.className = 'char-box';
+    d.style.color = 'var(--muted)';
+    d.textContent = '\u03b5';
+    el.appendChild(d);
+  }
+}
+
+// ── Table construction ───────────────────────────────────────────────────────
+function buildTable() {
+  const table = $('dpTable');
+  table.innerHTML = '';
+  const m = strA.length, n = strB.length;
+
+  // Header row: blank corner + "ε" + each char of B
+  const headRow = document.createElement('tr');
+  ['', '', ...strB.split('')].forEach((ch, j) => {
+    const th = document.createElement('th');
+    if (j === 0) th.textContent = '';
+    else if (j === 1) th.textContent = '\u03b5';
+    else th.textContent = ch;
+    headRow.appendChild(th);
+  });
+  table.appendChild(headRow);
+
+  for (let i = 0; i <= m; i++) {
+    const tr = document.createElement('tr');
+    // Row header
+    const rh = document.createElement('th');
+    rh.textContent = i === 0 ? '\u03b5' : strA[i - 1];
+    tr.appendChild(rh);
+    for (let j = 0; j <= n; j++) {
+      const td = document.createElement('td');
+      td.id = `cell-${i}-${j}`;
+      td.className = 'cell-empty';
+      td.textContent = '\u00b7';
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+
+  // Initialise cellClass tracking array
+  cellClass = Array.from({length: m + 1}, () => new Array(n + 1).fill('cell-empty'));
+}
+
+// ── Step building ────────────────────────────────────────────────────────────
+function buildSteps() {
+  steps = [];
+  const m = strA.length, n = strB.length;
+  dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(null));
+
+  // Phase 1 – base cases: dp[0][j] = 0 and dp[i][0] = 0
+  for (let j = 0; j <= n; j++) steps.push({phase:'fill', type:'base', i:0, j, val:0});
+  for (let i = 1; i <= m; i++) steps.push({phase:'fill', type:'base', i, j:0, val:0});
+
+  // Phase 1 – fill
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      steps.push({phase:'fill', type:'compute', i, j});
+    }
+  }
+
+  steps.push({phase:'fill', type:'fill_done'});
+
+  // Phase 2 – traceback (pre-compute path, emit one step per cell)
+  // We need to compute dp fully to trace; will do that lazily in applyStep.
+  // Add a sentinel that triggers traceback computation.
+  steps.push({phase:'traceback', type:'traceback_start'});
+
+  // Traceback steps will be injected after fill_done is processed.
+  // We use a flag to append them once we know dp.
+  steps.push({phase:'result', type:'result'});
+}
+
+// ── Compute full DP table ───────────────────────────────────────────────────
+function computeFullDp() {
+  const m = strA.length, n = strB.length;
+  dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (strA[i-1] === strB[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+      }
+    }
+  }
+}
+
+// ── Compute dp up to step index (for incremental display) ───────────────────
+function recomputeDpUpTo(upTo) {
+  const m = strA.length, n = strB.length;
+  dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(null));
+  for (let k = 0; k <= upTo && k < steps.length; k++) {
+    const st = steps[k];
+    if (st.phase !== 'fill') break;
+    if (st.type === 'base') {
+      dp[st.i][st.j] = st.val;
+    } else if (st.type === 'compute') {
+      const {i, j} = st;
+      if (dp[i-1][j-1] === null || dp[i-1][j] === null || dp[i][j-1] === null) continue;
+      if (strA[i-1] === strB[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+      }
+    }
+  }
+}
+
+// ── Traceback path computation ───────────────────────────────────────────────
+function computeTraceback() {
+  // Returns array of {i, j, isLcs} from (m,n) back to (0,0)
+  const m = strA.length, n = strB.length;
+  const path = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i === 0) { path.push({i, j, isLcs: false}); j--; }
+    else if (j === 0) { path.push({i, j, isLcs: false}); i--; }
+    else if (strA[i-1] === strB[j-1]) {
+      path.push({i, j, isLcs: true}); i--; j--;
+    } else if (dp[i-1][j] >= dp[i][j-1]) {
+      path.push({i, j, isLcs: false}); i--;
+    } else {
+      path.push({i, j, isLcs: false}); j--;
+    }
+  }
+  path.push({i:0, j:0, isLcs: false});
+  return path;
+}
+
+// ── Get LCS string from traceback path ──────────────────────────────────────
+function lcsFromPath(path) {
+  const chars = [];
+  for (const {i, j, isLcs} of path) {
+    if (isLcs && i > 0 && j > 0) {
+      chars.push(strA[i-1]);
+    }
+  }
+  return chars.reverse().join('');
+}
+
+// ── Apply a single step ──────────────────────────────────────────────────────
+let tracebackSteps = [];  // injected traceback steps
+let tracebackIdx = 0;
+let inTraceback = false;
+let inResult = false;
+let lcsPath = [];
+let lcsStr = '';
+let lcsIndicesA = new Set();
+let lcsIndicesB = new Set();
+
+function applyStep(idx) {
+  if (idx >= steps.length) return;
+  const st = steps[idx];
+
+  // Clear previous current-cell highlight
+  document.querySelectorAll('.cell-current').forEach(el => {
+    el.classList.remove('cell-current');
+    // Restore the cell's base class (stored in cellClass)
+    const cid = el.id; // "cell-i-j"
+    if (cid) {
+      const parts = cid.split('-');
+      const ci = +parts[1], cj = +parts[2];
+      el.className = cellClass[ci][cj];
+    }
+  });
+
+  if (st.phase === 'fill') {
+    if (st.type === 'base') {
+      recomputeDpUpTo(idx);
+      const cell = $(`cell-${st.i}-${st.j}`);
+      if (cell) {
+        cell.textContent = '0';
+        cellClass[st.i][st.j] = 'cell-base';
+        cell.className = 'cell-base';
+      }
+      if (idx <= strB.length) {
+        updateStepInfo(`<span class="phase-badge phase-fill">Phase 1 – Fill</span>Base case: dp[${st.i}][${st.j}] = 0`);
+      }
+    } else if (st.type === 'compute') {
+      recomputeDpUpTo(idx);
+      const {i, j} = st;
+      const val = dp[i][j];
+      const cell = $(`cell-${i}-${j}`);
+      if (cell) {
+        cell.textContent = val !== null ? val : '·';
+      }
+      let cls, msg;
+      if (strA[i-1] === strB[j-1]) {
+        cls = 'cell-match';
+        msg = `<span class="phase-badge phase-fill">Phase 1 – Fill</span>dp[${i}][${j}]: <span class="hl-green">'${strA[i-1]}' == '${strB[j-1]}'</span> — match! dp[${i-1}][${j-1}]+1 = <span class="hl-green">${val}</span>`;
+        buildStrVis('visA', strA, i-1, null);
+        buildStrVis('visB', strB, j-1, null);
+      } else {
+        const fromUp   = dp[i-1] && dp[i-1][j]   !== null ? dp[i-1][j]   : 0;
+        const fromLeft = dp[i] && dp[i][j-1]       !== null ? dp[i][j-1]  : 0;
+        if (fromUp >= fromLeft) {
+          cls = 'cell-take-up';
+          msg = `<span class="phase-badge phase-fill">Phase 1 – Fill</span>dp[${i}][${j}]: <span class="highlight">'${strA[i-1]}' ≠ '${strB[j-1]}'</span> — no match. max(dp[${i-1}][${j}]=${fromUp}, dp[${i}][${j-1}]=${fromLeft}) = <span class="hl-gold">${val}</span> (took from above)`;
+        } else {
+          cls = 'cell-take-left';
+          msg = `<span class="phase-badge phase-fill">Phase 1 – Fill</span>dp[${i}][${j}]: <span class="highlight">'${strA[i-1]}' ≠ '${strB[j-1]}'</span> — no match. max(dp[${i-1}][${j}]=${fromUp}, dp[${i}][${j-1}]=${fromLeft}) = <span class="highlight">${val}</span> (took from left)`;
+        }
+        buildStrVis('visA', strA, i-1, null);
+        buildStrVis('visB', strB, j-1, null);
+      }
+      if (cell) {
+        cellClass[i][j] = cls;
+        cell.className = cls + ' cell-current';
+      }
+      updateStepInfo(msg);
+      $('statCells').textContent = idx - strA.length - strB.length;
+
+    } else if (st.type === 'fill_done') {
+      // Make sure dp is fully computed
+      computeFullDp();
+      // Re-render all cells (some may have been missed)
+      const m = strA.length, n = strB.length;
+      for (let i = 0; i <= m; i++) {
+        for (let j = 0; j <= n; j++) {
+          const cell = $(`cell-${i}-${j}`);
+          if (cell && dp[i][j] !== null) {
+            cell.textContent = dp[i][j];
+            if (!cellClass[i][j] || cellClass[i][j] === 'cell-empty') {
+              cellClass[i][j] = 'cell-base';
+              cell.className = 'cell-base';
+            }
+          }
+        }
+      }
+      buildStrVis('visA', strA, -1, null);
+      buildStrVis('visB', strB, -1, null);
+      const lcsLen = dp[strA.length][strB.length];
+      $('statLen').textContent = lcsLen;
+      $('statCells').textContent = strA.length * strB.length;
+      updateStepInfo(`<span class="phase-badge phase-fill">Phase 1 – Fill</span>Table complete. LCS length = <span class="hl-green">${lcsLen}</span>. Starting traceback from dp[${strA.length}][${strB.length}]...`);
+    }
+
+  } else if (st.phase === 'traceback') {
+    if (st.type === 'traceback_start') {
+      if (!inTraceback) {
+        inTraceback = true;
+        computeFullDp();
+        lcsPath = computeTraceback();
+        lcsStr = lcsFromPath(lcsPath);
+
+        // Build lcs index sets
+        lcsIndicesA = new Set();
+        lcsIndicesB = new Set();
+        // Walk path in reverse (path goes from (m,n) to (0,0))
+        for (const {i, j, isLcs} of lcsPath) {
+          if (isLcs) {
+            lcsIndicesA.add(i - 1);
+            lcsIndicesB.add(j - 1);
+          }
+        }
+
+        // Inject per-cell traceback steps just after this index
+        tracebackSteps = lcsPath.map((p, k) => ({
+          phase: 'traceback',
+          type: 'traceback_cell',
+          ...p,
+          pathIdx: k,
+          total: lcsPath.length
+        }));
+        // Insert into steps array after current position
+        steps.splice(idx + 1, 0, ...tracebackSteps);
+      }
+      updateStepInfo(`<span class="phase-badge phase-traceback">Phase 2 – Traceback</span>Following optimal path from dp[${strA.length}][${strB.length}] back to dp[0][0]...`);
+    } else if (st.type === 'traceback_cell') {
+      const {i, j, isLcs} = st;
+      const cell = $(`cell-${i}-${j}`);
+      if (cell) {
+        const cls = isLcs ? 'cell-lcs' : 'cell-traceback';
+        cellClass[i][j] = cls;
+        cell.className = cls;
+      }
+      let msg;
+      if (isLcs) {
+        msg = `<span class="phase-badge phase-traceback">Phase 2 – Traceback</span>dp[${i}][${j}]: <span class="hl-pink">A[${i-1}]='${strA[i-1]}' == B[${j-1}]='${strB[j-1]}'</span> — part of LCS! Move diagonally.`;
+      } else {
+        msg = `<span class="phase-badge phase-traceback">Phase 2 – Traceback</span>dp[${i}][${j}] = ${dp[i] && dp[i][j] !== undefined ? dp[i][j] : 0} — not a match, continue tracing...`;
+      }
+      updateStepInfo(msg);
+    }
+
+  } else if (st.phase === 'result') {
+    // Show final result
+    $('lcsResult').textContent = lcsStr || '(none)';
+    const maxLen = Math.max(strA.length, strB.length, 1);
+    $('statSim').textContent = ((dp[strA.length][strB.length] / maxLen) * 100).toFixed(1) + '%';
+
+    buildStrVis('visA', strA, -1, lcsIndicesA);
+    buildStrVis('visB', strB, -1, lcsIndicesB);
+
+    updateStepInfo(`<span class="phase-badge phase-result">Phase 3 – Result</span>LCS = <span class="hl-pink">"${lcsStr}"</span> (length ${lcsStr.length}). Characters highlighted in both strings.`);
+  }
+}
+
+// ── Step / Play / Stop ───────────────────────────────────────────────────────
+function updateStepInfo(html) {
+  $('stepInfo').innerHTML = html;
+}
+
+function step() {
+  if (stepIdx >= steps.length) return;
+  applyStep(stepIdx);
+  stepIdx++;
+  if (stepIdx >= steps.length) stop();
+}
+
+function play() {
+  if (stepIdx >= steps.length) { init(); }
+  playing = true;
+  $('btnPlay').textContent = '\u23f8 Pause';
+  function tick() {
+    if (!playing || stepIdx >= steps.length) { stop(); return; }
+    step();
+    timer = setTimeout(tick, getSpeed());
+  }
+  tick();
+}
+
+function stop() {
+  playing = false;
+  clearTimeout(timer);
+  $('btnPlay').textContent = '\u25b6 Play';
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  strA = $('strA').value.toUpperCase().slice(0, 14);
+  strB = $('strB').value.toUpperCase().slice(0, 14);
+  $('aLen').textContent = `(${strA.length})`;
+  $('bLen').textContent = `(${strB.length})`;
+  stop();
+  stepIdx = 0;
+  inTraceback = false;
+  inResult = false;
+  tracebackSteps = [];
+  lcsPath = [];
+  lcsStr = '';
+  lcsIndicesA = new Set();
+  lcsIndicesB = new Set();
+  buildSteps();
+  buildTable();
+  buildStrVis('visA', strA, -1, null);
+  buildStrVis('visB', strB, -1, null);
+  $('lcsResult').textContent = '—';
+  $('statLen').textContent = '—';
+  $('statCells').textContent = '0';
+  $('statSim').textContent = '—';
+  updateStepInfo('Press Play or Step to start the LCS visualization.');
+}
+
+$('btnPlay').addEventListener('click', () => { playing ? stop() : play(); });
+$('btnStep').addEventListener('click', () => { stop(); step(); });
+$('btnReset').addEventListener('click', init);
+$('strA').addEventListener('input', init);
+$('strB').addEventListener('input', init);
+
+init();
+</script>
+</body>
+</html>

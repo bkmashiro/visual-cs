@@ -22,6 +22,8 @@
     --tag-simulation-text: #f778ba;
     --tag-search: #3a2a1a;
     --tag-search-text: #e3b341;
+    --tag-dp: #2d1a4a;
+    --tag-dp-text: #a371f7;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -138,6 +140,7 @@
   .tag.graph { background: var(--tag-graph); color: var(--tag-graph-text); }
   .tag.simulation { background: var(--tag-simulation); color: var(--tag-simulation-text); }
   .tag.search { background: var(--tag-search); color: var(--tag-search-text); }
+  .tag.dp { background: var(--tag-dp); color: var(--tag-dp-text); }
 
   .card-desc {
     color: var(--text-muted);
@@ -954,10 +957,27 @@
     </div>
     <a class="view-btn" style="background:#3fb950;color:#0d1117" href="./visualizations/cycle-detection/index.html">View →</a>
   </div>
+
+  <div class="card" style="--card-accent: #a371f7;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Longest Common Subsequence</div>
+        <span class="tag dp">DP</span>
+      </div>
+      <div class="card-icon">🧬</div>
+    </div>
+    <div class="card-desc">Watch the DP table fill cell by cell as LCS lengths are computed. Then trace back through the table to recover the actual subsequence — the foundation of diff tools.</div>
+    <div class="card-meta">
+      <span>📊 DP table</span>
+      <span>↩ Traceback</span>
+      <span>🔤 LCS highlight</span>
+    </div>
+    <a class="view-btn" style="background:#a371f7;color:#0d1117" href="./visualizations/lcs/index.html">View →</a>
+  </div>
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-value">43</div><div class="stat-label">Visualizations</div></div>
+  <div class="stat"><div class="stat-value">44</div><div class="stat-label">Visualizations</div></div>
   <div class="stat"><div class="stat-value">0</div><div class="stat-label">Dependencies</div></div>
   <div class="stat"><div class="stat-value">∞</div><div class="stat-label">Fun</div></div>
 </div>

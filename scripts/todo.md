@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- lcs — Longest Common Subsequence (DP table fill + traceback, LCS highlight in both strings) ✅ 2026-03-29
 - levenshtein-distance — Levenshtein Distance (edit distance DP table fill with alignment trace) ✅ 2026-03-29
 - cycle-detection — Floyd's Cycle Detection (tortoise & hare, 3-phase: detect + μ + λ) ✅ 2026-03-29
 - skip-list — Skip List (probabilistic multi-level linked list) ✅ 2026-03-29
