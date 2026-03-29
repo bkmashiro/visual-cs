@@ -29,7 +29,7 @@
 | [AVL 树](./visualizations/avl-tree/) | 树 | 自平衡 BST，支持插入/删除回放，显示节点高度、平衡因子与 LL/RR/LR/RL 旋转 |
 | [Dijkstra](./visualizations/dijkstra/) | 图算法 | 网格上的加权最短路 |
 | [堆排序](./visualizations/heap-sort/) | 排序 | 最大堆构建与提取 |
-| [红黑树](./visualizations/red-black-tree/) | 树 | 带颜色规则的自平衡 BST |
+| [红黑树](./visualizations/red-black-tree/) | 树 | 支持插入/删除变色回放、左右旋动画，并实时校验 5 条红黑树性质的自平衡 BST |
 | [归并排序](./visualizations/merge-sort/) | 排序 | 分治排序动画 |
 | [A* 寻路](./visualizations/astar/) | 搜索 | 启发式网格寻路 |
 | [跳表](./visualizations/skip-list/) | 数据结构 | 概率层级链表 |

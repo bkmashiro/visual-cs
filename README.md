@@ -29,7 +29,7 @@
 | [AVL Tree](./visualizations/avl-tree/) | Tree | Self-balancing BST with insert/delete replay, node heights, and LL/RR/LR/RL rotations |
 | [Dijkstra](./visualizations/dijkstra/) | Graph | Weighted shortest path on grid |
 | [Heap Sort](./visualizations/heap-sort/) | Sorting | Max-heap build and extract |
-| [Red-Black Tree](./visualizations/red-black-tree/) | Tree | Self-balancing BST with color rules |
+| [Red-Black Tree](./visualizations/red-black-tree/) | Tree | Self-balancing BST with insert/delete recolor replay, left/right rotations, and live checks for all 5 RB properties |
 | [Merge Sort](./visualizations/merge-sort/) | Sorting | Divide and conquer sort |
 | [A* Pathfinding](./visualizations/astar/) | Search | Heuristic grid pathfinding |
 | [Skip List](./visualizations/skip-list/) | Data Structure | Probabilistic layered linked list |

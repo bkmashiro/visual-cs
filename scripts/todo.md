@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- red-black-tree — Red-Black Tree (insert/delete recolor and rotation replay) ✅ 2026-03-29
 - avl-tree — AVL Tree (self-balancing BST with rotation replay) ✅ 2026-03-29
 - huffman-coding — Huffman Coding (optimal prefix-free compression) ✅ 2026-03-29
 - quadtree — Quadtree (2D spatial partitioning) ✅ 2026-03-29
