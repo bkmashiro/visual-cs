@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- lz77 — LZ77 Compression (sliding window, back-reference tokens) ✅ 2026-03-29
 - red-black-tree — Red-Black Tree (insert/delete recolor and rotation replay) ✅ 2026-03-29
 - avl-tree — AVL Tree (self-balancing BST with rotation replay) ✅ 2026-03-29
 - huffman-coding — Huffman Coding (optimal prefix-free compression) ✅ 2026-03-29

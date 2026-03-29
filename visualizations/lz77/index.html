@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LZ77 Compression Explorer — visual-cs</title>
+<style>
+:root{
+  --bg:#050816;
+  --surface:#0c1428;
+  --surface-2:#121d36;
+  --surface-3:#172646;
+  --border:#263a67;
+  --text:#edf4ff;
+  --muted:#94a8c9;
+  --cyan:#67e8f9;
+  --blue:#60a5fa;
+  --violet:#a78bfa;
+  --amber:#fbbf24;
+  --green:#4ade80;
+  --red:#fb7185;
+  --orange:#fb923c;
+  --shadow:0 24px 80px rgba(0,0,0,.34);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(103,232,249,.12), transparent 26%),
+    radial-gradient(circle at top right, rgba(167,139,250,.12), transparent 22%),
+    linear-gradient(180deg, #070c18, #03060e 62%);
+}
+a{color:inherit}
+header{
+  position:sticky;
+  top:0;
+  z-index:20;
+  backdrop-filter:blur(18px);
+  background:rgba(3,6,14,.76);
+  border-bottom:1px solid rgba(38,58,103,.65);
+}
+.header-inner{
+  max-width:1420px;
+  margin:0 auto;
+  padding:18px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+}
+.brand h1{font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase}
+.brand h1 span{color:var(--cyan)}
+.brand p{margin-top:5px;font-size:.82rem;color:var(--muted)}
+.back{
+  text-decoration:none;
+  font-size:.82rem;
+  color:var(--muted);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:10px 16px;
+  transition:.18s ease;
+}
+.back:hover{color:var(--text);border-color:var(--cyan);transform:translateY(-1px)}
+.shell{
+  max-width:1420px;
+  margin:0 auto;
+  padding:28px 24px 42px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 340px;
+  gap:22px;
+}
+.panel{
+  background:linear-gradient(180deg, rgba(11,18,33,.96), rgba(7,12,22,.96));
+  border:1px solid rgba(38,58,103,.82);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+}
+.main{
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.hero{
+  padding:24px;
+  border-radius:22px;
+  border:1px solid rgba(103,232,249,.16);
+  background:linear-gradient(135deg, rgba(96,165,250,.14), rgba(103,232,249,.06) 40%, rgba(167,139,250,.16));
+}
+.hero h2{font-size:2rem;line-height:1.1;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.65;font-size:.92rem;max-width:70ch}
+
+/* Input section */
+.input-row{
+  display:flex;
+  gap:10px;
+  align-items:stretch;
+}
+.input-row input{
+  flex:1;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px 16px;
+  color:var(--text);
+  font-size:.95rem;
+  font-family:inherit;
+  outline:none;
+  transition:.18s;
+}
+.input-row input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(103,232,249,.1)}
+.input-row input::placeholder{color:var(--muted)}
+.btn{
+  background:var(--cyan);
+  color:#020b14;
+  border:none;
+  border-radius:12px;
+  padding:12px 20px;
+  font-size:.88rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:.18s;
+  white-space:nowrap;
+}
+.btn:hover{opacity:.85;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.secondary{
+  background:var(--surface-2);
+  color:var(--text);
+  border:1px solid var(--border);
+}
+.btn.secondary:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn.violet{background:var(--violet);color:#06020e}
+.btn.amber{background:var(--amber);color:#07040a}
+
+/* Window config */
+.config-row{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.config-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:.84rem;
+  color:var(--muted);
+}
+.config-item label{white-space:nowrap}
+.config-item input[type=range]{
+  width:100px;
+  accent-color:var(--cyan);
+}
+.config-item .val{
+  color:var(--cyan);
+  font-weight:700;
+  min-width:26px;
+}
+
+/* Buffer visualization */
+.buffers-wrap{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  overflow:hidden;
+}
+.buf-label{
+  font-size:.78rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+.char-strip{
+  display:flex;
+  flex-wrap:nowrap;
+  gap:3px;
+  overflow-x:auto;
+  padding-bottom:4px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;
+}
+.char-strip::-webkit-scrollbar{height:4px}
+.char-strip::-webkit-scrollbar-track{background:transparent}
+.char-strip::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.ch{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  flex-shrink:0;
+}
+.ch-box{
+  width:30px;
+  height:30px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:6px;
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  font-family:'JetBrains Mono',Consolas,monospace;
+  font-size:.85rem;
+  font-weight:600;
+  transition:.22s;
+  position:relative;
+}
+.ch-box.search{border-color:var(--amber);background:rgba(251,191,36,.12);color:var(--amber)}
+.ch-box.lookahead{border-color:var(--cyan);background:rgba(103,232,249,.1);color:var(--cyan)}
+.ch-box.match{border-color:var(--green);background:rgba(74,222,128,.14);color:var(--green)}
+.ch-box.cursor{border-color:var(--violet);background:rgba(167,139,250,.18);color:var(--violet);box-shadow:0 0 0 3px rgba(167,139,250,.22)}
+.ch-box.done{background:var(--surface-3);color:var(--muted);border-color:transparent}
+.ch-idx{font-size:.6rem;color:var(--muted);font-family:monospace}
+
+.divider-line{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:.78rem;
+  color:var(--muted);
+}
+.divider-line::before,.divider-line::after{
+  content:'';flex:1;height:1px;background:var(--border);
+}
+
+/* Match arrow area */
+.match-info{
+  background:var(--surface-2);
+  border:1px solid rgba(74,222,128,.25);
+  border-radius:12px;
+  padding:14px 18px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  font-size:.88rem;
+  min-height:54px;
+}
+.match-info .token{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:var(--surface-3);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:6px 12px;
+  font-family:monospace;
+  font-size:.9rem;
+  font-weight:700;
+  color:var(--green);
+}
+.match-info .no-match{color:var(--muted)}
+.match-info .arrow{color:var(--amber);font-size:1.1rem}
+
+/* Token output table */
+.tokens-wrap{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height:260px;
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;
+}
+.tokens-wrap::-webkit-scrollbar{width:5px}
+.tokens-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.tokens-header{
+  display:grid;
+  grid-template-columns:40px 1fr 70px 70px 70px 1fr;
+  gap:8px;
+  font-size:.74rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+  color:var(--muted);
+  padding:0 6px;
+}
+.token-row{
+  display:grid;
+  grid-template-columns:40px 1fr 70px 70px 70px 1fr;
+  gap:8px;
+  font-size:.84rem;
+  padding:8px 6px;
+  border-radius:8px;
+  align-items:center;
+  background:var(--surface-2);
+  border:1px solid transparent;
+  transition:.18s;
+}
+.token-row.active{
+  border-color:var(--cyan);
+  background:rgba(103,232,249,.06);
+}
+.token-row .idx{color:var(--muted);font-size:.76rem;font-family:monospace}
+.token-row .context{font-family:monospace;color:var(--muted);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.token-row .offset{color:var(--amber);font-weight:700;font-family:monospace}
+.token-row .length{color:var(--green);font-weight:700;font-family:monospace}
+.token-row .next{
+  color:var(--cyan);font-weight:700;font-family:monospace;
+  background:rgba(103,232,249,.1);
+  border:1px solid rgba(103,232,249,.2);
+  border-radius:5px;
+  padding:2px 7px;
+  width:fit-content;
+}
+.token-row .decoded{font-family:monospace;color:var(--violet);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Stats */
+.stats-row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+}
+.stat-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.stat-card .s-label{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.stat-card .s-val{font-size:1.55rem;font-weight:800;line-height:1}
+.stat-card .s-sub{font-size:.74rem;color:var(--muted)}
+
+/* Controls */
+.controls{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.step-counter{
+  font-size:.84rem;
+  color:var(--muted);
+  margin-left:auto;
+}
+.step-counter span{color:var(--cyan);font-weight:700}
+
+/* Sidebar */
+.sidebar{
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.side-section{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px;
+}
+.side-section h3{
+  font-size:.84rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted);
+  margin-bottom:12px;
+}
+.legend-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:.83rem;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.legend-box{
+  width:20px;height:20px;
+  border-radius:5px;
+  border:1px solid;
+  flex-shrink:0;
+}
+.legend-box.search{border-color:var(--amber);background:rgba(251,191,36,.15)}
+.legend-box.lookahead{border-color:var(--cyan);background:rgba(103,232,249,.12)}
+.legend-box.match{border-color:var(--green);background:rgba(74,222,128,.15)}
+.legend-box.cursor{border-color:var(--violet);background:rgba(167,139,250,.18)}
+.legend-box.done{border-color:transparent;background:var(--surface-3)}
+
+.algo-steps{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.algo-step{
+  display:flex;
+  gap:10px;
+  font-size:.8rem;
+  color:var(--muted);
+  line-height:1.5;
+}
+.algo-step .n{
+  flex-shrink:0;
+  width:20px;height:20px;
+  border-radius:50%;
+  background:var(--surface-3);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:700;
+  color:var(--cyan);
+  margin-top:1px;
+}
+
+.compress-ratio{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.ratio-bar-wrap{
+  background:var(--surface-2);
+  border-radius:8px;
+  height:12px;
+  overflow:hidden;
+  border:1px solid var(--border);
+}
+.ratio-bar{
+  height:100%;
+  border-radius:8px;
+  transition:.4s ease;
+  background:linear-gradient(90deg, var(--green), var(--cyan));
+}
+.ratio-labels{
+  display:flex;
+  justify-content:space-between;
+  font-size:.76rem;
+  color:var(--muted);
+}
+.ratio-labels span{color:var(--text);font-weight:700}
+
+/* Presets */
+.presets{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.preset-btn{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 12px;
+  font-size:.8rem;
+  color:var(--muted);
+  cursor:pointer;
+  text-align:left;
+  transition:.15s;
+  font-family:inherit;
+}
+.preset-btn:hover{border-color:var(--cyan);color:var(--text)}
+.preset-btn code{
+  display:block;
+  color:var(--violet);
+  font-family:monospace;
+  font-size:.76rem;
+  margin-top:2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* Speed */
+.speed-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:.82rem;
+  color:var(--muted);
+}
+.speed-row input[type=range]{
+  flex:1;
+  accent-color:var(--cyan);
+}
+
+/* Responsive */
+@media(max-width:1000px){
+  .shell{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:600px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .controls{gap:6px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>visual<span>-cs</span></h1>
+      <p>LZ77 Compression — Sliding Window</p>
+    </div>
+    <a class="back" href="../../index.html">← All visualizations</a>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- Main panel -->
+  <div class="panel main">
+    <div class="hero">
+      <h2>LZ77 Compression Explorer</h2>
+      <p>Watch the sliding window scan the input character by character.
+         The <span style="color:var(--amber)">search buffer</span> holds already-encoded data;
+         the <span style="color:var(--cyan)">lookahead buffer</span> holds what's next.
+         Each step emits a <code style="color:var(--green)">(offset, length, next-char)</code> token.</p>
+    </div>
+
+    <!-- Input -->
+    <div class="input-row">
+      <input id="inputText" type="text" placeholder="Enter text to compress…" value="abracadabra" maxlength="120">
+      <button class="btn" onclick="startCompression()">Compress</button>
+      <button class="btn secondary" onclick="resetAll()">Reset</button>
+    </div>
+
+    <!-- Config -->
+    <div class="config-row">
+      <div class="config-item">
+        <label>Search buffer</label>
+        <input type="range" id="searchSize" min="4" max="32" value="12" oninput="document.getElementById('ssVal').textContent=this.value">
+        <span class="val" id="ssVal">12</span>
+      </div>
+      <div class="config-item">
+        <label>Lookahead buffer</label>
+        <input type="range" id="lookaheadSize" min="2" max="16" value="6" oninput="document.getElementById('laVal').textContent=this.value">
+        <span class="val" id="laVal">6</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn secondary" id="btnPrev" onclick="stepBack()" disabled>← Prev</button>
+      <button class="btn violet" id="btnNext" onclick="stepForward()" disabled>Next →</button>
+      <button class="btn amber" id="btnPlay" onclick="togglePlay()" disabled>▶ Play</button>
+      <div class="speed-row" style="margin-left:auto">
+        <span>Speed</span>
+        <input type="range" id="speedSlider" min="1" max="5" value="3" style="width:80px">
+      </div>
+      <div class="step-counter">Step <span id="stepLabel">—</span></div>
+    </div>
+
+    <!-- Buffer visualization -->
+    <div class="buffers-wrap">
+      <div>
+        <div class="buf-label">Full input string</div>
+        <div class="char-strip" id="fullStrip"></div>
+      </div>
+      <div class="divider-line">Window view</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div>
+          <div class="buf-label" style="color:var(--amber)">Search buffer (already encoded)</div>
+          <div class="char-strip" id="searchStrip"></div>
+        </div>
+        <div>
+          <div class="buf-label" style="color:var(--cyan)">Lookahead buffer</div>
+          <div class="char-strip" id="lookaheadStrip"></div>
+        </div>
+      </div>
+      <div class="match-info" id="matchInfo">
+        <span class="no-match">Run compression to begin…</span>
+      </div>
+    </div>
+
+    <!-- Token output -->
+    <div>
+      <div class="buf-label" style="margin-bottom:8px">Output tokens</div>
+      <div class="tokens-wrap">
+        <div class="tokens-header">
+          <div>#</div>
+          <div>Match in buffer</div>
+          <div>Offset</div>
+          <div>Length</div>
+          <div>Next</div>
+          <div>Decoded segment</div>
+        </div>
+        <div id="tokenList"></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="s-label">Input size</div>
+        <div class="s-val" id="statInput" style="color:var(--blue)">—</div>
+        <div class="s-sub">characters</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Tokens emitted</div>
+        <div class="s-val" id="statTokens" style="color:var(--cyan)">—</div>
+        <div class="s-sub">triples</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Chars via back-ref</div>
+        <div class="s-val" id="statSaved" style="color:var(--green)">—</div>
+        <div class="s-sub">copy from buffer</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Compression ratio</div>
+        <div class="s-val" id="statRatio" style="color:var(--amber)">—</div>
+        <div class="s-sub">tokens / chars</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="panel sidebar">
+    <div class="side-section">
+      <h3>Legend</h3>
+      <div class="legend-item"><div class="legend-box done"></div>Already processed</div>
+      <div class="legend-item"><div class="legend-box search"></div>Search buffer</div>
+      <div class="legend-item"><div class="legend-box cursor"></div>Current position</div>
+      <div class="legend-item"><div class="legend-box lookahead"></div>Lookahead buffer</div>
+      <div class="legend-item"><div class="legend-box match"></div>Best match found</div>
+    </div>
+
+    <div class="side-section">
+      <h3>Algorithm</h3>
+      <div class="algo-steps">
+        <div class="algo-step"><div class="n">1</div>Slide the window: search buffer holds the last <em>S</em> encoded chars.</div>
+        <div class="algo-step"><div class="n">2</div>Look ahead up to <em>L</em> chars and find the longest match in the search buffer.</div>
+        <div class="algo-step"><div class="n">3</div>Emit <code style="color:var(--green)">(offset, length, next)</code> — offset back from current, length of match, and the first unmatched char.</div>
+        <div class="algo-step"><div class="n">4</div>Advance the window by <em>length + 1</em> characters.</div>
+        <div class="algo-step"><div class="n">5</div>Repeat until the input is exhausted.</div>
+      </div>
+    </div>
+
+    <div class="side-section">
+      <h3>Compression</h3>
+      <div class="compress-ratio">
+        <div class="ratio-labels">
+          <div>Tokens emitted <span id="ratioTokensLabel">0</span></div>
+          <div>vs Input <span id="ratioInputLabel">0</span></div>
+        </div>
+        <div class="ratio-bar-wrap">
+          <div class="ratio-bar" id="ratioBar" style="width:100%"></div>
+        </div>
+        <div style="font-size:.76rem;color:var(--muted)">
+          Fewer tokens = better compression. Tokens include back-references that expand on decode.
+        </div>
+      </div>
+    </div>
+
+    <div class="side-section">
+      <h3>Presets</h3>
+      <div class="presets">
+        <button class="preset-btn" onclick="loadPreset('abracadabra')">
+          Classic example
+          <code>abracadabra</code>
+        </button>
+        <button class="preset-btn" onclick="loadPreset('aababababab')">
+          Repetitive run
+          <code>aababababab</code>
+        </button>
+        <button class="preset-btn" onclick="loadPreset('the cat sat on the mat')">
+          Natural language
+          <code>the cat sat on the mat</code>
+        </button>
+        <button class="preset-btn" onclick="loadPreset('aaaaaaaaaaaaaaaa')">
+          All same char
+          <code>aaaaaaaaaaaaaaaa</code>
+        </button>
+        <button class="preset-btn" onclick="loadPreset('abcdefghijklmnop')">
+          No repetition
+          <code>abcdefghijklmnop</code>
+        </button>
+        <button class="preset-btn" onclick="loadPreset('mississippi river')">
+          Mississippi
+          <code>mississippi river</code>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────────
+// State
+// ──────────────────────────────────────────────────
+let steps = [];        // pre-computed steps
+let currentStep = -1;  // index into steps (-1 = not started)
+let playTimer = null;
+
+function getSpeedMs(){
+  const v = +document.getElementById('speedSlider').value;
+  return [1000, 700, 450, 250, 100][v-1];
+}
+
+// ──────────────────────────────────────────────────
+// LZ77 core: compute all steps up-front
+// ──────────────────────────────────────────────────
+function computeLZ77(text, searchSize, lookaheadSize){
+  const result = [];
+  let pos = 0;
+  while(pos < text.length){
+    const searchStart = Math.max(0, pos - searchSize);
+    const searchBuf = text.slice(searchStart, pos);
+    const lookahead = text.slice(pos, pos + lookaheadSize);
+
+    // Find longest match in search buffer
+    let bestOffset = 0, bestLen = 0;
+    for(let i = 0; i < searchBuf.length; i++){
+      let len = 0;
+      while(len < lookahead.length && searchBuf[i + len] === lookahead[len]){
+        len++;
+        // handle overlapping (match can extend into lookahead)
+        // actual LZ77 allows overlap; we model it by repeating search chars
+      }
+      if(len > bestLen){
+        bestLen = len;
+        bestOffset = searchBuf.length - i; // distance back from pos
+      }
+    }
+
+    const nextChar = text[pos + bestLen] || '';
+    result.push({
+      pos,
+      searchStart,
+      searchEnd: pos,
+      lookaheadEnd: Math.min(pos + lookaheadSize, text.length),
+      offset: bestOffset,
+      length: bestLen,
+      next: nextChar,
+      matchStart: bestLen > 0 ? pos - bestOffset : -1,
+      advance: bestLen + 1,
+    });
+    pos += bestLen + 1;
+    if(bestLen === 0 && pos > text.length) break;
+  }
+  return result;
+}
+
+// ──────────────────────────────────────────────────
+// Render
+// ──────────────────────────────────────────────────
+function renderFullStrip(text, step){
+  const el = document.getElementById('fullStrip');
+  el.innerHTML = '';
+  for(let i = 0; i < text.length; i++){
+    const div = document.createElement('div');
+    div.className = 'ch';
+    const box = document.createElement('div');
+    box.className = 'ch-box';
+    const idx = document.createElement('div');
+    idx.className = 'ch-idx';
+    idx.textContent = i;
+    box.textContent = text[i] === ' ' ? '·' : text[i];
+
+    if(step === null || step === undefined){
+      // just render plain
+    } else {
+      const s = steps[step];
+      if(i < s.searchStart){
+        box.classList.add('done');
+      } else if(i >= s.searchStart && i < s.searchEnd){
+        box.classList.add('search');
+        // highlight match positions
+        if(s.length > 0 && i >= s.matchStart && i < s.matchStart + s.length){
+          box.classList.remove('search');
+          box.classList.add('match');
+        }
+      } else if(i === s.searchEnd){
+        box.classList.add('cursor');
+      } else if(i > s.searchEnd && i < s.lookaheadEnd){
+        box.classList.add('lookahead');
+        // highlight lookahead match
+        if(s.length > 0 && i >= s.searchEnd && i < s.searchEnd + s.length){
+          box.classList.add('match');
+        }
+      }
+    }
+
+    div.appendChild(box);
+    div.appendChild(idx);
+    el.appendChild(div);
+  }
+  // scroll cursor into view
+  if(step !== null && step !== undefined){
+    const boxes = el.querySelectorAll('.ch-box');
+    const s = steps[step];
+    if(boxes[s.searchEnd]){
+      boxes[s.searchEnd].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    }
+  }
+}
+
+function renderBufferStrips(text, step){
+  const ss = document.getElementById('searchStrip');
+  const ls = document.getElementById('lookaheadStrip');
+  ss.innerHTML = '';
+  ls.innerHTML = '';
+  if(step === null || step === undefined) return;
+  const s = steps[step];
+
+  // search buffer
+  for(let i = s.searchStart; i < s.searchEnd; i++){
+    const div = document.createElement('div');
+    div.className = 'ch';
+    const box = document.createElement('div');
+    box.className = 'ch-box search';
+    if(s.length > 0 && i >= s.matchStart && i < s.matchStart + s.length){
+      box.classList.remove('search');
+      box.classList.add('match');
+    }
+    box.textContent = text[i] === ' ' ? '·' : text[i];
+    const idx = document.createElement('div');
+    idx.className = 'ch-idx';
+    idx.textContent = i;
+    div.appendChild(box);
+    div.appendChild(idx);
+    ss.appendChild(div);
+  }
+  if(s.searchStart === s.searchEnd){
+    ss.innerHTML = '<span style="color:var(--muted);font-size:.8rem;align-self:center">(empty)</span>';
+  }
+
+  // lookahead buffer — includes cursor position
+  for(let i = s.searchEnd; i < s.lookaheadEnd; i++){
+    const div = document.createElement('div');
+    div.className = 'ch';
+    const box = document.createElement('div');
+    box.className = 'ch-box';
+    if(i === s.searchEnd){
+      box.classList.add('cursor');
+    } else {
+      box.classList.add('lookahead');
+    }
+    if(s.length > 0 && i >= s.searchEnd && i < s.searchEnd + s.length){
+      box.classList.remove('cursor','lookahead');
+      box.classList.add('match');
+    }
+    box.textContent = text[i] === ' ' ? '·' : text[i];
+    const idx = document.createElement('div');
+    idx.className = 'ch-idx';
+    idx.textContent = i;
+    div.appendChild(box);
+    div.appendChild(idx);
+    ls.appendChild(div);
+  }
+}
+
+function renderMatchInfo(text, step){
+  const el = document.getElementById('matchInfo');
+  if(step === null || step === undefined){
+    el.innerHTML = '<span class="no-match">Run compression to begin…</span>';
+    return;
+  }
+  const s = steps[step];
+  if(s.length === 0){
+    el.innerHTML = `<span class="no-match">No match found in search buffer.</span>
+      <span class="arrow">→</span>
+      <span class="token">(0, 0, '${s.next === ' ' ? '·' : (s.next||'∅')}')</span>
+      <span style="color:var(--muted);font-size:.82rem">Emit literal: <strong style="color:var(--cyan)">'${s.next||'∅'}'</strong></span>`;
+  } else {
+    const matchStr = text.slice(s.matchStart, s.matchStart + s.length);
+    el.innerHTML = `<span style="color:var(--green);font-weight:600">Match found!</span>
+      <span style="color:var(--muted);font-size:.82rem">"${matchStr}" at offset ${s.offset}, len ${s.length}</span>
+      <span class="arrow">→</span>
+      <span class="token">(${s.offset}, ${s.length}, '${s.next === ' ' ? '·' : (s.next||'∅')}')</span>
+      <span style="color:var(--muted);font-size:.82rem">Advance by <strong style="color:var(--amber)">${s.advance}</strong></span>`;
+  }
+}
+
+function renderTokenList(activeIdx){
+  const el = document.getElementById('tokenList');
+  el.innerHTML = '';
+  for(let i = 0; i <= activeIdx && i < steps.length; i++){
+    const s = steps[i];
+    const row = document.createElement('div');
+    row.className = 'token-row' + (i === activeIdx ? ' active' : '');
+
+    // decoded segment
+    const decoded = s.length > 0
+      ? ('…' + steps[0].pos !== undefined ? window._lz77input.slice(s.searchEnd - Math.min(4, s.searchEnd), s.searchEnd) + '→' : '') +
+        window._lz77input.slice(s.searchEnd, s.searchEnd + s.length) + (s.next ? s.next : '')
+      : (s.next || '');
+
+    const contextStr = window._lz77input.slice(Math.max(0, s.pos - 6), s.pos);
+
+    row.innerHTML = `
+      <div class="idx">${i+1}</div>
+      <div class="context" title="${contextStr}">…${contextStr}</div>
+      <div class="offset">${s.offset}</div>
+      <div class="length">${s.length}</div>
+      <div class="next">'${s.next === ' ' ? '·' : (s.next||'∅')}'</div>
+      <div class="decoded">${s.length > 0 ? window._lz77input.slice(s.searchEnd, s.searchEnd + s.length) + (s.next||'') : (s.next||'∅')}</div>
+    `;
+    el.appendChild(row);
+  }
+  // scroll last row into view
+  if(el.lastChild) el.lastChild.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function renderStats(text, activeStep){
+  const total = steps.length;
+  const completed = activeStep + 1;
+  let backrefChars = 0;
+  for(let i = 0; i <= activeStep; i++) backrefChars += steps[i].length;
+
+  document.getElementById('statInput').textContent = text.length;
+  document.getElementById('statTokens').textContent = completed > 0 ? completed : '—';
+  document.getElementById('statSaved').textContent = completed > 0 ? backrefChars : '—';
+  const ratio = completed > 0 ? (completed / text.length * 100).toFixed(1) + '%' : '—';
+  document.getElementById('statRatio').textContent = ratio;
+
+  // ratio bar: lower is better (fewer tokens per char)
+  const pct = completed > 0 ? Math.min(100, completed / text.length * 100) : 100;
+  document.getElementById('ratioBar').style.width = pct + '%';
+  document.getElementById('ratioTokensLabel').textContent = completed;
+  document.getElementById('ratioInputLabel').textContent = text.length;
+}
+
+function renderStep(step){
+  const text = window._lz77input;
+  renderFullStrip(text, step);
+  renderBufferStrips(text, step);
+  renderMatchInfo(text, step);
+  renderTokenList(step);
+  renderStats(text, step);
+
+  document.getElementById('stepLabel').textContent = `${step + 1} / ${steps.length}`;
+  document.getElementById('btnPrev').disabled = step <= 0;
+  document.getElementById('btnNext').disabled = step >= steps.length - 1;
+}
+
+// ──────────────────────────────────────────────────
+// Controls
+// ──────────────────────────────────────────────────
+function startCompression(){
+  const text = document.getElementById('inputText').value;
+  if(!text) return;
+  const searchSize = +document.getElementById('searchSize').value;
+  const lookaheadSize = +document.getElementById('lookaheadSize').value;
+
+  window._lz77input = text;
+  steps = computeLZ77(text, searchSize, lookaheadSize);
+  currentStep = -1;
+
+  // reset displays
+  renderFullStrip(text, null);
+  document.getElementById('searchStrip').innerHTML = '';
+  document.getElementById('lookaheadStrip').innerHTML = '';
+  document.getElementById('matchInfo').innerHTML = '<span class="no-match">Click "Next" to start stepping through…</span>';
+  document.getElementById('tokenList').innerHTML = '';
+  document.getElementById('stepLabel').textContent = `0 / ${steps.length}`;
+  document.getElementById('statInput').textContent = text.length;
+  document.getElementById('statTokens').textContent = '0';
+  document.getElementById('statSaved').textContent = '0';
+  document.getElementById('statRatio').textContent = '—';
+  document.getElementById('ratioBar').style.width = '100%';
+  document.getElementById('ratioTokensLabel').textContent = '0';
+  document.getElementById('ratioInputLabel').textContent = text.length;
+
+  document.getElementById('btnNext').disabled = false;
+  document.getElementById('btnPrev').disabled = true;
+  document.getElementById('btnPlay').disabled = false;
+
+  stopPlay();
+}
+
+function stepForward(){
+  if(currentStep < steps.length - 1){
+    currentStep++;
+    renderStep(currentStep);
+    if(currentStep === steps.length - 1) stopPlay();
+  }
+}
+
+function stepBack(){
+  if(currentStep > 0){
+    currentStep--;
+    renderStep(currentStep);
+  }
+}
+
+function togglePlay(){
+  if(playTimer){
+    stopPlay();
+  } else {
+    document.getElementById('btnPlay').textContent = '⏸ Pause';
+    playTimer = setInterval(()=>{
+      if(currentStep >= steps.length - 1){
+        stopPlay();
+        return;
+      }
+      stepForward();
+    }, getSpeedMs());
+  }
+}
+
+function stopPlay(){
+  if(playTimer){ clearInterval(playTimer); playTimer = null; }
+  document.getElementById('btnPlay').textContent = '▶ Play';
+}
+
+function resetAll(){
+  stopPlay();
+  steps = [];
+  currentStep = -1;
+  window._lz77input = '';
+  document.getElementById('fullStrip').innerHTML = '';
+  document.getElementById('searchStrip').innerHTML = '';
+  document.getElementById('lookaheadStrip').innerHTML = '';
+  document.getElementById('matchInfo').innerHTML = '<span class="no-match">Run compression to begin…</span>';
+  document.getElementById('tokenList').innerHTML = '';
+  document.getElementById('stepLabel').textContent = '—';
+  document.getElementById('statInput').textContent = '—';
+  document.getElementById('statTokens').textContent = '—';
+  document.getElementById('statSaved').textContent = '—';
+  document.getElementById('statRatio').textContent = '—';
+  document.getElementById('ratioBar').style.width = '100%';
+  document.getElementById('ratioTokensLabel').textContent = '0';
+  document.getElementById('ratioInputLabel').textContent = '0';
+  document.getElementById('btnNext').disabled = true;
+  document.getElementById('btnPrev').disabled = true;
+  document.getElementById('btnPlay').disabled = true;
+}
+
+function loadPreset(text){
+  document.getElementById('inputText').value = text;
+  startCompression();
+}
+
+// keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT') return;
+  if(e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); stepForward(); }
+  if(e.key === 'ArrowLeft') { e.preventDefault(); stepBack(); }
+  if(e.key === 'p' || e.key === 'P') togglePlay();
+});
+
+// init
+window._lz77input = '';
+document.getElementById('btnNext').disabled = true;
+document.getElementById('btnPrev').disabled = true;
+document.getElementById('btnPlay').disabled = true;
+</script>
+</body>
+</html>
