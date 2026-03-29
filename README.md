@@ -36,6 +36,7 @@
 | [Trie](./visualizations/trie/) | Search | Prefix tree with real-time matching |
 | [Suffix Array](./visualizations/suffix-array/) | String | Prefix-doubling suffix ordering with final SA + LCP arrays |
 | [KD-Tree](./visualizations/kd-tree/) | Data Structure | 2D spatial partitioning & nearest neighbor |
+| [Quadtree](./visualizations/quadtree/) | Data Structure | Adaptive 2D spatial partitioning with range query and nearest-neighbor pruning |
 | [Radix Sort](./visualizations/radix-sort/) | Sorting | Non-comparative digit-by-digit sort |
 | [Counting Sort](./visualizations/counting-sort/) | Sorting | Linear-time sort for bounded integers |
 | [Insertion Sort](./visualizations/insertion-sort/) | Sorting | Key element slides left past larger values |

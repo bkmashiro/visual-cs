@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quadtree - visual-cs</title>
+<style>
+:root{
+  --bg:#061018;
+  --surface:#0d1823;
+  --surface-2:#122233;
+  --panel:#08131c;
+  --border:#21364a;
+  --text:#ecf5ff;
+  --muted:#8aa3bd;
+  --cyan:#67e8f9;
+  --teal:#2dd4bf;
+  --green:#4ade80;
+  --amber:#fbbf24;
+  --orange:#fb923c;
+  --pink:#f472b6;
+  --red:#fb7185;
+  --violet:#a78bfa;
+  --shadow:0 28px 80px rgba(0,0,0,.34);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at 12% 0%,rgba(103,232,249,.14),transparent 24%),
+    radial-gradient(circle at 100% 10%,rgba(167,139,250,.12),transparent 22%),
+    linear-gradient(180deg,#07111a,#040912 62%);
+}
+a{color:inherit}
+button,input{font:inherit}
+header{
+  position:sticky;top:0;z-index:20;
+  background:rgba(4,8,14,.8);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(33,54,74,.85);
+}
+.hdr{
+  max-width:1440px;margin:0 auto;padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+}
+.brand h1{font-size:1.08rem;letter-spacing:.08em;text-transform:uppercase}
+.brand h1 span{color:var(--cyan)}
+.brand p{margin-top:4px;color:var(--muted);font-size:.84rem}
+.back{
+  text-decoration:none;padding:10px 15px;border-radius:999px;
+  border:1px solid var(--border);color:var(--muted);font-size:.82rem;transition:.18s ease;
+}
+.back:hover{border-color:var(--cyan);color:var(--text);transform:translateY(-1px)}
+.shell{
+  max-width:1440px;margin:0 auto;padding:26px 24px 42px;
+  display:grid;grid-template-columns:minmax(0,1.55fr) 360px;gap:22px;
+}
+.panel{
+  background:linear-gradient(180deg,rgba(12,23,35,.96),rgba(7,14,22,.96));
+  border:1px solid rgba(33,54,74,.92);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+}
+.main{padding:24px;display:flex;flex-direction:column;gap:18px}
+.hero{
+  padding:22px;border-radius:22px;
+  border:1px solid rgba(103,232,249,.16);
+  background:linear-gradient(135deg,rgba(45,212,191,.12),rgba(103,232,249,.14) 42%,rgba(167,139,250,.12));
+  display:grid;grid-template-columns:1.12fr .88fr;gap:18px;
+}
+.hero h2{font-size:2rem;line-height:1.02;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.62;font-size:.93rem;max-width:64ch}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.metric{
+  border-radius:18px;padding:14px;background:rgba(7,14,22,.72);
+  border:1px solid rgba(103,232,249,.1);
+}
+.mlabel{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px}
+.mval{font-size:1.34rem;font-weight:800}
+.mhint{margin-top:6px;font-size:.78rem;color:var(--muted);line-height:1.45}
+.toolbar,.viz,.note,.logbox,.sidepanel{
+  padding:18px;border-radius:20px;background:rgba(8,15,24,.92);
+  border:1px solid rgba(33,54,74,.78);
+}
+.toolbar{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:130px}
+.field label{
+  font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;
+}
+input[type=range]{accent-color:var(--cyan)}
+input[type=number]{
+  width:100%;padding:10px 14px;border-radius:12px;
+  background:var(--surface-2);color:var(--text);border:1px solid var(--border);outline:none;
+}
+input[type=number]:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(103,232,249,.12)}
+.btn{
+  padding:10px 16px;border-radius:12px;border:none;cursor:pointer;font-weight:800;font-size:.87rem;
+  transition:.18s ease;white-space:nowrap;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn-primary{background:var(--cyan);color:#06111a}
+.btn-secondary{background:rgba(33,54,74,.42);color:var(--text);border:1px solid var(--border)}
+.btn-play{background:var(--green);color:#041109}
+.btn-danger{background:rgba(251,113,133,.14);color:var(--red);border:1px solid rgba(251,113,133,.28)}
+.btn-ghost{background:rgba(167,139,250,.12);color:var(--violet);border:1px solid rgba(167,139,250,.28)}
+.preset-row{display:flex;flex-wrap:wrap;gap:8px}
+.preset{
+  padding:6px 12px;border-radius:999px;border:1px solid var(--border);
+  background:rgba(33,54,74,.28);color:var(--muted);font-size:.77rem;font-weight:700;cursor:pointer;
+}
+.preset:hover{color:var(--text);border-color:var(--teal)}
+.speed-wrap{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.82rem}
+.viz{overflow:hidden}
+.viz-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;
+}
+.viz-title{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;font-weight:800}
+.canvas-wrap{
+  position:relative;border-radius:18px;overflow:hidden;
+  background:
+    radial-gradient(circle at top,rgba(103,232,249,.14),transparent 24%),
+    linear-gradient(180deg,#07111b,#040911 70%);
+  border:1px solid rgba(33,54,74,.72);
+}
+canvas{display:block;width:100%;height:620px;cursor:crosshair}
+.canvas-overlay{
+  position:absolute;left:16px;top:16px;display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.pill{
+  width:max-content;max-width:420px;padding:8px 11px;border-radius:999px;
+  background:rgba(3,7,12,.76);border:1px solid rgba(33,54,74,.82);font-size:.8rem;color:var(--muted);
+}
+.pill strong{color:var(--text)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.legend-item{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:.76rem}
+.swatch{width:12px;height:12px;border-radius:4px}
+.split{display:grid;grid-template-columns:1.06fr .94fr;gap:16px}
+.timeline{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto}
+.step{
+  padding:10px 12px;border-radius:12px;background:rgba(13,24,36,.72);
+  border:1px solid rgba(33,54,74,.56);font-size:.82rem;line-height:1.45;color:var(--muted);
+}
+.step.active{border-color:rgba(103,232,249,.42);box-shadow:0 0 0 1px rgba(103,232,249,.18) inset;color:var(--text)}
+.step strong{color:var(--text)}
+.note{font-size:.86rem;color:var(--muted);line-height:1.68}
+.note strong,.note code{color:var(--text)}
+.note code{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:.8rem;
+}
+.side{padding:20px;display:flex;flex-direction:column;gap:16px}
+.sidepanel h3{font-size:.9rem;margin-bottom:12px}
+.sidepanel p{color:var(--muted);font-size:.84rem;line-height:1.62}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{
+  padding:11px 12px;border-radius:14px;background:rgba(13,24,36,.68);
+  border:1px solid var(--border);
+}
+.stat .sv{font-size:1.26rem;font-weight:800}
+.stat .sl{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:3px}
+.logbox{max-height:260px;overflow:auto;padding:12px 14px}
+.log-entry{
+  padding:8px 0;border-bottom:1px solid rgba(33,54,74,.42);
+  font-size:.8rem;line-height:1.5;color:var(--muted);
+}
+.log-entry:last-child{border-bottom:none}
+.log-entry strong{color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  padding:5px 9px;border-radius:999px;font-size:.75rem;font-weight:700;
+  border:1px solid var(--border);background:rgba(33,54,74,.22);color:var(--muted);
+}
+.chip.insert{color:var(--cyan);border-color:rgba(103,232,249,.32);background:rgba(103,232,249,.08)}
+.chip.query{color:var(--amber);border-color:rgba(251,191,36,.32);background:rgba(251,191,36,.08)}
+.chip.nn{color:var(--green);border-color:rgba(74,222,128,.32);background:rgba(74,222,128,.08)}
+.chip.subdivide{color:var(--pink);border-color:rgba(244,114,182,.32);background:rgba(244,114,182,.08)}
+.hint-list{display:flex;flex-direction:column;gap:10px}
+.hint{
+  padding:11px 12px;border-radius:14px;background:rgba(13,24,36,.68);
+  border:1px solid rgba(33,54,74,.56);font-size:.8rem;color:var(--muted);line-height:1.55;
+}
+.hint strong{color:var(--text)}
+@media(max-width:980px){
+  .shell{grid-template-columns:1fr}
+  .hero,.split{grid-template-columns:1fr}
+  canvas{height:500px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div class="brand">
+      <h1>visual<span>-cs</span></h1>
+      <p>Quadtree - 2D spatial partitioning with range and nearest-neighbor search</p>
+    </div>
+    <a class="back" href="../../index.html">&#8592; All visualizations</a>
+  </div>
+</header>
+
+<div class="shell">
+  <div class="panel main">
+    <div class="hero">
+      <div>
+        <h2>Quadtree<br>Spatial Explorer</h2>
+        <p>Build a point quadtree interactively and watch the canvas subdivide only where density increases. Switch between <strong>insert</strong>, <strong>range query</strong>, and <strong>nearest-neighbor</strong> modes to see how spatial pruning avoids visiting most quadrants.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="mlabel">Points</div>
+          <div class="mval" id="m-points" style="color:var(--cyan)">0</div>
+          <div class="mhint">stored 2D samples</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Leaves</div>
+          <div class="mval" id="m-leaves" style="color:var(--green)">1</div>
+          <div class="mhint">terminal regions after subdivision</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Depth</div>
+          <div class="mval" id="m-depth" style="color:var(--amber)">0</div>
+          <div class="mhint">deepest occupied branch</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Visited</div>
+          <div class="mval" id="m-visited" style="color:var(--pink)">0</div>
+          <div class="mhint">nodes touched in current replay</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="row">
+        <button class="btn btn-primary" id="mode-insert">Mode: Insert</button>
+        <button class="btn btn-secondary" id="mode-range">Range Query</button>
+        <button class="btn btn-secondary" id="mode-nearest">Nearest Neighbor</button>
+        <button class="btn btn-ghost" id="random-btn">Random 32</button>
+        <button class="btn btn-ghost" id="cluster-btn">Clustered 32</button>
+        <button class="btn btn-danger" id="clear-btn">Clear</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-play" id="play-btn">Play</button>
+        <button class="btn btn-secondary" id="pause-btn" disabled>Pause</button>
+        <button class="btn btn-secondary" id="step-btn">Step</button>
+        <button class="btn btn-secondary" id="replay-btn">Replay</button>
+        <div class="field" style="max-width:160px">
+          <label>Leaf Capacity</label>
+          <input type="number" id="capacity-input" min="1" max="8" value="4">
+        </div>
+        <div class="speed-wrap">
+          <span>Speed <strong id="speed-label">680ms</strong></span>
+          <input type="range" id="speed-input" min="160" max="1400" step="20" value="680">
+        </div>
+      </div>
+      <div>
+        <div class="viz-title" style="margin-bottom:8px">Preset Stories</div>
+        <div class="preset-row">
+          <button class="preset" data-preset="subdivide">Dense center</button>
+          <button class="preset" data-preset="range">Range pruning</button>
+          <button class="preset" data-preset="nearest">Nearest search</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-head">
+        <div class="viz-title">Canvas</div>
+        <div class="chips">
+          <span class="chip insert">Click to insert points</span>
+          <span class="chip query">Drag a rectangle for range search</span>
+          <span class="chip nn">Click once for nearest neighbor</span>
+          <span class="chip subdivide">Pink flash = subdivision</span>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="canvas" width="1200" height="760"></canvas>
+        <div class="canvas-overlay">
+          <div class="pill"><strong id="mode-pill">Insert mode</strong> <span id="mode-hint">Click anywhere on the canvas to add a point.</span></div>
+          <div class="pill"><strong>Status:</strong> <span id="status-pill">Ready.</span></div>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#67e8f9"></div>Point</div>
+        <div class="legend-item"><div class="swatch" style="background:#a78bfa"></div>Subdivision line</div>
+        <div class="legend-item"><div class="swatch" style="background:#fbbf24"></div>Range rectangle / visited node</div>
+        <div class="legend-item"><div class="swatch" style="background:#4ade80"></div>Nearest point</div>
+        <div class="legend-item"><div class="swatch" style="background:#f472b6"></div>Fresh split</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="note">
+        <h3 style="margin-bottom:10px;font-size:1rem">How it works</h3>
+        <p>A point quadtree stores points in axis-aligned rectangles. Each node holds up to <code>capacity</code> points. When another point would overflow the leaf, the node <strong>subdivides into four equal quadrants</strong>, and its points are redistributed downward.</p>
+        <p style="margin-top:10px">For a range query, the algorithm first tests rectangle intersection. If a quadrant does not intersect the query box, the entire subtree is skipped. For nearest-neighbor search, the tree explores the child that contains the query first, then only visits other children when their bounding boxes could still contain a closer point.</p>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </div>
+
+  <div class="panel side">
+    <div class="sidepanel">
+      <h3>Replay Snapshot</h3>
+      <div class="stat-grid">
+        <div class="stat"><div class="sv" id="s-mode">Insert</div><div class="sl">Mode</div></div>
+        <div class="stat"><div class="sv" id="s-capacity">4</div><div class="sl">Capacity</div></div>
+        <div class="stat"><div class="sv" id="s-found">0</div><div class="sl">Range Hits</div></div>
+        <div class="stat"><div class="sv" id="s-best">-</div><div class="sl">Best Dist</div></div>
+      </div>
+    </div>
+
+    <div class="sidepanel">
+      <h3>Operation Log</h3>
+      <div class="logbox" id="logbox"></div>
+    </div>
+
+    <div class="sidepanel">
+      <h3>Interaction Notes</h3>
+      <div class="hint-list">
+        <div class="hint"><strong>Insert mode:</strong> each click inserts one point and may trigger a subdivision cascade.</div>
+        <div class="hint"><strong>Range mode:</strong> press and drag to draw a query rectangle, then replay node pruning step by step.</div>
+        <div class="hint"><strong>Nearest mode:</strong> click a target point to see bounding-box checks narrow the search.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const bounds = { x: 24, y: 24, w: canvas.width - 48, h: canvas.height - 48 };
+
+const el = {
+  mPoints: document.getElementById("m-points"),
+  mLeaves: document.getElementById("m-leaves"),
+  mDepth: document.getElementById("m-depth"),
+  mVisited: document.getElementById("m-visited"),
+  status: document.getElementById("status-pill"),
+  modePill: document.getElementById("mode-pill"),
+  modeHint: document.getElementById("mode-hint"),
+  timeline: document.getElementById("timeline"),
+  logbox: document.getElementById("logbox"),
+  sMode: document.getElementById("s-mode"),
+  sCapacity: document.getElementById("s-capacity"),
+  sFound: document.getElementById("s-found"),
+  sBest: document.getElementById("s-best"),
+  speed: document.getElementById("speed-input"),
+  speedLabel: document.getElementById("speed-label"),
+  capacity: document.getElementById("capacity-input"),
+  play: document.getElementById("play-btn"),
+  pause: document.getElementById("pause-btn"),
+  step: document.getElementById("step-btn"),
+  replay: document.getElementById("replay-btn")
+};
+
+let pointId = 0;
+let points = [];
+let root = null;
+let capacity = 4;
+let mode = "insert";
+let queryRect = null;
+let queryPoint = null;
+let dragging = false;
+let dragStart = null;
+let frames = [];
+let frameIndex = -1;
+let playbackTimer = null;
+let activeFrame = null;
+let logs = [];
+
+function createNode(x, y, w, h, depth = 0) {
+  return {
+    x, y, w, h, depth,
+    points: [],
+    children: null,
+    id: `node-${Math.random().toString(36).slice(2, 10)}`
+  };
+}
+
+function resetTree() {
+  root = createNode(bounds.x, bounds.y, bounds.w, bounds.h, 0);
+}
+
+function contains(node, p) {
+  return p.x >= node.x && p.x <= node.x + node.w && p.y >= node.y && p.y <= node.y + node.h;
+}
+
+function quadrantIndex(node, p) {
+  const midX = node.x + node.w / 2;
+  const midY = node.y + node.h / 2;
+  const east = p.x >= midX;
+  const south = p.y >= midY;
+  if (!east && !south) return 0;
+  if (east && !south) return 1;
+  if (!east && south) return 2;
+  return 3;
+}
+
+function subdivide(node) {
+  const hw = node.w / 2;
+  const hh = node.h / 2;
+  node.children = [
+    createNode(node.x, node.y, hw, hh, node.depth + 1),
+    createNode(node.x + hw, node.y, hw, hh, node.depth + 1),
+    createNode(node.x, node.y + hh, hw, hh, node.depth + 1),
+    createNode(node.x + hw, node.y + hh, hw, hh, node.depth + 1)
+  ];
+}
+
+function insertInto(node, point, trace, allowSplitFlash = true) {
+  trace.push({
+    type: "visit",
+    node: packNode(node),
+    text: `Inspect depth ${node.depth} region (${Math.round(node.w)} x ${Math.round(node.h)}).`
+  });
+  if (!contains(node, point)) {
+    trace.push({
+      type: "skip",
+      node: packNode(node),
+      text: "Point falls outside this region, so the branch is skipped."
+    });
+    return false;
+  }
+  if (!node.children && node.points.length < capacity) {
+    node.points.push(point);
+    trace.push({
+      type: "insert",
+      node: packNode(node),
+      point,
+      text: `Insert point P${point.id} into a leaf with room (${node.points.length}/${capacity}).`
+    });
+    return true;
+  }
+  if (!node.children) {
+    const existing = node.points.slice();
+    node.points.length = 0;
+    subdivide(node);
+    trace.push({
+      type: allowSplitFlash ? "subdivide" : "visit",
+      node: packNode(node),
+      text: `Capacity exceeded, split depth ${node.depth} into 4 quadrants.`,
+      children: node.children.map(packNode)
+    });
+    for (const oldPoint of existing) {
+      insertInto(node.children[quadrantIndex(node, oldPoint)], oldPoint, trace, false);
+    }
+  }
+  return insertInto(node.children[quadrantIndex(node, point)], point, trace, allowSplitFlash);
+}
+
+function insertPoint(x, y, source = "manual") {
+  const point = { id: ++pointId, x, y };
+  const trace = [];
+  insertInto(root, point, trace, true);
+  points.push(point);
+  setFrames(trace, {
+    mode: "Insert",
+    found: 0,
+    best: null,
+    status: `Inserted P${point.id} via ${source}.`
+  });
+  addLog(`Inserted <strong>P${point.id}</strong> at (${Math.round(x)}, ${Math.round(y)}).`);
+  updateAll();
+}
+
+function packNode(node) {
+  return { x: node.x, y: node.y, w: node.w, h: node.h, depth: node.depth, id: node.id };
+}
+
+function intersects(node, rect) {
+  return !(rect.x > node.x + node.w || rect.x + rect.w < node.x || rect.y > node.y + node.h || rect.y + rect.h < node.y);
+}
+
+function pointInRect(point, rect) {
+  return point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
+}
+
+function rangeSearch(node, rect, hits, trace) {
+  trace.push({ type: "visit", node: packNode(node), rect, text: `Check depth ${node.depth} region against the query rectangle.` });
+  if (!intersects(node, rect)) {
+    trace.push({ type: "prune", node: packNode(node), rect, text: "No intersection: prune the entire subtree." });
+    return;
+  }
+  if (!node.children) {
+    for (const point of node.points) {
+      const hit = pointInRect(point, rect);
+      trace.push({
+        type: hit ? "range-hit" : "range-miss",
+        node: packNode(node),
+        rect,
+        point,
+        text: hit ? `P${point.id} lies inside the query rectangle.` : `P${point.id} lies outside the query rectangle.`
+      });
+      if (hit) hits.push(point);
+    }
+    return;
+  }
+  for (const child of node.children) rangeSearch(child, rect, hits, trace);
+}
+
+function distSqPointRect(point, node) {
+  const cx = Math.max(node.x, Math.min(point.x, node.x + node.w));
+  const cy = Math.max(node.y, Math.min(point.y, node.y + node.h));
+  const dx = point.x - cx;
+  const dy = point.y - cy;
+  return dx * dx + dy * dy;
+}
+
+function nearestSearch(node, target, best, trace) {
+  trace.push({ type: "visit", node: packNode(node), point: target, text: `Visit depth ${node.depth}; compare current best with this region.` });
+  const regionDist = distSqPointRect(target, node);
+  if (regionDist > best.distSq) {
+    trace.push({
+      type: "prune",
+      node: packNode(node),
+      point: target,
+      bestPoint: best.point,
+      text: `Bounding box is farther than the current best, so this region is pruned.`
+    });
+    return best;
+  }
+  if (!node.children) {
+    for (const point of node.points) {
+      const dx = point.x - target.x;
+      const dy = point.y - target.y;
+      const d = dx * dx + dy * dy;
+      const improved = d < best.distSq;
+      trace.push({
+        type: improved ? "best" : "candidate",
+        node: packNode(node),
+        point,
+        queryPoint: target,
+        text: improved ? `P${point.id} becomes the new nearest point.` : `P${point.id} is checked but does not beat the best distance.`
+      });
+      if (improved) best = { point, distSq: d };
+    }
+    return best;
+  }
+  const order = node.children
+    .map(child => ({ child, dist: distSqPointRect(target, child) }))
+    .sort((a, b) => a.dist - b.dist);
+  for (const item of order) best = nearestSearch(item.child, target, best, trace);
+  return best;
+}
+
+function runRange(rect) {
+  queryRect = rect;
+  queryPoint = null;
+  const hits = [];
+  const trace = [];
+  rangeSearch(root, rect, hits, trace);
+  setFrames(trace, {
+    mode: "Range",
+    found: hits.length,
+    best: null,
+    status: `Range query finished with ${hits.length} hit${hits.length === 1 ? "" : "s"}.`
+  });
+  addLog(`Range query at (${Math.round(rect.x)}, ${Math.round(rect.y)}) size ${Math.round(rect.w)} x ${Math.round(rect.h)} found <strong>${hits.length}</strong> point(s).`);
+  updateAll();
+}
+
+function runNearest(target) {
+  queryPoint = target;
+  queryRect = null;
+  const trace = [];
+  const best = nearestSearch(root, target, { point: null, distSq: Infinity }, trace);
+  setFrames(trace, {
+    mode: "Nearest",
+    found: 0,
+    best,
+    status: best.point ? `Nearest neighbor is P${best.point.id}.` : "Tree is empty."
+  });
+  addLog(best.point
+    ? `Nearest query from (${Math.round(target.x)}, ${Math.round(target.y)}) resolved to <strong>P${best.point.id}</strong>.`
+    : `Nearest query from (${Math.round(target.x)}, ${Math.round(target.y)}) on an empty tree.`
+  );
+  updateAll();
+}
+
+function setFrames(trace, summary) {
+  frames = trace.map((frame, idx) => ({ ...frame, idx }));
+  frameIndex = -1;
+  activeFrame = null;
+  stopPlayback();
+  el.sMode.textContent = summary.mode;
+  el.sFound.textContent = String(summary.found ?? 0);
+  el.sBest.textContent = summary.best && summary.best.point ? Math.sqrt(summary.best.distSq).toFixed(1) : "-";
+  el.status.textContent = summary.status;
+  renderTimeline();
+  if (frames.length) stepFrame();
+  else draw();
+}
+
+function renderTimeline() {
+  el.timeline.innerHTML = frames.length ? "" : `<div class="step active"><strong>No replay yet.</strong><br>Insert points or run a query to populate the timeline.</div>`;
+  for (const frame of frames) {
+    const div = document.createElement("div");
+    div.className = "step";
+    div.dataset.idx = String(frame.idx);
+    div.innerHTML = `<strong>${labelFrame(frame)}</strong><br>${frame.text}`;
+    el.timeline.appendChild(div);
+  }
+}
+
+function labelFrame(frame) {
+  switch (frame.type) {
+    case "subdivide": return "Subdivision";
+    case "insert": return "Leaf insert";
+    case "prune": return "Pruned";
+    case "range-hit": return "Range hit";
+    case "range-miss": return "Range miss";
+    case "best": return "Best updated";
+    case "candidate": return "Candidate check";
+    default: return "Visit";
+  }
+}
+
+function updateTimelineActive() {
+  const items = el.timeline.querySelectorAll(".step");
+  items.forEach(item => item.classList.toggle("active", Number(item.dataset.idx) === frameIndex));
+  if (frameIndex >= 0 && items[frameIndex]) items[frameIndex].scrollIntoView({ block: "nearest" });
+}
+
+function stepFrame() {
+  if (!frames.length) return;
+  frameIndex = Math.min(frameIndex + 1, frames.length - 1);
+  activeFrame = frames[frameIndex];
+  el.status.textContent = activeFrame.text;
+  el.mVisited.textContent = String(frameIndex + 1);
+  updateTimelineActive();
+  draw();
+  if (frameIndex >= frames.length - 1) stopPlayback();
+}
+
+function resetPlayback() {
+  stopPlayback();
+  frameIndex = -1;
+  activeFrame = null;
+  el.mVisited.textContent = "0";
+  updateTimelineActive();
+  draw();
+}
+
+function playFrames() {
+  if (!frames.length) return;
+  if (frameIndex >= frames.length - 1) resetPlayback();
+  if (playbackTimer) return;
+  playbackTimer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) {
+      stopPlayback();
+      return;
+    }
+    stepFrame();
+  }, Number(el.speed.value));
+  el.play.disabled = true;
+  el.pause.disabled = false;
+}
+
+function stopPlayback() {
+  if (playbackTimer) clearInterval(playbackTimer);
+  playbackTimer = null;
+  el.play.disabled = false;
+  el.pause.disabled = true;
+}
+
+function drawNode(node) {
+  ctx.strokeStyle = "rgba(167,139,250,.35)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(node.x, node.y, node.w, node.h);
+  if (node.children) {
+    const midX = node.x + node.w / 2;
+    const midY = node.y + node.h / 2;
+    ctx.strokeStyle = "rgba(167,139,250,.7)";
+    ctx.beginPath();
+    ctx.moveTo(midX, node.y);
+    ctx.lineTo(midX, node.y + node.h);
+    ctx.moveTo(node.x, midY);
+    ctx.lineTo(node.x + node.w, midY);
+    ctx.stroke();
+    for (const child of node.children) drawNode(child);
+  }
+}
+
+function fillNode(node, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.fillRect(node.x, node.y, node.w, node.h);
+  ctx.restore();
+}
+
+function drawPoints() {
+  for (const point of points) {
+    const highlighted = activeFrame && activeFrame.point && activeFrame.point.id === point.id;
+    const best = activeFrame && activeFrame.type === "best" && activeFrame.point && activeFrame.point.id === point.id;
+    ctx.beginPath();
+    ctx.fillStyle = best ? "#4ade80" : highlighted ? "#fbbf24" : "#67e8f9";
+    ctx.shadowColor = highlighted || best ? "rgba(251,191,36,.35)" : "transparent";
+    ctx.shadowBlur = highlighted || best ? 14 : 0;
+    ctx.arc(point.x, point.y, best ? 6 : 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawQueries() {
+  if (queryRect) {
+    ctx.save();
+    ctx.strokeStyle = "#fbbf24";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 7]);
+    ctx.strokeRect(queryRect.x, queryRect.y, queryRect.w, queryRect.h);
+    ctx.restore();
+  }
+  if (dragging && dragStart) {
+    const rect = rectFromDrag(dragStart, hoverPoint);
+    ctx.save();
+    ctx.strokeStyle = "rgba(251,191,36,.8)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 5]);
+    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.restore();
+  }
+  if (queryPoint) {
+    ctx.beginPath();
+    ctx.fillStyle = "#fbbf24";
+    ctx.arc(queryPoint.x, queryPoint.y, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (activeFrame && activeFrame.queryPoint && activeFrame.point) {
+    ctx.save();
+    ctx.strokeStyle = "#4ade80";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.moveTo(activeFrame.queryPoint.x, activeFrame.queryPoint.y);
+    ctx.lineTo(activeFrame.point.x, activeFrame.point.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+let hoverPoint = null;
+
+function drawActiveFrame() {
+  if (!activeFrame) return;
+  if (activeFrame.node) {
+    const colorMap = {
+      visit: "rgba(103,232,249,.08)",
+      prune: "rgba(251,113,133,.08)",
+      subdivide: "rgba(244,114,182,.12)",
+      insert: "rgba(74,222,128,.1)",
+      "range-hit": "rgba(74,222,128,.1)",
+      "range-miss": "rgba(251,191,36,.08)",
+      best: "rgba(74,222,128,.12)",
+      candidate: "rgba(251,191,36,.08)"
+    };
+    fillNode(activeFrame.node, colorMap[activeFrame.type] || "rgba(103,232,249,.06)");
+    ctx.save();
+    ctx.strokeStyle = activeFrame.type === "prune" ? "#fb7185" : activeFrame.type === "subdivide" ? "#f472b6" : "#fbbf24";
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(activeFrame.node.x, activeFrame.node.y, activeFrame.node.w, activeFrame.node.h);
+    ctx.restore();
+  }
+  if (activeFrame.rect) {
+    ctx.save();
+    ctx.strokeStyle = "#fbbf24";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 7]);
+    ctx.strokeRect(activeFrame.rect.x, activeFrame.rect.y, activeFrame.rect.w, activeFrame.rect.h);
+    ctx.restore();
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#07131d";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.save();
+  ctx.fillStyle = "rgba(103,232,249,.04)";
+  for (let x = bounds.x; x < bounds.x + bounds.w; x += 56) ctx.fillRect(x, bounds.y, 1, bounds.h);
+  for (let y = bounds.y; y < bounds.y + bounds.h; y += 56) ctx.fillRect(bounds.x, y, bounds.w, 1);
+  ctx.restore();
+
+  drawNode(root);
+  drawActiveFrame();
+  drawQueries();
+  drawPoints();
+  ctx.strokeStyle = "rgba(103,232,249,.22)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
+}
+
+function getCanvasPoint(event) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = (event.clientX - rect.left) * scaleX;
+  const y = (event.clientY - rect.top) * scaleY;
+  return {
+    x: Math.max(bounds.x, Math.min(bounds.x + bounds.w, x)),
+    y: Math.max(bounds.y, Math.min(bounds.y + bounds.h, y))
+  };
+}
+
+function rectFromDrag(a, b) {
+  return {
+    x: Math.min(a.x, b.x),
+    y: Math.min(a.y, b.y),
+    w: Math.abs(a.x - b.x),
+    h: Math.abs(a.y - b.y)
+  };
+}
+
+function setMode(nextMode) {
+  mode = nextMode;
+  document.getElementById("mode-insert").className = `btn ${mode === "insert" ? "btn-primary" : "btn-secondary"}`;
+  document.getElementById("mode-range").className = `btn ${mode === "range" ? "btn-primary" : "btn-secondary"}`;
+  document.getElementById("mode-nearest").className = `btn ${mode === "nearest" ? "btn-primary" : "btn-secondary"}`;
+  const config = {
+    insert: ["Insert mode", "Click anywhere on the canvas to add a point."],
+    range: ["Range mode", "Drag to define an axis-aligned query rectangle."],
+    nearest: ["Nearest-neighbor mode", "Click a query location to find the closest stored point."]
+  };
+  el.modePill.textContent = config[mode][0];
+  el.modeHint.textContent = config[mode][1];
+  el.sMode.textContent = config[mode][0].replace("-neighbor", "");
+}
+
+function addLog(html) {
+  logs.unshift(html);
+  logs = logs.slice(0, 12);
+  el.logbox.innerHTML = logs.length
+    ? logs.map(item => `<div class="log-entry">${item}</div>`).join("")
+    : `<div class="log-entry">No operations yet.</div>`;
+}
+
+function treeStats(node) {
+  if (!node.children) {
+    return {
+      leaves: 1,
+      depth: node.points.length ? node.depth : 0
+    };
+  }
+  return node.children.reduce((acc, child) => {
+    const stats = treeStats(child);
+    acc.leaves += stats.leaves;
+    acc.depth = Math.max(acc.depth, stats.depth);
+    return acc;
+  }, { leaves: 0, depth: 0 });
+}
+
+function rebuildFromPoints() {
+  resetTree();
+  const existing = points.slice();
+  points = [];
+  for (const point of existing) {
+    const trace = [];
+    insertInto(root, point, trace, false);
+    points.push(point);
+  }
+}
+
+function updateAll() {
+  const stats = treeStats(root);
+  el.mPoints.textContent = String(points.length);
+  el.mLeaves.textContent = String(stats.leaves);
+  el.mDepth.textContent = String(stats.depth);
+  el.sCapacity.textContent = String(capacity);
+  if (frameIndex < 0) el.mVisited.textContent = "0";
+  draw();
+}
+
+function clearAll() {
+  stopPlayback();
+  points = [];
+  pointId = 0;
+  queryRect = null;
+  queryPoint = null;
+  frames = [];
+  frameIndex = -1;
+  activeFrame = null;
+  logs = [];
+  resetTree();
+  renderTimeline();
+  addLog("Cleared the quadtree.");
+  el.status.textContent = "Canvas cleared.";
+  el.sFound.textContent = "0";
+  el.sBest.textContent = "-";
+  updateAll();
+}
+
+function randomPoints(kind = "uniform", count = 32) {
+  const generated = [];
+  for (let i = 0; i < count; i++) {
+    let x;
+    let y;
+    if (kind === "cluster") {
+      const centers = [
+        { x: bounds.x + bounds.w * 0.33, y: bounds.y + bounds.h * 0.38 },
+        { x: bounds.x + bounds.w * 0.7, y: bounds.y + bounds.h * 0.62 }
+      ];
+      const c = centers[i % centers.length];
+      x = c.x + (Math.random() - 0.5) * 140;
+      y = c.y + (Math.random() - 0.5) * 120;
+    } else {
+      x = bounds.x + Math.random() * bounds.w;
+      y = bounds.y + Math.random() * bounds.h;
+    }
+    generated.push({
+      x: Math.max(bounds.x + 10, Math.min(bounds.x + bounds.w - 10, x)),
+      y: Math.max(bounds.y + 10, Math.min(bounds.y + bounds.h - 10, y))
+    });
+  }
+  for (const p of generated) insertPoint(p.x, p.y, kind === "cluster" ? "cluster preset" : "random preset");
+}
+
+function loadPreset(name) {
+  clearAll();
+  if (name === "subdivide") {
+    const pts = [
+      [0.45,0.38],[0.48,0.39],[0.49,0.42],[0.5,0.43],[0.46,0.41],[0.47,0.44],[0.52,0.45],[0.51,0.39],
+      [0.53,0.42],[0.54,0.44],[0.44,0.46],[0.5,0.47],[0.56,0.48],[0.57,0.43]
+    ];
+    for (const [rx, ry] of pts) insertPoint(bounds.x + rx * bounds.w, bounds.y + ry * bounds.h, "dense center preset");
+    return;
+  }
+  if (name === "range") {
+    const pts = [
+      [0.16,0.2],[0.22,0.31],[0.28,0.38],[0.35,0.27],[0.48,0.52],[0.55,0.55],[0.62,0.58],[0.68,0.63],
+      [0.72,0.25],[0.79,0.22],[0.83,0.4],[0.21,0.72],[0.32,0.78],[0.42,0.69],[0.58,0.8],[0.74,0.74]
+    ];
+    for (const [rx, ry] of pts) insertPoint(bounds.x + rx * bounds.w, bounds.y + ry * bounds.h, "range preset");
+    runRange({ x: bounds.x + bounds.w * 0.18, y: bounds.y + bounds.h * 0.22, w: bounds.w * 0.34, h: bounds.h * 0.3 });
+    return;
+  }
+  if (name === "nearest") {
+    const pts = [
+      [0.12,0.18],[0.2,0.25],[0.33,0.3],[0.42,0.44],[0.6,0.36],[0.68,0.29],[0.74,0.48],[0.79,0.66],
+      [0.58,0.7],[0.36,0.68],[0.24,0.58],[0.16,0.77]
+    ];
+    for (const [rx, ry] of pts) insertPoint(bounds.x + rx * bounds.w, bounds.y + ry * bounds.h, "nearest preset");
+    runNearest({ x: bounds.x + bounds.w * 0.64, y: bounds.y + bounds.h * 0.58 });
+  }
+}
+
+canvas.addEventListener("click", event => {
+  if (dragging) return;
+  const p = getCanvasPoint(event);
+  if (mode === "insert") insertPoint(p.x, p.y);
+  if (mode === "nearest") runNearest(p);
+});
+
+canvas.addEventListener("mousedown", event => {
+  if (mode !== "range") return;
+  dragging = true;
+  dragStart = getCanvasPoint(event);
+  hoverPoint = dragStart;
+});
+
+canvas.addEventListener("mousemove", event => {
+  hoverPoint = getCanvasPoint(event);
+  if (dragging) draw();
+});
+
+window.addEventListener("mouseup", event => {
+  if (!dragging || mode !== "range") return;
+  dragging = false;
+  hoverPoint = getCanvasPoint(event);
+  const rect = rectFromDrag(dragStart, hoverPoint);
+  dragStart = null;
+  if (rect.w < 8 || rect.h < 8) {
+    el.status.textContent = "Range query ignored: drag a larger rectangle.";
+    draw();
+    return;
+  }
+  runRange(rect);
+});
+
+document.getElementById("mode-insert").addEventListener("click", () => setMode("insert"));
+document.getElementById("mode-range").addEventListener("click", () => setMode("range"));
+document.getElementById("mode-nearest").addEventListener("click", () => setMode("nearest"));
+document.getElementById("random-btn").addEventListener("click", () => randomPoints("uniform", 32));
+document.getElementById("cluster-btn").addEventListener("click", () => randomPoints("cluster", 32));
+document.getElementById("clear-btn").addEventListener("click", clearAll);
+el.play.addEventListener("click", playFrames);
+el.pause.addEventListener("click", stopPlayback);
+el.step.addEventListener("click", stepFrame);
+el.replay.addEventListener("click", resetPlayback);
+el.speed.addEventListener("input", () => {
+  el.speedLabel.textContent = `${el.speed.value}ms`;
+  if (playbackTimer) {
+    stopPlayback();
+    playFrames();
+  }
+});
+el.capacity.addEventListener("change", () => {
+  const next = Math.max(1, Math.min(8, Number(el.capacity.value) || 4));
+  el.capacity.value = String(next);
+  capacity = next;
+  rebuildFromPoints();
+  frames = [];
+  activeFrame = null;
+  frameIndex = -1;
+  renderTimeline();
+  el.status.textContent = `Leaf capacity changed to ${capacity}; tree rebuilt.`;
+  addLog(`Updated leaf capacity to <strong>${capacity}</strong> and rebuilt the tree.`);
+  updateAll();
+});
+document.querySelectorAll("[data-preset]").forEach(btn => {
+  btn.addEventListener("click", () => loadPreset(btn.dataset.preset));
+});
+
+resetTree();
+setMode("insert");
+renderTimeline();
+addLog("Quadtree ready. Insert points or load a preset.");
+updateAll();
+</script>
+</body>
+</html>

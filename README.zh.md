@@ -36,6 +36,7 @@
 | [字典树](./visualizations/trie/) | 搜索 | 前缀树，实时匹配 |
 | [后缀数组](./visualizations/suffix-array/) | 字符串 | 前缀倍增构建后缀序，并展示最终 SA 与 LCP 数组 |
 | [KD 树](./visualizations/kd-tree/) | 数据结构 | 二维空间划分与最近邻搜索 |
+| [四叉树](./visualizations/quadtree/) | 数据结构 | 自适应二维空间划分，支持范围查询与最近邻剪枝演示 |
 | [基数排序](./visualizations/radix-sort/) | 排序 | 非比较排序，按位分桶 |
 | [计数排序](./visualizations/counting-sort/) | 排序 | 线性时间，适用于有界整数 |
 | [插入排序](./visualizations/insertion-sort/) | 排序 | 关键元素逐步向左越过更大的值 |
