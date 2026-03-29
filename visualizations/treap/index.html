@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Treap - visual-cs</title>
+<style>
+:root{
+  --bg:#06111a;
+  --surface:#0d1824;
+  --surface-2:#122030;
+  --panel:#09131d;
+  --border:#23384d;
+  --text:#edf5ff;
+  --muted:#8da5be;
+  --cyan:#67e8f9;
+  --blue:#60a5fa;
+  --green:#4ade80;
+  --amber:#fbbf24;
+  --orange:#fb923c;
+  --red:#fb7185;
+  --violet:#a78bfa;
+  --pink:#f472b6;
+  --shadow:0 28px 80px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left,rgba(96,165,250,.16),transparent 24%),
+    radial-gradient(circle at top right,rgba(244,114,182,.12),transparent 22%),
+    linear-gradient(180deg,#07111a,#03070d 62%);
+}
+a{color:inherit}
+header{
+  position:sticky;top:0;z-index:20;
+  background:rgba(3,7,13,.76);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(35,56,77,.8);
+}
+.hdr{
+  max-width:1420px;margin:0 auto;padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+}
+.brand h1{font-size:1.08rem;letter-spacing:.08em;text-transform:uppercase}
+.brand h1 span{color:var(--cyan)}
+.brand p{margin-top:4px;color:var(--muted);font-size:.84rem}
+.back{
+  text-decoration:none;padding:10px 15px;border-radius:999px;
+  border:1px solid var(--border);color:var(--muted);font-size:.82rem;
+  transition:.18s ease;
+}
+.back:hover{border-color:var(--cyan);color:var(--text);transform:translateY(-1px)}
+.shell{
+  max-width:1420px;margin:0 auto;padding:26px 24px 42px;
+  display:grid;grid-template-columns:minmax(0,1.5fr) 360px;gap:22px;
+}
+.panel{
+  background:linear-gradient(180deg,rgba(12,23,35,.96),rgba(7,14,22,.96));
+  border:1px solid rgba(35,56,77,.92);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+}
+.main{padding:24px;display:flex;flex-direction:column;gap:18px}
+.hero{
+  padding:22px;border-radius:22px;
+  border:1px solid rgba(103,232,249,.16);
+  background:linear-gradient(135deg,rgba(96,165,250,.17),rgba(167,139,250,.11) 42%,rgba(244,114,182,.12));
+  display:grid;grid-template-columns:1.1fr .9fr;gap:18px;
+}
+.hero h2{font-size:2rem;line-height:1.02;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.62;font-size:.93rem;max-width:60ch}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.metric{
+  border-radius:18px;padding:14px;
+  background:rgba(7,14,22,.72);
+  border:1px solid rgba(103,232,249,.1);
+}
+.mlabel{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px}
+.mval{font-size:1.34rem;font-weight:800}
+.mhint{margin-top:6px;font-size:.78rem;color:var(--muted);line-height:1.45}
+.toolbar,.viz,.note,.logbox,.sidepanel{
+  padding:18px;border-radius:20px;background:rgba(8,15,24,.92);
+  border:1px solid rgba(35,56,77,.78);
+}
+.toolbar{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:120px}
+.field label{
+  font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;
+}
+input[type=number],input[type=range]{
+  accent-color:var(--cyan);
+}
+input[type=number]{
+  width:100%;padding:10px 14px;border-radius:12px;
+  background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+  outline:none;font:inherit;
+}
+input[type=number]:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(103,232,249,.12)}
+.btn{
+  padding:10px 16px;border-radius:12px;border:none;cursor:pointer;font-weight:800;
+  transition:.18s ease;font-size:.87rem;white-space:nowrap;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:var(--cyan);color:#06111a}
+.btn-secondary{background:rgba(35,56,77,.44);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:rgba(251,113,133,.16);color:var(--red);border:1px solid rgba(251,113,133,.3)}
+.btn-play{background:var(--green);color:#041109}
+.btn-ghost{background:rgba(167,139,250,.12);color:var(--violet);border:1px solid rgba(167,139,250,.28)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.preset-row{display:flex;flex-wrap:wrap;gap:8px}
+.preset{
+  padding:6px 12px;border-radius:999px;border:1px solid var(--border);
+  background:rgba(35,56,77,.28);color:var(--muted);font-size:.77rem;font-weight:700;cursor:pointer;
+}
+.preset:hover{color:var(--text);border-color:var(--blue)}
+.viz{overflow:hidden}
+.viz-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;
+}
+.viz-title{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;font-weight:800}
+.canvas-wrap{
+  position:relative;border-radius:18px;overflow:hidden;
+  background:
+    radial-gradient(circle at top,rgba(96,165,250,.12),transparent 24%),
+    linear-gradient(180deg,#07111b,#040911 70%);
+  border:1px solid rgba(35,56,77,.72);
+}
+canvas{display:block;width:100%;height:620px}
+.canvas-overlay{
+  position:absolute;left:16px;top:16px;display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.pill{
+  width:max-content;max-width:360px;padding:8px 11px;border-radius:999px;
+  background:rgba(3,7,12,.76);border:1px solid rgba(35,56,77,.82);font-size:.8rem;color:var(--muted);
+}
+.pill strong{color:var(--text)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.legend-item{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:.76rem}
+.swatch{width:12px;height:12px;border-radius:4px}
+.split{display:grid;grid-template-columns:1.08fr .92fr;gap:16px}
+.timeline{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto}
+.step{
+  padding:10px 12px;border-radius:12px;background:rgba(13,24,36,.72);
+  border:1px solid rgba(35,56,77,.56);font-size:.82rem;line-height:1.45;color:var(--muted);
+}
+.step.active{border-color:rgba(103,232,249,.42);box-shadow:0 0 0 1px rgba(103,232,249,.18) inset;color:var(--text)}
+.step strong{color:var(--text)}
+.note{font-size:.86rem;color:var(--muted);line-height:1.68}
+.note strong,.note code{color:var(--text)}
+.note code{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:.8rem;
+}
+.side{padding:20px;display:flex;flex-direction:column;gap:16px}
+.sidepanel h3{font-size:.9rem;margin-bottom:12px}
+.sidepanel p{color:var(--muted);font-size:.84rem;line-height:1.62}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{
+  padding:11px 12px;border-radius:14px;background:rgba(13,24,36,.68);
+  border:1px solid var(--border);
+}
+.stat .sv{font-size:1.26rem;font-weight:800}
+.stat .sl{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:3px}
+.logbox{max-height:240px;overflow:auto;padding:12px 14px}
+.log-entry{
+  padding:8px 0;border-bottom:1px solid rgba(35,56,77,.42);
+  font-size:.8rem;line-height:1.5;color:var(--muted);
+}
+.log-entry:last-child{border-bottom:none}
+.log-entry strong{color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  padding:5px 9px;border-radius:999px;font-size:.75rem;font-weight:700;
+  border:1px solid var(--border);background:rgba(35,56,77,.22);color:var(--muted);
+}
+.chip.path{color:var(--amber);border-color:rgba(251,191,36,.32);background:rgba(251,191,36,.08)}
+.chip.focus{color:var(--cyan);border-color:rgba(103,232,249,.32);background:rgba(103,232,249,.08)}
+.chip.rotate{color:var(--pink);border-color:rgba(244,114,182,.32);background:rgba(244,114,182,.08)}
+.speed-wrap{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.82rem}
+.tree-caption{font-size:.82rem;color:var(--muted)}
+@media(max-width:980px){
+  .shell{grid-template-columns:1fr}
+  .hero,.split{grid-template-columns:1fr}
+  canvas{height:500px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div class="brand">
+      <h1>visual<span>-cs</span></h1>
+      <p>Treap - randomized BST + max-heap on priorities</p>
+    </div>
+    <a class="back" href="../../index.html">&#8592; All visualizations</a>
+  </div>
+</header>
+
+<div class="shell">
+  <div class="panel main">
+    <div class="hero">
+      <div>
+        <h2>Treap<br>Priority Playground</h2>
+        <p>Insert, search, and delete integer keys while a randomized priority keeps the binary search tree balanced in expectation. The tree preserves <strong>BST order by key</strong> and <strong>max-heap order by priority</strong>, using rotations to restore heap order after updates.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="mlabel">Root</div>
+          <div class="mval" id="m-root">Empty</div>
+          <div class="mhint">key / priority at the root</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Nodes</div>
+          <div class="mval" id="m-count" style="color:var(--green)">0</div>
+          <div class="mhint">stored integer keys</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Height</div>
+          <div class="mval" id="m-height" style="color:var(--blue)">0</div>
+          <div class="mhint">longest root-to-leaf path</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Rotations</div>
+          <div class="mval" id="m-rot" style="color:var(--amber)">0</div>
+          <div class="mhint">performed in the current replay</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="row">
+        <div class="field" style="max-width:180px">
+          <label>Integer Key</label>
+          <input type="number" id="key-input" placeholder="e.g. 42" onkeydown="if(event.key==='Enter')insertValue()">
+        </div>
+        <button class="btn btn-primary" onclick="insertValue()">Insert</button>
+        <button class="btn btn-ghost" onclick="searchValue()">Search</button>
+        <button class="btn btn-danger" onclick="deleteValue()">Delete</button>
+        <button class="btn btn-secondary" onclick="clearTree()">Clear</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-play" id="play-btn" onclick="playFrames()">Play</button>
+        <button class="btn btn-secondary" id="pause-btn" onclick="pauseFrames()" disabled>Pause</button>
+        <button class="btn btn-secondary" onclick="stepFrame()">Step</button>
+        <button class="btn btn-secondary" onclick="resetPlayback()">Replay</button>
+        <button class="btn btn-secondary" onclick="randomInsert()">Random Insert</button>
+        <div class="speed-wrap">
+          <span>Speed <strong id="speed-label">700ms</strong></span>
+          <input type="range" id="speed" min="180" max="1600" step="20" value="700">
+        </div>
+      </div>
+      <div>
+        <div class="viz-title" style="margin-bottom:8px">Preset Sequences</div>
+        <div class="preset-row">
+          <button class="preset" onclick="loadPreset('bubble')">Bubble up</button>
+          <button class="preset" onclick="loadPreset('delete')">Delete sink</button>
+          <button class="preset" onclick="loadPreset('mixed')">Mixed ops</button>
+          <button class="preset" onclick="loadPreset('random')">Random batch</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-head">
+        <div>
+          <div class="viz-title">Treap Canvas</div>
+          <div class="tree-caption" id="tree-caption">Nodes show <strong>key</strong> and priority. Yellow highlights mark the access path; pink marks a rotation pivot.</div>
+        </div>
+        <div class="chips" id="path-chips"></div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="canvas" width="1100" height="620"></canvas>
+        <div class="canvas-overlay">
+          <div class="pill"><strong id="op-label">Ready.</strong> <span id="op-detail">Build a treap or load a preset sequence.</span></div>
+          <div class="pill">Invariant: inorder traversal stays sorted by key, while priorities form a max-heap.</div>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:#60a5fa"></span>Normal node</div>
+        <div class="legend-item"><span class="swatch" style="background:#fbbf24"></span>Path / compared node</div>
+        <div class="legend-item"><span class="swatch" style="background:#67e8f9"></span>Current focus</div>
+        <div class="legend-item"><span class="swatch" style="background:#f472b6"></span>Rotation pivot</div>
+        <div class="legend-item"><span class="swatch" style="background:#4ade80"></span>Successful hit / inserted node</div>
+        <div class="legend-item"><span class="swatch" style="background:#fb7185"></span>Delete target</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="note">
+        <strong>How treaps rebalance.</strong> Every node gets a random priority on insertion. First place the key using normal BST rules, then rotate the new node upward while its priority is greater than its parent. Deletion does the inverse: rotate the target downward toward a leaf, always promoting the child with the higher priority, then remove it. Expected height stays <code>O(log n)</code> because random priorities simulate a random BST.
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </div>
+
+  <div class="panel side">
+    <div class="sidepanel">
+      <h3>Current Stats</h3>
+      <div class="stat-grid">
+        <div class="stat"><div class="sv" id="s-bst">OK</div><div class="sl">BST Order</div></div>
+        <div class="stat"><div class="sv" id="s-heap">OK</div><div class="sl">Heap Order</div></div>
+        <div class="stat"><div class="sv" id="s-last-depth">0</div><div class="sl">Path Length</div></div>
+        <div class="stat"><div class="sv" id="s-seed">1</div><div class="sl">RNG Seed</div></div>
+      </div>
+    </div>
+
+    <div class="sidepanel">
+      <h3>Operation Notes</h3>
+      <p id="side-note">Treaps split balancing work across two fields: key determines search order, priority determines shape. That separation makes rotations easy to explain visually.</p>
+    </div>
+
+    <div class="sidepanel">
+      <h3>Recent Operations</h3>
+      <div class="logbox" id="logbox"></div>
+    </div>
+
+    <div class="sidepanel">
+      <h3>Quick Facts</h3>
+      <p>Insert/search/delete are expected <strong>O(log n)</strong>. The same rotation primitives as AVL and red-black trees appear here, but the balancing rule is probabilistic instead of deterministic.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const keyInput = document.getElementById('key-input');
+const speedInput = document.getElementById('speed');
+const speedLabel = document.getElementById('speed-label');
+const timelineEl = document.getElementById('timeline');
+const logbox = document.getElementById('logbox');
+const pathChips = document.getElementById('path-chips');
+
+let root = null;
+let frames = [];
+let frameIndex = 0;
+let timer = null;
+let recentLogs = [];
+let seed = 1;
+let currentRotationCount = 0;
+let viewportWidth = 1100;
+let viewportHeight = 620;
+
+function rng() {
+  seed = (seed * 1664525 + 1013904223) >>> 0;
+  return seed / 4294967296;
+}
+
+function nextPriority() {
+  return 10 + Math.floor(rng() * 90);
+}
+
+function node(key, priority) {
+  return { key, priority, left: null, right: null, x: 0, y: 0 };
+}
+
+function cloneTree(n) {
+  if (!n) return null;
+  return {
+    key: n.key,
+    priority: n.priority,
+    left: cloneTree(n.left),
+    right: cloneTree(n.right),
+    x: n.x || 0,
+    y: n.y || 0
+  };
+}
+
+function treeHeight(n) {
+  return n ? 1 + Math.max(treeHeight(n.left), treeHeight(n.right)) : 0;
+}
+
+function treeCount(n) {
+  return n ? 1 + treeCount(n.left) + treeCount(n.right) : 0;
+}
+
+function getRootLabel(n) {
+  return n ? `${n.key} / p${n.priority}` : 'Empty';
+}
+
+function collectInorder(n, out = []) {
+  if (!n) return out;
+  collectInorder(n.left, out);
+  out.push(n.key);
+  collectInorder(n.right, out);
+  return out;
+}
+
+function verifyBST(n, min = -Infinity, max = Infinity) {
+  if (!n) return true;
+  if (n.key <= min || n.key >= max) return false;
+  return verifyBST(n.left, min, n.key) && verifyBST(n.right, n.key, max);
+}
+
+function verifyHeap(n) {
+  if (!n) return true;
+  if (n.left && n.left.priority > n.priority) return false;
+  if (n.right && n.right.priority > n.priority) return false;
+  return verifyHeap(n.left) && verifyHeap(n.right);
+}
+
+function snapshot(label, detail, opts = {}) {
+  frames.push({
+    label,
+    detail,
+    tree: cloneTree(root),
+    path: [...(opts.path || [])],
+    focus: opts.focus ?? null,
+    success: opts.success ?? null,
+    rotate: opts.rotate ?? null,
+    deleteTarget: opts.deleteTarget ?? null,
+    note: opts.note || '',
+    rotations: opts.rotations ?? currentRotationCount
+  });
+}
+
+function rotateRightAt(targetKey) {
+  let rotated = false;
+  function rec(n) {
+    if (!n) return null;
+    if (n.key === targetKey) {
+      const left = n.left;
+      if (!left) return n;
+      n.left = left.right;
+      left.right = n;
+      rotated = true;
+      return left;
+    }
+    if (targetKey < n.key) n.left = rec(n.left);
+    else n.right = rec(n.right);
+    return n;
+  }
+  root = rec(root);
+  if (rotated) currentRotationCount += 1;
+}
+
+function rotateLeftAt(targetKey) {
+  let rotated = false;
+  function rec(n) {
+    if (!n) return null;
+    if (n.key === targetKey) {
+      const right = n.right;
+      if (!right) return n;
+      n.right = right.left;
+      right.left = n;
+      rotated = true;
+      return right;
+    }
+    if (targetKey < n.key) n.left = rec(n.left);
+    else n.right = rec(n.right);
+    return n;
+  }
+  root = rec(root);
+  if (rotated) currentRotationCount += 1;
+}
+
+function insertRec(n, key, priority, path, insertedRef) {
+  if (!n) {
+    insertedRef.node = node(key, priority);
+    return insertedRef.node;
+  }
+  path.push(n.key);
+  if (key === n.key) {
+    insertedRef.duplicate = true;
+    return n;
+  }
+  if (key < n.key) {
+    n.left = insertRec(n.left, key, priority, path, insertedRef);
+    if (n.left && n.left.priority > n.priority) {
+      const left = n.left;
+      const parentKey = n.key;
+      const parentPriority = n.priority;
+      n.left = left.right;
+      left.right = n;
+      currentRotationCount += 1;
+      snapshot('Rotate right', `Node ${key} bubbles above ${parentKey} because ${left.priority} > ${parentPriority}.`, {
+        path, focus: key, rotate: left.key, rotations: currentRotationCount
+      });
+      return left;
+    }
+  } else {
+    n.right = insertRec(n.right, key, priority, path, insertedRef);
+    if (n.right && n.right.priority > n.priority) {
+      const right = n.right;
+      const parentKey = n.key;
+      const parentPriority = n.priority;
+      n.right = right.left;
+      right.left = n;
+      currentRotationCount += 1;
+      snapshot('Rotate left', `Node ${key} bubbles above ${parentKey} because ${right.priority} > ${parentPriority}.`, {
+        path, focus: key, rotate: right.key, rotations: currentRotationCount
+      });
+      return right;
+    }
+  }
+  return n;
+}
+
+function findNode(n, key, path = []) {
+  let cur = n;
+  while (cur) {
+    path.push(cur.key);
+    if (key === cur.key) return { found: cur, path };
+    cur = key < cur.key ? cur.left : cur.right;
+  }
+  return { found: null, path };
+}
+
+function deleteValueRec(key) {
+  const path = [];
+  let target = null;
+  let cur = root;
+  while (cur) {
+    path.push(cur.key);
+    if (key === cur.key) {
+      target = cur;
+      break;
+    }
+    cur = key < cur.key ? cur.left : cur.right;
+  }
+  if (!target) {
+    snapshot('Delete miss', `Key ${key} is not present, so the tree does not change.`, { path, focus: path[path.length - 1] || null });
+    pushLog(`Delete ${key}: miss`);
+    finalizeFrames('Delete miss');
+    return;
+  }
+
+  snapshot('Delete target', `Found ${key}. Rotate it downward until it becomes a leaf, then remove it.`, {
+    path, focus: key, deleteTarget: key
+  });
+
+  while (true) {
+    const nodeInfo = findNode(root, key, []);
+    const n = nodeInfo.found;
+    if (!n) break;
+    if (!n.left && !n.right) break;
+    if (n.left && n.right) {
+      if (n.left.priority > n.right.priority) {
+        const promoteKey = n.left.key;
+        const promotePriority = n.left.priority;
+        rotateRightAt(key);
+        snapshot('Rotate right', `Promote child ${promoteKey} (higher priority ${promotePriority}) above ${key}.`, {
+          path: nodeInfo.path, focus: key, rotate: promoteKey, deleteTarget: key, rotations: currentRotationCount
+        });
+      } else {
+        const promoteKey = n.right.key;
+        const promotePriority = n.right.priority;
+        rotateLeftAt(key);
+        snapshot('Rotate left', `Promote child ${promoteKey} (higher priority ${promotePriority}) above ${key}.`, {
+          path: nodeInfo.path, focus: key, rotate: promoteKey, deleteTarget: key, rotations: currentRotationCount
+        });
+      }
+    } else if (n.left) {
+      const promoteKey = n.left.key;
+      rotateRightAt(key);
+      snapshot('Rotate right', `Only left child ${promoteKey} exists, so rotate right to move ${key} down.`, {
+        path: nodeInfo.path, focus: key, rotate: promoteKey, deleteTarget: key, rotations: currentRotationCount
+      });
+    } else {
+      const promoteKey = n.right.key;
+      rotateLeftAt(key);
+      snapshot('Rotate left', `Only right child ${promoteKey} exists, so rotate left to move ${key} down.`, {
+        path: nodeInfo.path, focus: key, rotate: promoteKey, deleteTarget: key, rotations: currentRotationCount
+      });
+    }
+  }
+
+  function removeLeaf(n) {
+    if (!n) return null;
+    if (key < n.key) n.left = removeLeaf(n.left);
+    else if (key > n.key) n.right = removeLeaf(n.right);
+    else return null;
+    return n;
+  }
+  root = removeLeaf(root);
+  snapshot('Removed leaf', `Key ${key} has reached a leaf position and is removed.`, { focus: null, success: null });
+  pushLog(`Delete ${key}: removed after ${currentRotationCount} rotation(s)`);
+  finalizeFrames(`Delete ${key}`);
+}
+
+function assignLayout(n, depth = 0, minX = 70, maxX = viewportWidth - 70) {
+  if (!n) return;
+  const x = (minX + maxX) / 2;
+  const y = 86 + depth * 88;
+  n.x = x;
+  n.y = y;
+  assignLayout(n.left, depth + 1, minX, x - 32);
+  assignLayout(n.right, depth + 1, x + 32, maxX);
+}
+
+function drawTree(frame) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  assignLayout(frame.tree);
+
+  function drawEdges(n) {
+    if (!n) return;
+    ctx.strokeStyle = 'rgba(141,165,190,.35)';
+    ctx.lineWidth = 2;
+    if (n.left) {
+      ctx.beginPath();
+      ctx.moveTo(n.x, n.y);
+      ctx.lineTo(n.left.x, n.left.y);
+      ctx.stroke();
+    }
+    if (n.right) {
+      ctx.beginPath();
+      ctx.moveTo(n.x, n.y);
+      ctx.lineTo(n.right.x, n.right.y);
+      ctx.stroke();
+    }
+    drawEdges(n.left);
+    drawEdges(n.right);
+  }
+
+  function colorFor(key) {
+    if (frame.deleteTarget === key) return '#fb7185';
+    if (frame.rotate === key) return '#f472b6';
+    if (frame.success === key) return '#4ade80';
+    if (frame.focus === key) return '#67e8f9';
+    if (frame.path.includes(key)) return '#fbbf24';
+    return '#60a5fa';
+  }
+
+  function drawNodes(n) {
+    if (!n) return;
+    drawNodes(n.left);
+    drawNodes(n.right);
+    const color = colorFor(n.key);
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18;
+    ctx.arc(n.x, n.y, 24, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(6,17,26,.9)';
+    ctx.stroke();
+
+    ctx.fillStyle = '#04111a';
+    ctx.font = '700 13px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(n.key), n.x, n.y + 4);
+
+    ctx.fillStyle = '#edf5ff';
+    ctx.font = '600 11px Inter, sans-serif';
+    ctx.fillText(`p${n.priority}`, n.x, n.y - 34);
+  }
+
+  drawEdges(frame.tree);
+  drawNodes(frame.tree);
+}
+
+function renderFrame() {
+  const frame = frames[frameIndex] || {
+    label: 'Ready',
+    detail: 'Build a treap or load a preset sequence.',
+    tree: cloneTree(root),
+    path: [],
+    focus: null,
+    success: null,
+    rotate: null,
+    deleteTarget: null,
+    rotations: currentRotationCount
+  };
+  drawTree(frame);
+  document.getElementById('op-label').textContent = frame.label + '.';
+  document.getElementById('op-detail').textContent = frame.detail;
+  document.getElementById('m-root').textContent = getRootLabel(frame.tree);
+  document.getElementById('m-count').textContent = treeCount(frame.tree);
+  document.getElementById('m-height').textContent = treeHeight(frame.tree);
+  document.getElementById('m-rot').textContent = frame.rotations || 0;
+  document.getElementById('s-bst').textContent = verifyBST(frame.tree) ? 'OK' : 'FAIL';
+  document.getElementById('s-heap').textContent = verifyHeap(frame.tree) ? 'OK' : 'FAIL';
+  document.getElementById('s-last-depth').textContent = frame.path.length;
+  document.getElementById('s-seed').textContent = String(seed);
+  document.getElementById('side-note').textContent = frame.note || frame.detail;
+  renderPathChips(frame);
+  renderTimeline();
+}
+
+function renderPathChips(frame) {
+  const chips = [];
+  if (frame.path.length) {
+    chips.push(`<span class="chip path">Path: ${frame.path.join(' → ')}</span>`);
+  }
+  if (frame.focus !== null) chips.push(`<span class="chip focus">Focus ${frame.focus}</span>`);
+  if (frame.rotate !== null) chips.push(`<span class="chip rotate">Rotate at ${frame.rotate}</span>`);
+  pathChips.innerHTML = chips.join('');
+}
+
+function renderTimeline() {
+  timelineEl.innerHTML = frames.map((frame, idx) => `
+    <div class="step ${idx === frameIndex ? 'active' : ''}">
+      <strong>${idx + 1}. ${frame.label}</strong><br>${frame.detail}
+    </div>
+  `).join('');
+}
+
+function pushLog(text) {
+  recentLogs.unshift(text);
+  recentLogs = recentLogs.slice(0, 10);
+  logbox.innerHTML = recentLogs.map(entry => `<div class="log-entry"><strong>${entry.split(':')[0]}</strong>${entry.includes(':') ? ':' + entry.split(':').slice(1).join(':') : ''}</div>`).join('');
+}
+
+function startFrames() {
+  frameIndex = 0;
+  renderFrame();
+}
+
+function finalizeFrames(logTitle) {
+  if (!frames.length) snapshot('No change', 'The requested operation produced no state change.');
+  startFrames();
+}
+
+function insertValue(customKey) {
+  const raw = customKey ?? keyInput.value;
+  const key = Number(raw);
+  if (!Number.isInteger(key)) return;
+  clearTimer();
+  frames = [];
+  currentRotationCount = 0;
+  const priority = nextPriority();
+  const insertedRef = { node: null, duplicate: false };
+  snapshot('Start insert', `Insert key ${key} with random priority ${priority}.`, { focus: key, success: key });
+  const path = [];
+  root = insertRec(root, key, priority, path, insertedRef);
+  if (insertedRef.duplicate) {
+    snapshot('Duplicate key', `Key ${key} already exists, so the treap is unchanged.`, { path, focus: key });
+    pushLog(`Insert ${key}: duplicate`);
+  } else {
+    snapshot('Insert complete', `Key ${key} is placed while preserving both treap invariants.`, { path, focus: key, success: key });
+    pushLog(`Insert ${key}: priority ${priority}, ${currentRotationCount} rotation(s)`);
+  }
+  finalizeFrames(`Insert ${key}`);
+  keyInput.value = '';
+}
+
+function searchValue(customKey) {
+  const raw = customKey ?? keyInput.value;
+  const key = Number(raw);
+  if (!Number.isInteger(key)) return;
+  clearTimer();
+  frames = [];
+  currentRotationCount = 0;
+  const result = findNode(root, key, []);
+  snapshot('Search path', result.found
+    ? `Key ${key} found after following the BST search path.`
+    : `Search for ${key} stops at a null child; the key is absent.`,
+    { path: result.path, focus: result.found ? key : (result.path[result.path.length - 1] ?? null), success: result.found ? key : null });
+  pushLog(`Search ${key}: ${result.found ? 'found' : 'miss'}`);
+  finalizeFrames(`Search ${key}`);
+  keyInput.value = '';
+}
+
+function deleteValue(customKey) {
+  const raw = customKey ?? keyInput.value;
+  const key = Number(raw);
+  if (!Number.isInteger(key)) return;
+  clearTimer();
+  frames = [];
+  currentRotationCount = 0;
+  deleteValueRec(key);
+  keyInput.value = '';
+}
+
+function clearTree() {
+  clearTimer();
+  root = null;
+  frames = [{
+    label: 'Cleared',
+    detail: 'The treap is now empty.',
+    tree: null,
+    path: [],
+    focus: null,
+    success: null,
+    rotate: null,
+    deleteTarget: null,
+    rotations: 0
+  }];
+  currentRotationCount = 0;
+  pushLog('Clear: removed all nodes');
+  startFrames();
+}
+
+function randomInsert() {
+  insertValue(Math.floor(rng() * 90) + 10);
+}
+
+function loadPreset(name) {
+  clearTree();
+  const actions = {
+    bubble: [
+      ['insert', 40], ['insert', 18], ['insert', 65], ['insert', 9], ['insert', 27], ['insert', 54], ['insert', 72]
+    ],
+    delete: [
+      ['insert', 50], ['insert', 25], ['insert', 75], ['insert', 10], ['insert', 38], ['insert', 62], ['insert', 84], ['delete', 50]
+    ],
+    mixed: [
+      ['insert', 30], ['insert', 12], ['insert', 48], ['insert', 7], ['insert', 20], ['search', 20], ['insert', 35], ['delete', 12], ['search', 99]
+    ],
+    random: Array.from({ length: 8 }, () => ['insert', Math.floor(rng() * 90) + 10])
+  }[name] || [];
+
+  for (const [type, value] of actions) {
+    if (type === 'insert') insertValue(value);
+    else if (type === 'search') searchValue(value);
+    else if (type === 'delete') deleteValue(value);
+  }
+}
+
+function clearTimer() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+  document.getElementById('play-btn').disabled = false;
+  document.getElementById('pause-btn').disabled = true;
+}
+
+function playFrames() {
+  if (!frames.length) return;
+  clearTimer();
+  document.getElementById('play-btn').disabled = true;
+  document.getElementById('pause-btn').disabled = false;
+  timer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) {
+      clearTimer();
+      return;
+    }
+    frameIndex += 1;
+    renderFrame();
+  }, Number(speedInput.value));
+}
+
+function pauseFrames() {
+  clearTimer();
+}
+
+function stepFrame() {
+  clearTimer();
+  if (!frames.length) return;
+  frameIndex = Math.min(frameIndex + 1, frames.length - 1);
+  renderFrame();
+}
+
+function resetPlayback() {
+  clearTimer();
+  frameIndex = 0;
+  renderFrame();
+}
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  viewportWidth = rect.width;
+  viewportHeight = rect.height;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  renderFrame();
+}
+
+speedInput.addEventListener('input', () => {
+  speedLabel.textContent = `${speedInput.value}ms`;
+  if (timer) {
+    playFrames();
+  }
+});
+
+window.addEventListener('resize', resizeCanvas);
+
+frames = [{
+  label: 'Ready',
+  detail: 'Build a treap or load a preset sequence.',
+  tree: null,
+  path: [],
+  focus: null,
+  success: null,
+  rotate: null,
+  deleteTarget: null,
+  rotations: 0
+}];
+renderFrame();
+setTimeout(resizeCanvas, 0);
+</script>
+</body>
+</html>

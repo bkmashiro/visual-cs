@@ -45,6 +45,7 @@
 | [凸包算法](./visualizations/convex-hull/) | 几何 | Graham 扫描 + Jarvis 步进，双算法并排动画对比 |
 | [哈希表](./visualizations/hash-table/) | 数据结构 | 拉链法 vs 开放寻址（线性探测），碰撞过程可视化 |
 | [伸展树](./visualizations/splay-tree/) | 数据结构 | 自调整 BST，逐步回放 zig / zig-zig / zig-zag 访问旋转 |
+| [Treap](./visualizations/treap/) | 数据结构 | 随机化 BST + 堆优先级，通过插入上浮与删除下沉旋转维持平衡 |
 
 ---
 

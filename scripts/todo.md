@@ -1,11 +1,11 @@
 # Visual-CS Todo Queue
 
 ## Upcoming
-- treap — Treap (randomized BST)
 - quadtree — Quadtree (2D spatial partitioning)
 - huffman-coding — Huffman Coding (optimal prefix-free compression)
 
 ## Done
+- treap — Treap (randomized BST) ✅ 2026-03-29
 - splay-tree — Splay Tree (self-adjusting BST) ✅ 2026-03-29
 - hash-table — Hash Table (collision handling visualization) ✅ 2026-03-29
 - suffix-array — Suffix Array (efficient string indexing) ✅ 2026-03-29
