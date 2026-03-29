@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hash Table — visual-cs</title>
+<style>
+:root{
+  --bg:#07111f;--surface:#0d1728;--surface-2:#13213a;
+  --border:#284166;--text:#e6eefc;--muted:#90a5c7;
+  --cyan:#67e8f9;--blue:#60a5fa;--violet:#a78bfa;
+  --amber:#fbbf24;--green:#4ade80;--red:#fb7185;--orange:#fb923c;
+  --shadow:0 24px 80px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;
+  background:
+    radial-gradient(circle at top left,rgba(96,165,250,.12),transparent 26%),
+    radial-gradient(circle at top right,rgba(167,139,250,.12),transparent 24%),
+    linear-gradient(180deg,#08101d,#050b14 60%);
+}
+a{color:inherit}
+header{position:sticky;top:0;z-index:30;backdrop-filter:blur(18px);
+  background:rgba(5,11,20,.72);border-bottom:1px solid rgba(40,65,102,.7);}
+.hdr{max-width:1380px;margin:0 auto;padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;}
+.brand h1{font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase}
+.brand h1 span{color:var(--cyan)}
+.brand p{font-size:.82rem;color:var(--muted);margin-top:4px}
+.back{text-decoration:none;border:1px solid var(--border);border-radius:999px;
+  padding:10px 16px;font-size:.8rem;color:var(--muted);transition:.18s;}
+.back:hover{color:var(--text);border-color:var(--cyan);transform:translateY(-1px)}
+.shell{max-width:1380px;margin:0 auto;padding:28px 24px 40px;
+  display:grid;grid-template-columns:minmax(0,1.4fr) 360px;gap:22px;}
+.panel{background:linear-gradient(180deg,rgba(13,23,40,.95),rgba(8,14,25,.95));
+  border:1px solid rgba(40,65,102,.85);border-radius:24px;box-shadow:var(--shadow);}
+.main{padding:24px;display:flex;flex-direction:column;gap:18px}
+.hero{padding:22px;border-radius:22px;
+  background:linear-gradient(135deg,rgba(96,165,250,.14),rgba(103,232,249,.08) 40%,rgba(167,139,250,.14));
+  border:1px solid rgba(103,232,249,.16);
+  display:grid;grid-template-columns:1.2fr .9fr;gap:18px;}
+.hero h2{font-size:2rem;line-height:1.05;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.6;font-size:.93rem;max-width:58ch}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.metric{background:rgba(9,18,33,.74);border:1px solid rgba(103,232,249,.12);
+  border-radius:18px;padding:14px;}
+.metric .mlabel{font-size:.7rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:8px}
+.metric .mval{font-size:1.35rem;font-weight:800}
+.metric .mhint{font-size:.78rem;color:var(--muted);margin-top:6px;line-height:1.45}
+.toolbar,.logbox,.infobox{padding:18px;border-radius:20px;
+  background:rgba(10,18,31,.9);border:1px solid rgba(40,65,102,.72);}
+.toolbar{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:120px}
+.field label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+input[type=text],select{
+  background:var(--surface-2);color:var(--text);
+  border:1px solid var(--border);border-radius:12px;
+  padding:10px 14px;font-size:.92rem;font-family:inherit;
+  outline:none;transition:.18s;width:100%;}
+input[type=text]:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(103,232,249,.12)}
+.btn{padding:10px 18px;border-radius:12px;font-size:.87rem;font-weight:700;
+  cursor:pointer;border:none;transition:.18s;white-space:nowrap;}
+.btn-primary{background:var(--cyan);color:#07111f}
+.btn-primary:hover{opacity:.85;transform:translateY(-1px)}
+.btn-danger{background:rgba(251,113,133,.18);color:var(--red);border:1px solid rgba(251,113,133,.3)}
+.btn-danger:hover{background:rgba(251,113,133,.28);transform:translateY(-1px)}
+.btn-ghost{background:rgba(40,65,102,.5);color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--blue);transform:translateY(-1px)}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.preset-btn{padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:700;
+  cursor:pointer;border:1px solid var(--border);background:rgba(40,65,102,.3);color:var(--muted);transition:.15s;}
+.preset-btn:hover{background:rgba(40,65,102,.6);color:var(--text);border-color:var(--blue)}
+.sec-title{font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:10px;}
+.vizarea{padding:18px;border-radius:20px;
+  background:rgba(10,18,31,.9);border:1px solid rgba(40,65,102,.72);overflow:hidden;}
+.tab-row{display:flex;gap:6px;margin-bottom:16px}
+.tab{padding:7px 16px;border-radius:10px;font-size:.8rem;font-weight:700;
+  cursor:pointer;border:1px solid transparent;background:rgba(40,65,102,.3);color:var(--muted);transition:.15s;}
+.tab.active{background:rgba(103,232,249,.15);color:var(--cyan);border-color:rgba(103,232,249,.3)}
+.tab:hover:not(.active){background:rgba(40,65,102,.5);color:var(--text)}
+.ht-wrap{overflow-x:auto;padding-bottom:4px}
+.ht-grid{display:flex;flex-direction:column;gap:5px;min-width:480px}
+.bucket-row{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center;min-height:42px}
+.bucket-idx{font-size:.75rem;font-weight:800;color:var(--muted);text-align:right;font-family:monospace;}
+.bucket-cells{display:flex;gap:6px;flex-wrap:nowrap;align-items:center;min-height:38px}
+.cell{display:flex;align-items:center;justify-content:center;flex-direction:column;
+  border-radius:10px;padding:6px 10px;font-size:.78rem;font-weight:700;
+  border:1px solid var(--border);background:var(--surface-2);color:var(--muted);
+  min-width:56px;min-height:36px;max-width:110px;
+  transition:all .35s cubic-bezier(.22,1,.36,1);font-family:monospace;
+  cursor:default;user-select:none;overflow:hidden;}
+.cell .ck{font-size:.78rem;font-weight:800;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:90px}
+.cell .cv{font-size:.68rem;opacity:.7;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:90px}
+.cell.empty{color:rgba(144,165,199,.25);font-style:italic;font-size:.7rem;min-width:44px;max-width:44px}
+.cell.occupied{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.35);color:var(--blue)}
+.cell.hl-insert{background:rgba(103,232,249,.2);border-color:var(--cyan);color:var(--cyan);
+  box-shadow:0 0 18px rgba(103,232,249,.3);transform:scale(1.1);z-index:2;}
+.cell.hl-collision{background:rgba(251,146,60,.2);border-color:var(--orange);color:var(--orange);
+  box-shadow:0 0 14px rgba(251,146,60,.25);}
+.cell.hl-probe{background:rgba(167,139,250,.2);border-color:var(--violet);color:var(--violet);
+  box-shadow:0 0 12px rgba(167,139,250,.2);}
+.cell.hl-found{background:rgba(74,222,128,.2);border-color:var(--green);color:var(--green);
+  box-shadow:0 0 20px rgba(74,222,128,.35);transform:scale(1.12);z-index:2;}
+.cell.hl-deleted{background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.25);color:rgba(251,113,133,.45);}
+.cell.hl-miss{background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.3);color:var(--red);}
+.cell.null-oa{background:rgba(40,65,102,.12);border:1px dashed rgba(40,65,102,.45);
+  color:rgba(144,165,199,.18);font-size:.7rem;min-width:44px;max-width:44px}
+.chain-arrow{color:rgba(144,165,199,.4);font-size:.85rem;flex-shrink:0}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted)}
+.legend-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+.fnbox{font-family:monospace;font-size:.84rem;line-height:1.85;color:var(--muted);padding:4px 0}
+.fnbox .fstep{padding:7px 12px;margin:3px 0;border-radius:8px;background:rgba(13,23,40,.8);border:1px solid rgba(40,65,102,.5)}
+.fnbox .hl{color:var(--cyan);font-weight:800}
+.fnbox .hl2{color:var(--violet);font-weight:800}
+.fnbox .hl3{color:var(--amber);font-weight:800}
+.fnbox .comment{color:rgba(144,165,199,.4);font-style:italic}
+.side{padding:20px;display:flex;flex-direction:column;gap:16px}
+.logbox{max-height:210px;overflow-y:auto;padding:12px 14px}
+.log-entry{font-size:.79rem;padding:7px 0;border-bottom:1px solid rgba(40,65,102,.35);
+  line-height:1.5;font-family:monospace;color:var(--muted);}
+.log-entry:last-child{border-bottom:none}
+.log-entry .op{font-weight:800;margin-right:5px}
+.log-entry.ins .op{color:var(--cyan)}
+.log-entry.sch .op{color:var(--green)}
+.log-entry.del .op{color:var(--red)}
+.infobox{font-size:.85rem;color:var(--muted);line-height:1.65}
+.infobox strong{color:var(--text)}
+.infobox code{background:var(--surface-2);border:1px solid var(--border);
+  border-radius:6px;padding:2px 7px;font-size:.8rem;color:var(--violet);}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-box{background:rgba(9,18,33,.7);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+.stat-box .sv{font-size:1.3rem;font-weight:800;color:var(--cyan)}
+.stat-box .sl{font-size:.7rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.1em}
+.probe-path{display:flex;flex-wrap:wrap;gap:5px}
+.probe-step{padding:4px 9px;border-radius:7px;font-size:.73rem;font-weight:700;
+  font-family:monospace;border:1px solid var(--border);color:var(--muted);}
+.probe-step.ps-probe{background:rgba(167,139,250,.15);color:var(--violet);border-color:var(--violet)}
+.probe-step.ps-placed{background:rgba(103,232,249,.15);color:var(--cyan);border-color:var(--cyan)}
+.probe-step.ps-coll{background:rgba(251,146,60,.15);color:var(--orange);border-color:var(--orange)}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.hero{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div class="brand">
+      <h1>visual<span>-cs</span></h1>
+      <p>Hash Table — collision handling visualization</p>
+    </div>
+    <a class="back" href="../../index.html">&#8592; All visualizations</a>
+  </div>
+</header>
+
+<div class="shell">
+  <div class="panel main">
+    <div class="hero">
+      <div>
+        <h2>Hash Table<br>Collision Explorer</h2>
+        <p>Insert, search, and delete keys. Watch the hash function map them to buckets and see how <strong>Separate Chaining</strong> vs <strong>Open Addressing</strong> (linear probe) resolve collisions differently.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="mlabel">Load Factor</div>
+          <div class="mval" id="m-load">0.00</div>
+          <div class="mhint">n/m &mdash; rehash threshold 0.75</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Collisions</div>
+          <div class="mval" id="m-coll" style="color:var(--orange)">0</div>
+          <div class="mhint">total collisions encountered</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Capacity</div>
+          <div class="mval" id="m-cap">11</div>
+          <div class="mhint">prime table size m</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Keys</div>
+          <div class="mval" id="m-keys" style="color:var(--green)">0</div>
+          <div class="mhint">currently stored</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="row">
+        <div class="field">
+          <label>Key</label>
+          <input type="text" id="inp-key" placeholder="apple, 42, hello..." maxlength="20"
+            onkeydown="if(event.key==='Enter')doInsert()"/>
+        </div>
+        <div class="field" style="flex:.5;min-width:80px">
+          <label>Value</label>
+          <input type="text" id="inp-val" placeholder="any" maxlength="20"
+            onkeydown="if(event.key==='Enter')doInsert()"/>
+        </div>
+        <button class="btn btn-primary" onclick="doInsert()">Insert</button>
+        <button class="btn btn-ghost" onclick="doSearch()">Search</button>
+        <button class="btn btn-danger" onclick="doDelete()">Delete</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Collision Strategy</label>
+          <select id="sel-mode" onchange="changeMode()">
+            <option value="chain">Separate Chaining</option>
+            <option value="oa">Open Addressing (Linear Probe)</option>
+          </select>
+        </div>
+        <div class="field" style="flex:.4;min-width:80px">
+          <label>Table Size m</label>
+          <select id="sel-size" onchange="changeSize()">
+            <option value="7">7</option>
+            <option value="11" selected>11</option>
+            <option value="13">13</option>
+            <option value="17">17</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost" onclick="clearTable()">Clear</button>
+      </div>
+      <div>
+        <div class="sec-title" style="margin-bottom:8px">Quick Presets</div>
+        <div class="presets">
+          <button class="preset-btn" onclick="loadPreset('fruits')">&#127822; Fruits</button>
+          <button class="preset-btn" onclick="loadPreset('ints')">&#128290; Integers</button>
+          <button class="preset-btn" onclick="loadPreset('collision')">&#128165; Collisions</button>
+          <button class="preset-btn" onclick="loadPreset('heavy')">&#128230; Heavy load</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="vizarea">
+      <div class="tab-row">
+        <div class="tab active" id="tab-table" onclick="switchTab('table')">Hash Table</div>
+        <div class="tab" id="tab-fn" onclick="switchTab('fn')">Hash Function</div>
+      </div>
+      <div id="view-table">
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(96,165,250,.4);border:1px solid var(--blue)"></div>Occupied</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(103,232,249,.3);border:1px solid var(--cyan)"></div>Inserted/active</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(251,146,60,.3);border:1px solid var(--orange)"></div>Collision</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.3);border:1px solid var(--violet)"></div>Probing</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(74,222,128,.3);border:1px solid var(--green)"></div>Found</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(251,113,133,.15);border:1px solid var(--red)"></div>Deleted</div>
+        </div>
+        <div class="ht-wrap"><div class="ht-grid" id="ht-grid"></div></div>
+      </div>
+      <div id="view-fn" style="display:none">
+        <div class="fnbox" id="fn-demo">
+          <div class="fstep"><span class="comment">// Type a key above and press Insert to trace the hash computation</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel side">
+    <div>
+      <div class="sec-title">Operation Log</div>
+      <div class="logbox" id="log-panel">
+        <div class="log-entry" style="color:rgba(144,165,199,.4);font-size:.77rem">No operations yet.</div>
+      </div>
+    </div>
+    <div class="infobox" id="mode-info">
+      <div class="sec-title">How it Works</div>
+      <p id="mode-desc"><strong>Separate Chaining</strong> &mdash; each bucket holds a linked list. Colliding keys chain together; lookup traverses the chain.</p>
+      <p style="margin-top:8px;font-size:.8rem">Hash fn: <code>djb2(k) % m</code><br>Average: <code>O(1+&#945;)</code><br>Worst: <code>O(n)</code> all in one bucket</p>
+    </div>
+    <div>
+      <div class="sec-title">Stats</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="sv" id="s-inserts">0</div><div class="sl">Inserts</div></div>
+        <div class="stat-box"><div class="sv" id="s-searches">0</div><div class="sl">Searches</div></div>
+        <div class="stat-box"><div class="sv" id="s-deletes">0</div><div class="sl">Deletes</div></div>
+        <div class="stat-box"><div class="sv" id="s-probes">0</div><div class="sl">Probes</div></div>
+      </div>
+    </div>
+    <div class="infobox">
+      <div class="sec-title">Probe Trace</div>
+      <div id="probe-trace" style="color:rgba(144,165,199,.45);font-size:.8rem">Last operation probe sequence.</div>
+    </div>
+    <div class="infobox">
+      <div class="sec-title">Complexity</div>
+      <p style="font-size:.82rem;line-height:1.7">
+        <strong>Average:</strong> <code>O(1)</code> insert / search / delete<br>
+        <strong>Chaining worst:</strong> <code>O(n)</code> all in one bucket<br>
+        <strong>OA worst:</strong> <code>O(n)</code> full-table probe<br>
+        <strong>Space:</strong> <code>O(n+m)</code>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── djb2 hash ────────────────────────────────────────────
+function djb2(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) {
+    h = (Math.imul(h, 33) + str.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+function hashKey(key, m) { return djb2(String(key)) % m; }
+
+// ── State ─────────────────────────────────────────────────
+let mode = 'chain', m = 11;
+let table = [];
+let stats = { inserts:0, searches:0, deletes:0, probes:0, collisions:0 };
+let logEntries = [];
+let hlState = {};   // idx -> css class string (or map of finalIdx->class for OA)
+let hlTimer = null;
+
+function initTable() {
+  if (mode === 'chain') {
+    table = Array.from({length:m}, () => []);
+  } else {
+    table = new Array(m).fill(null);
+  }
+}
+
+function countKeys() {
+  if (mode === 'chain') return table.reduce((s,b) => s + b.length, 0);
+  return table.filter(c => c !== null && !c.deleted).length;
+}
+
+// ── Chaining ops ──────────────────────────────────────────
+function insertChain(key, val) {
+  const idx = hashKey(key, m);
+  const bucket = table[idx];
+  for (const e of bucket) {
+    if (e.key === key) { e.val = val; return {idx, collision:false, updated:true, probes:1}; }
+  }
+  const collision = bucket.length > 0;
+  if (collision) stats.collisions++;
+  bucket.push({key, val});
+  stats.probes++;
+  return {idx, collision, updated:false, probes:1};
+}
+
+function searchChain(key) {
+  const idx = hashKey(key, m);
+  const bucket = table[idx];
+  let probes = 0;
+  for (const e of bucket) {
+    probes++;
+    stats.probes++;
+    if (e.key === key) return {idx, found:true, val:e.val, probes};
+  }
+  return {idx, found:false, probes};
+}
+
+function deleteChain(key) {
+  const idx = hashKey(key, m);
+  const bucket = table[idx];
+  const i = bucket.findIndex(e => e.key === key);
+  if (i >= 0) { bucket.splice(i,1); return {idx, found:true}; }
+  return {idx, found:false};
+}
+
+// ── Open addressing (linear probe) ops ───────────────────
+function insertOA(key, val) {
+  let idx = hashKey(key, m);
+  const start = idx;
+  let probes = 0;
+  const seq = [];
+  while (probes < m) {
+    probes++;
+    const cell = table[idx];
+    if (cell === null || cell.deleted) {
+      seq.push({idx, type:'placed'});
+      table[idx] = {key, val, deleted:false};
+      stats.probes += probes;
+      if (probes > 1) stats.collisions++;
+      return {idx:start, finalIdx:idx, collision:probes>1, seq, updated:false};
+    }
+    if (cell.key === key && !cell.deleted) {
+      cell.val = val;
+      seq.push({idx, type:'placed'});
+      stats.probes += probes;
+      return {idx:start, finalIdx:idx, collision:false, seq, updated:true};
+    }
+    seq.push({idx, type: probes===1 ? 'coll' : 'probe'});
+    idx = (idx + 1) % m;
+  }
+  return null; // full table
+}
+
+function searchOA(key) {
+  let idx = hashKey(key, m);
+  const start = idx;
+  let probes = 0;
+  const seq = [];
+  while (probes < m) {
+    probes++;
+    const cell = table[idx];
+    if (cell === null) {
+      seq.push({idx, type:'probe'});
+      stats.probes += probes;
+      return {idx:start, found:false, probes, seq};
+    }
+    if (cell.key === key && !cell.deleted) {
+      seq.push({idx, type:'placed'});
+      stats.probes += probes;
+      return {idx:start, finalIdx:idx, found:true, val:cell.val, probes, seq};
+    }
+    seq.push({idx, type: cell.deleted ? 'probe' : 'coll'});
+    idx = (idx + 1) % m;
+    if (idx === start) break;
+  }
+  stats.probes += probes;
+  return {idx:start, found:false, probes, seq};
+}
+
+function deleteOA(key) {
+  const res = searchOA(key);
+  if (!res.found) return {idx:res.idx, found:false, seq: res.seq||[]};
+  table[res.finalIdx].deleted = true;
+  return {idx:res.idx, finalIdx:res.finalIdx, found:true, seq:res.seq};
+}
+
+// ── Highlight helpers ─────────────────────────────────────
+function applyHL(newHL, ms) {
+  if (hlTimer) clearTimeout(hlTimer);
+  hlState = newHL;
+  renderTable();
+  hlTimer = setTimeout(() => { hlState = {}; renderTable(); }, ms);
+}
+
+// ── Main operations ───────────────────────────────────────
+function doInsert() {
+  const key = document.getElementById('inp-key').value.trim();
+  const val = document.getElementById('inp-val').value.trim() || '–';
+  if (!key) { shake('inp-key'); return; }
+  stats.inserts++;
+  let newHL = {};
+  let logClass = 'ins';
+  let logText = '';
+  if (mode === 'chain') {
+    const res = insertChain(key, val);
+    if (res.collision) {
+      newHL[res.idx] = 'hl-collision';
+      logText = `INSERT "${key}" → bucket[${res.idx}] (collision, chain len=${table[res.idx].length})`;
+    } else {
+      newHL[res.idx] = 'hl-insert';
+      logText = `INSERT "${key}" → bucket[${res.idx}]${res.updated?' (updated)':''}`;
+    }
+  } else {
+    const res = insertOA(key, val);
+    if (!res) { addLog('ins', `INSERT "${key}" — table full!`); updateFnDemo(key); return; }
+    if (res.seq) {
+      const oaHL = {};
+      res.seq.forEach(s => {
+        if (s.type === 'placed') oaHL[s.idx] = 'hl-insert';
+        else if (s.type === 'coll') oaHL[s.idx] = 'hl-collision';
+        else oaHL[s.idx] = 'hl-probe';
+      });
+      newHL = oaHL;
+    }
+    logText = `INSERT "${key}" → slot[${res.finalIdx}]${res.collision?' ('+res.seq.length+' probes)':''}${res.updated?' (updated)':''}`;
+    updateProbeTrace(res.seq);
+  }
+  addLog(logClass, logText);
+  applyHL(newHL, 1800);
+  updateFnDemo(key);
+  updateCounters();
+}
+
+function doSearch() {
+  const key = document.getElementById('inp-key').value.trim();
+  if (!key) { shake('inp-key'); return; }
+  stats.searches++;
+  let newHL = {};
+  let logClass = 'sch';
+  let logText = '';
+  if (mode === 'chain') {
+    const res = searchChain(key);
+    if (res.found) {
+      newHL[res.idx] = 'hl-found';
+      logText = `SEARCH "${key}" → found in bucket[${res.idx}], val="${res.val}", probes=${res.probes}`;
+    } else {
+      newHL[res.idx] = 'hl-miss';
+      logText = `SEARCH "${key}" → not found in bucket[${res.idx}]`;
+    }
+  } else {
+    const res = searchOA(key);
+    if (res.seq) {
+      const oaHL = {};
+      res.seq.forEach(s => {
+        if (s.type === 'placed') oaHL[s.idx] = 'hl-found';
+        else if (s.type === 'coll') oaHL[s.idx] = 'hl-collision';
+        else oaHL[s.idx] = 'hl-probe';
+      });
+      newHL = oaHL;
+      updateProbeTrace(res.seq);
+    }
+    logText = res.found
+      ? `SEARCH "${key}" → found at slot[${res.finalIdx}], probes=${res.probes}`
+      : `SEARCH "${key}" → not found, probes=${res.probes}`;
+  }
+  addLog(logClass, logText);
+  applyHL(newHL, 2000);
+  updateFnDemo(key);
+  updateCounters();
+}
+
+function doDelete() {
+  const key = document.getElementById('inp-key').value.trim();
+  if (!key) { shake('inp-key'); return; }
+  stats.deletes++;
+  let newHL = {};
+  let logText = '';
+  if (mode === 'chain') {
+    const res = deleteChain(key);
+    newHL[res.idx] = res.found ? 'hl-deleted' : 'hl-miss';
+    logText = res.found
+      ? `DELETE "${key}" → removed from bucket[${res.idx}]`
+      : `DELETE "${key}" → not found in bucket[${res.idx}]`;
+  } else {
+    const res = deleteOA(key);
+    if (res.seq) {
+      const oaHL = {};
+      res.seq.forEach(s => {
+        if (s.type === 'placed') oaHL[s.idx] = 'hl-deleted';
+        else if (s.type === 'coll') oaHL[s.idx] = 'hl-collision';
+        else oaHL[s.idx] = 'hl-probe';
+      });
+      newHL = oaHL;
+      updateProbeTrace(res.seq);
+    }
+    logText = res.found
+      ? `DELETE "${key}" → tombstone at slot[${res.finalIdx}]`
+      : `DELETE "${key}" → not found`;
+  }
+  addLog('del', logText);
+  applyHL(newHL, 1800);
+  updateFnDemo(key);
+  updateCounters();
+}
+
+// ── Render ────────────────────────────────────────────────
+function renderTable() {
+  const grid = document.getElementById('ht-grid');
+  let html = '';
+  for (let i = 0; i < m; i++) {
+    const hl = hlState[i] || '';
+    html += `<div class="bucket-row">`;
+    html += `<div class="bucket-idx">[${i}]</div>`;
+    html += `<div class="bucket-cells">`;
+    if (mode === 'chain') {
+      const bucket = table[i];
+      if (bucket.length === 0) {
+        html += `<div class="cell empty">∅</div>`;
+      } else {
+        bucket.forEach((e, bi) => {
+          const cls = hl ? hl : 'occupied';
+          html += (bi > 0 ? '<span class="chain-arrow">→</span>' : '');
+          html += `<div class="cell ${cls}">
+            <div class="ck">${esc(e.key)}</div>
+            <div class="cv">${esc(e.val)}</div>
+          </div>`;
+        });
+      }
+    } else {
+      const cell = table[i];
+      let cls, keyTxt, valTxt;
+      if (cell === null) {
+        cls = (hl === 'hl-probe' ? 'hl-probe' : 'null-oa');
+        html += `<div class="cell ${cls}">null</div>`;
+      } else if (cell.deleted) {
+        cls = hl || 'hl-deleted';
+        html += `<div class="cell ${cls}"><div class="ck">DEL</div></div>`;
+      } else {
+        cls = hl || 'occupied';
+        html += `<div class="cell ${cls}">
+          <div class="ck">${esc(cell.key)}</div>
+          <div class="cv">${esc(cell.val)}</div>
+        </div>`;
+      }
+    }
+    html += `</div></div>`;
+  }
+  grid.innerHTML = html;
+}
+
+// ── Hash function demo ────────────────────────────────────
+function updateFnDemo(key) {
+  if (document.getElementById('view-fn').style.display === 'none') return;
+  const k = String(key);
+  const hash = djb2(k);
+  const idx = hash % m;
+  let charHtml = '';
+  for (let i = 0; i < Math.min(k.length, 8); i++) {
+    const c = k.charCodeAt(i);
+    charHtml += `<div class="fstep">step ${i+1}: h = h*33 + '${esc(k[i])}' (${c}) = <span class="hl2">${
+      (function(){ let h=5381; for(let j=0;j<=i;j++) h=(Math.imul(h,33)+k.charCodeAt(j))>>>0; return h; })()
+    }</span></div>`;
+  }
+  if (k.length > 8) charHtml += `<div class="fstep"><span class="comment">... (${k.length-8} more chars)</span></div>`;
+  document.getElementById('fn-demo').innerHTML = `
+    <div class="fstep"><span class="comment">// djb2 hash of "${esc(k)}"</span></div>
+    <div class="fstep">initial: h = <span class="hl">5381</span></div>
+    ${charHtml}
+    <div class="fstep">final hash = <span class="hl">${hash}</span></div>
+    <div class="fstep">bucket index = ${hash} % ${m} = <span class="hl3">${idx}</span></div>
+  `;
+}
+
+// ── Probe trace sidebar ───────────────────────────────────
+function updateProbeTrace(seq) {
+  if (!seq || seq.length === 0) return;
+  const div = document.getElementById('probe-trace');
+  let html = '<div class="probe-path">';
+  seq.forEach(s => {
+    let cls = s.type === 'placed' ? 'ps-placed' : s.type === 'coll' ? 'ps-coll' : 'ps-probe';
+    html += `<span class="probe-step ${cls}">[${s.idx}]</span>`;
+  });
+  html += '</div>';
+  div.innerHTML = html;
+}
+
+// ── Log ───────────────────────────────────────────────────
+function addLog(cls, text) {
+  logEntries.unshift({cls, text});
+  if (logEntries.length > 30) logEntries.pop();
+  const panel = document.getElementById('log-panel');
+  panel.innerHTML = logEntries.map(e =>
+    `<div class="log-entry ${e.cls}"><span class="op">${e.cls==='ins'?'INS':e.cls==='sch'?'SCH':'DEL'}</span>${esc(e.text)}</div>`
+  ).join('');
+}
+
+// ── Counters ──────────────────────────────────────────────
+function updateCounters() {
+  const n = countKeys();
+  document.getElementById('m-load').textContent = (n/m).toFixed(2);
+  document.getElementById('m-coll').textContent = stats.collisions;
+  document.getElementById('m-cap').textContent = m;
+  document.getElementById('m-keys').textContent = n;
+  document.getElementById('s-inserts').textContent = stats.inserts;
+  document.getElementById('s-searches').textContent = stats.searches;
+  document.getElementById('s-deletes').textContent = stats.deletes;
+  document.getElementById('s-probes').textContent = stats.probes;
+}
+
+// ── Mode / size changes ───────────────────────────────────
+function changeMode() {
+  mode = document.getElementById('sel-mode').value;
+  clearTable();
+  const d = document.getElementById('mode-desc');
+  if (mode === 'chain') {
+    d.innerHTML = '<strong>Separate Chaining</strong> &mdash; each bucket holds a linked list. Colliding keys chain together; lookup traverses the chain.';
+  } else {
+    d.innerHTML = '<strong>Open Addressing</strong> &mdash; all entries live in the array itself. On collision, probe forward (index+1) % m until an empty or deleted slot is found.';
+  }
+}
+
+function changeSize() {
+  m = parseInt(document.getElementById('sel-size').value);
+  clearTable();
+}
+
+function clearTable() {
+  hlState = {};
+  if (hlTimer) clearTimeout(hlTimer);
+  hlTimer = null;
+  stats = {inserts:0, searches:0, deletes:0, probes:0, collisions:0};
+  logEntries = [];
+  initTable();
+  document.getElementById('log-panel').innerHTML =
+    '<div class="log-entry" style="color:rgba(144,165,199,.4);font-size:.77rem">Cleared.</div>';
+  document.getElementById('probe-trace').innerHTML =
+    '<span style="color:rgba(144,165,199,.45)">Last operation probe sequence.</span>';
+  renderTable();
+  updateCounters();
+}
+
+// ── Presets ───────────────────────────────────────────────
+const PRESETS = {
+  fruits: [['apple','red'],['banana','yellow'],['cherry','red'],['date','brown'],['elderberry','purple'],['fig','purple'],['grape','green']],
+  ints:   [['5','v5'],['12','v12'],['23','v23'],['7','v7'],['31','v31'],['42','v42'],['18','v18'],['3','v3']],
+  collision: [['aa','1'],['bb','2'],['cc','3'],['dd','4'],['ee','5'],['ff','6']],
+  heavy: [['alpha','1'],['beta','2'],['gamma','3'],['delta','4'],['epsilon','5'],['zeta','6'],['eta','7'],['theta','8'],['iota','9'],['kappa','10']]
+};
+
+async function loadPreset(name) {
+  clearTable();
+  const pairs = PRESETS[name];
+  for (const [k,v] of pairs) {
+    if (mode === 'chain') insertChain(k,v);
+    else insertOA(k,v);
+    stats.inserts++;
+  }
+  hlState = {};
+  renderTable();
+  updateCounters();
+  addLog('ins', `Loaded preset "${name}" (${pairs.length} keys)`);
+}
+
+// ── Tab switching ─────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('view-table').style.display = tab==='table' ? '' : 'none';
+  document.getElementById('view-fn').style.display   = tab==='fn'    ? '' : 'none';
+  document.getElementById('tab-table').classList.toggle('active', tab==='table');
+  document.getElementById('tab-fn').classList.toggle('active', tab==='fn');
+  if (tab === 'fn') {
+    const key = document.getElementById('inp-key').value.trim() || 'apple';
+    updateFnDemo(key);
+  }
+}
+
+// ── Utility ───────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function shake(id) {
+  const el = document.getElementById(id);
+  el.style.borderColor = 'var(--red)';
+  el.style.boxShadow = '0 0 0 3px rgba(251,113,133,.2)';
+  setTimeout(() => { el.style.borderColor=''; el.style.boxShadow=''; }, 800);
+}
+
+// ── Init ──────────────────────────────────────────────────
+initTable();
+renderTable();
+updateCounters();
+</script>
+</body>
+</html>

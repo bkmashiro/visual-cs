@@ -43,6 +43,7 @@
 | [Prim's Algorithm](./visualizations/prims-algorithm/) | Graph | Greedy MST via min-heap frontier expansion |
 | [Tarjan's SCC](./visualizations/tarjan-scc/) | Graph | Single-DFS strongly connected components with disc/low stack |
 | [Convex Hull](./visualizations/convex-hull/) | Geometry | Graham scan + Jarvis march with side-by-side animated comparison |
+| [Hash Table](./visualizations/hash-table/) | Data Structure | Separate chaining vs open addressing (linear probe) with collision visualization |
 
 ---
 

@@ -1,13 +1,13 @@
 # Visual-CS Todo Queue
 
 ## Upcoming
-- hash-table — Hash Table (collision handling visualization)
 - splay-tree — Splay Tree (self-adjusting BST)
 - treap — Treap (randomized BST)
 - quadtree — Quadtree (2D spatial partitioning)
 - huffman-coding — Huffman Coding (optimal prefix-free compression)
 
 ## Done
+- hash-table — Hash Table (collision handling visualization) ✅ 2026-03-29
 - suffix-array — Suffix Array (efficient string indexing) ✅ 2026-03-29
 - rabin-karp — Rabin-Karp (rolling hash string search) ✅ 2026-03-29
 - knuth-morris-pratt — KMP String Matching (pattern search with failure function) ✅ 2026-03-27

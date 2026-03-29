@@ -43,6 +43,7 @@
 | [Prim 最小生成树](./visualizations/prims-algorithm/) | 图算法 | 贪心扩展，最小堆维护前沿边，逐步构建 MST |
 | [Tarjan 强连通分量](./visualizations/tarjan-scc/) | 图算法 | 单次 DFS 求所有强连通分量，disc/low 值与栈协同工作 |
 | [凸包算法](./visualizations/convex-hull/) | 几何 | Graham 扫描 + Jarvis 步进，双算法并排动画对比 |
+| [哈希表](./visualizations/hash-table/) | 数据结构 | 拉链法 vs 开放寻址（线性探测），碰撞过程可视化 |
 
 ---
 
