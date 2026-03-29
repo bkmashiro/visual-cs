@@ -45,6 +45,7 @@
 | [Tarjan's SCC](./visualizations/tarjan-scc/) | Graph | Single-DFS strongly connected components with disc/low stack |
 | [Convex Hull](./visualizations/convex-hull/) | Geometry | Graham scan + Jarvis march with side-by-side animated comparison |
 | [Hash Table](./visualizations/hash-table/) | Data Structure | Separate chaining vs open addressing (linear probe) with collision visualization |
+| [Huffman Coding](./visualizations/huffman-coding/) | String | Optimal prefix-free coding with frequency counts, greedy tree construction, and code-table generation |
 | [Splay Tree](./visualizations/splay-tree/) | Data Structure | Self-adjusting BST with zig / zig-zig / zig-zag access replay |
 | [Treap](./visualizations/treap/) | Data Structure | Randomized BST + heap priorities with insert bubble-up and delete sink-down rotations |
 
