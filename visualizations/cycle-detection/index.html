@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cycle Detection — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --panel: #111720;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --green: #7ee787;
+  --warn: #f78166;
+  --gold: #e3b341;
+  --violet: #a371f7;
+  --pink: #f778ba;
+  --tortoise: #3fb950;
+  --hare: #f78166;
+  --meeting: #e3b341;
+  --mu-color: #a371f7;
+  --lambda-color: #58a6ff;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+header h1 { font-size: 1rem; font-weight: 700; flex: 1; }
+header h1 span { color: var(--accent); }
+
+.layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.sidebar {
+  width: 290px;
+  min-width: 240px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  gap: 14px;
+  overflow-y: auto;
+}
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  overflow: auto;
+  gap: 20px;
+}
+
+.section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.btn {
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 9px 14px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.speed-row { display: flex; align-items: center; gap: 10px; }
+.speed-row label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.speed-row input[type=range] { flex: 1; accent-color: var(--accent); }
+
+.stat-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; }
+.stat-row .val { font-weight: 700; font-size: 0.95rem; }
+.stat-row .lbl { color: var(--muted); }
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 0.8rem;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-swatch {
+  width: 24px; height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem;
+}
+
+.info-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.info-box h3 { color: var(--text); font-size: 0.85rem; margin-bottom: 6px; }
+.info-box code {
+  background: var(--panel);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: var(--accent);
+  font-size: 0.78rem;
+}
+
+.phase-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.step-info {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  max-width: 680px;
+  width: 100%;
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 52px;
+}
+.step-info .hl { font-weight: 700; }
+.step-info .hl-t { color: var(--tortoise); }
+.step-info .hl-h { color: var(--hare); }
+.step-info .hl-m { color: var(--meeting); }
+.step-info .hl-mu { color: var(--mu-color); }
+.step-info .hl-lam { color: var(--lambda-color); }
+
+/* Canvas */
+#vizCanvas {
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: block;
+  max-width: 100%;
+}
+
+/* Table for node list */
+.config-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.config-row label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.config-row input[type=number] {
+  width: 56px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  outline: none;
+}
+.config-row input:focus { border-color: var(--accent); }
+
+.preset-btns { display: flex; flex-direction: column; gap: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">← Home</a>
+  <h1>Cycle Detection — <span>Floyd's Tortoise & Hare</span></h1>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <div>
+      <div class="section-title">List Configuration</div>
+      <div class="config-row">
+        <label>Tail length (μ)</label>
+        <input type="number" id="muInput" value="3" min="0" max="10">
+      </div>
+      <div class="config-row">
+        <label>Cycle length (λ)</label>
+        <input type="number" id="lambdaInput" value="5" min="1" max="10">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Presets</div>
+      <div class="preset-btns">
+        <button class="btn btn-secondary" onclick="applyPreset(3,5)">μ=3, λ=5 (classic)</button>
+        <button class="btn btn-secondary" onclick="applyPreset(0,4)">μ=0, λ=4 (no tail)</button>
+        <button class="btn btn-secondary" onclick="applyPreset(5,1)">μ=5, λ=1 (small cycle)</button>
+        <button class="btn btn-secondary" onclick="applyPreset(1,7)">μ=1, λ=7 (long cycle)</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Playback</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnPlay">▶ Play</button>
+        <button class="btn btn-secondary" id="btnStep">Step</button>
+        <button class="btn btn-secondary" id="btnReset">Reset</button>
+      </div>
+      <div style="height:8px"></div>
+      <div class="speed-row">
+        <label>Speed</label>
+        <input type="range" id="speed" min="1" max="10" value="5">
+      </div>
+    </div>
+
+    <div class="stat-box">
+      <div class="section-title">Results</div>
+      <div class="stat-row">
+        <span class="lbl">Phase</span>
+        <span class="val" id="statPhase">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="lbl">Tortoise pos</span>
+        <span class="val" style="color:var(--tortoise)" id="statT">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="lbl">Hare pos</span>
+        <span class="val" style="color:var(--hare)" id="statH">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="lbl">Cycle start (μ)</span>
+        <span class="val" style="color:var(--mu-color)" id="statMu">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="lbl">Cycle length (λ)</span>
+        <span class="val" style="color:var(--lambda-color)" id="statLambda">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="lbl">Steps taken</span>
+        <span class="val" id="statSteps">0</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Legend</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#3fb950">🐢</div><span>Tortoise (moves 1/step)</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#f78166">🐇</div><span>Hare (moves 2/step)</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(227,179,65,0.3);border:2px solid #e3b341"></div><span>Meeting point</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(163,113,247,0.3);border:2px solid #a371f7"></div><span>Cycle start (μ)</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1a2a3a;border:1px solid #58a6ff"></div><span>Cycle nodes</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1a1a2a;border:1px solid var(--border)"></div><span>Tail nodes</span></div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <h3>Algorithm — 3 phases</h3>
+      <p><b style="color:var(--hare)">Phase 1:</b> Move tortoise +1, hare +2. When they meet, a cycle exists.<br><br>
+      <b style="color:var(--mu-color)">Phase 2:</b> Reset tortoise to head, keep hare at meeting point. Move both +1 until they meet — that's the cycle start μ.<br><br>
+      <b style="color:var(--lambda-color)">Phase 3:</b> Keep tortoise at cycle start, move hare +1 until it laps tortoise — that count is λ.</p>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="step-info" id="stepInfo">Press Play or Step to start.</div>
+    <canvas id="vizCanvas" width="680" height="340"></canvas>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const canvas = $('vizCanvas');
+const ctx = canvas.getContext('2d');
+
+// Colors
+const C = {
+  bg: '#111720', surface: '#161b22', border: '#30363d',
+  text: '#e6edf3', muted: '#8b949e', accent: '#58a6ff',
+  tortoise: '#3fb950', hare: '#f78166',
+  meeting: '#e3b341', mu: '#a371f7', lambda: '#58a6ff',
+  cycle: '#1a2a3a', tail: '#1a1a2a',
+};
+
+let mu = 3, lambda = 5;
+let nodes = [], steps = [], stepIdx = 0;
+let playing = false, timer = null;
+let tortoise = 0, hare = 0;
+let phase = 0; // 0=init 1=phase1 2=phase2 3=phase3 4=done
+let meetingNode = -1, muFound = -1, lambdaFound = -1;
+let stepsCount = 0;
+
+function getSpeed() { return 1100 - $('speed').value * 100; }
+
+function applyPreset(m, l) {
+  $('muInput').value = m;
+  $('lambdaInput').value = l;
+  init();
+}
+
+function buildList() {
+  mu = Math.max(0, Math.min(10, parseInt($('muInput').value) || 0));
+  lambda = Math.max(1, Math.min(10, parseInt($('lambdaInput').value) || 1));
+  // next[i] = i+1 for tail, cycle nodes wrap around
+  nodes = [];
+  const total = mu + lambda;
+  for (let i = 0; i < total; i++) {
+    nodes.push({
+      id: i,
+      label: i,
+      next: i < total - 1 ? i + 1 : mu, // last node points back to cycle start
+      inCycle: i >= mu,
+    });
+  }
+}
+
+function buildSteps() {
+  steps = [];
+  const next = i => nodes[i].next;
+  let t = 0, h = 0;
+  let stIdx = 0;
+
+  // Phase 1: detect cycle
+  steps.push({phase: 1, t: 0, h: 0, msg: 'Phase 1: Start — tortoise and hare both at head (node 0).', meetingNode: -1});
+  let safetyP1 = 0;
+  do {
+    t = next(t); h = next(next(h));
+    stIdx++;
+    const meeting = (t === h);
+    steps.push({
+      phase: 1, t, h, stIdx,
+      msg: meeting
+        ? `Phase 1: <span class="hl hl-t">Tortoise</span>=${t}, <span class="hl hl-h">Hare</span>=${h} — <span class="hl hl-m">MEETING POINT</span>! Cycle detected.`
+        : `Phase 1: <span class="hl hl-t">Tortoise</span> → ${t}, <span class="hl hl-h">Hare</span> → ${h}`,
+      meetingNode: meeting ? t : -1,
+    });
+    if (meeting) break;
+    if (++safetyP1 > 200) break;
+  } while (true);
+
+  const meetPt = t;
+
+  // Phase 2: find cycle start
+  t = 0; // reset to head
+  steps.push({phase: 2, t, h, msg: `Phase 2: Reset <span class="hl hl-t">tortoise</span> to head (0). Keep <span class="hl hl-h">hare</span> at meeting point (${meetPt}). Move both +1 until they meet.`, meetingNode: meetPt});
+  let safetyP2 = 0;
+  while (t !== h) {
+    t = next(t); h = next(h);
+    const found = (t === h);
+    steps.push({
+      phase: 2, t, h,
+      msg: found
+        ? `Phase 2: <span class="hl hl-t">Tortoise</span>=${t}, <span class="hl hl-h">Hare</span>=${h} — <span class="hl hl-mu">CYCLE START μ=${t}</span>!`
+        : `Phase 2: <span class="hl hl-t">Tortoise</span> → ${t}, <span class="hl hl-h">Hare</span> → ${h}`,
+      meetingNode: meetPt, muFound: found ? t : -1,
+    });
+    if (found) break;
+    if (++safetyP2 > 200) break;
+  }
+
+  const muNode = t;
+
+  // Phase 3: find cycle length
+  h = next(muNode);
+  let lam = 1;
+  steps.push({phase: 3, t: muNode, h, msg: `Phase 3: Keep <span class="hl hl-mu">tortoise</span> at μ=${muNode}. Move <span class="hl hl-h">hare</span> until it returns to tortoise. Count = cycle length λ.`, meetingNode: meetPt, muFound: muNode});
+  let safetyP3 = 0;
+  while (h !== muNode) {
+    h = next(h); lam++;
+    const found = (h === muNode);
+    steps.push({
+      phase: 3, t: muNode, h, lam,
+      msg: found
+        ? `Phase 3: <span class="hl hl-h">Hare</span> returned to μ — <span class="hl hl-lam">λ = ${lam}</span>!`
+        : `Phase 3: <span class="hl hl-h">Hare</span> → ${h}, count = ${lam}`,
+      meetingNode: meetPt, muFound: muNode, lambdaFound: found ? lam : -1,
+    });
+    if (found) break;
+    if (++safetyP3 > 200) break;
+  }
+
+  steps.push({
+    phase: 4, t: muNode, h: muNode, meetingNode: meetPt, muFound: muNode, lambdaFound: lam,
+    msg: `Done! Cycle start <span class="hl hl-mu">μ = ${muNode}</span>, cycle length <span class="hl hl-lam">λ = ${lam}</span>.`,
+  });
+}
+
+function drawList(state) {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const n = nodes.length;
+  if (n === 0) return;
+
+  const tailN = mu;
+  const cycleN = lambda;
+
+  // Layout: tail nodes in a horizontal row on top-left, cycle nodes in a circle on the right
+  const nodeR = 22;
+  const tailStartX = 56;
+  const tailY = H / 2 - 40;
+  const tailPositions = [];
+  for (let i = 0; i < tailN; i++) {
+    tailPositions.push({ x: tailStartX + i * 76, y: tailY });
+  }
+
+  // Cycle: center on right side
+  const cycleCenter = {
+    x: tailN > 0 ? tailStartX + (tailN - 0.5) * 76 + 80 + (cycleN <= 3 ? 30 : 0) : W / 2,
+    y: H / 2 + 20
+  };
+  const cycleRadius = Math.max(55, cycleN * 14);
+  const cyclePositions = [];
+  for (let i = 0; i < cycleN; i++) {
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / cycleN;
+    cyclePositions.push({
+      x: cycleCenter.x + cycleRadius * Math.cos(angle),
+      y: cycleCenter.y + cycleRadius * Math.sin(angle),
+    });
+  }
+
+  const allPos = [...tailPositions, ...cyclePositions];
+
+  // Draw edges first
+  for (let i = 0; i < n; i++) {
+    const from = allPos[i];
+    const to = allPos[nodes[i].next];
+    ctx.save();
+    ctx.strokeStyle = C.border;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    // Arrow
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const ux = dx / dist, uy = dy / dist;
+    const sx = from.x + ux * nodeR, sy = from.y + uy * nodeR;
+    const ex = to.x - ux * (nodeR + 6), ey = to.y - uy * (nodeR + 6);
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    // Arrowhead
+    const headLen = 10;
+    const angle = Math.atan2(ey - sy, ex - sx);
+    ctx.fillStyle = C.border;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - headLen * Math.cos(angle - 0.4), ey - headLen * Math.sin(angle - 0.4));
+    ctx.lineTo(ex - headLen * Math.cos(angle + 0.4), ey - headLen * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Draw nodes
+  for (let i = 0; i < n; i++) {
+    const {x, y} = allPos[i];
+    const inCycle = i >= tailN;
+    const isMeetPt = state.meetingNode === i;
+    const isMuNode = state.muFound === i;
+    const isTortoise = state.t === i;
+    const isHare = state.h === i;
+
+    ctx.save();
+    // Shadow glow for special nodes
+    if (isMuNode) {
+      ctx.shadowBlur = 20; ctx.shadowColor = C.mu;
+    } else if (isMeetPt && state.phase < 2) {
+      ctx.shadowBlur = 16; ctx.shadowColor = C.meeting;
+    }
+
+    // Fill
+    ctx.beginPath();
+    ctx.arc(x, y, nodeR, 0, Math.PI * 2);
+    if (isMuNode) {
+      ctx.fillStyle = 'rgba(163,113,247,0.25)';
+    } else if (isMeetPt && state.phase < 2) {
+      ctx.fillStyle = 'rgba(227,179,65,0.2)';
+    } else if (inCycle) {
+      ctx.fillStyle = C.cycle;
+    } else {
+      ctx.fillStyle = C.tail;
+    }
+    ctx.fill();
+    ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+
+    // Border
+    ctx.lineWidth = 2;
+    if (isMuNode) ctx.strokeStyle = C.mu;
+    else if (isMeetPt && state.phase < 2) ctx.strokeStyle = C.meeting;
+    else if (inCycle) ctx.strokeStyle = C.lambda;
+    else ctx.strokeStyle = C.border;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = C.text;
+    ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, x, y);
+
+    ctx.restore();
+
+    // Tortoise emoji
+    if (isTortoise && isHare) {
+      ctx.font = '16px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐢🐇', x, y - nodeR - 16);
+    } else if (isTortoise) {
+      ctx.font = '18px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐢', x, y - nodeR - 16);
+    } else if (isHare) {
+      ctx.font = '18px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐇', x, y - nodeR - 16);
+    }
+  }
+
+  // Cycle start label
+  if (tailN > 0) {
+    const {x, y} = allPos[tailN];
+    ctx.fillStyle = C.mu;
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('cycle start', x, y + nodeR + 14);
+  }
+
+  // HEAD label
+  const headPos = allPos[0];
+  ctx.fillStyle = C.muted;
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('HEAD', headPos.x, headPos.y - nodeR - 30);
+}
+
+function applyStep(idx) {
+  if (idx >= steps.length) return;
+  const st = steps[idx];
+  $('stepInfo').innerHTML = st.msg;
+  $('statPhase').textContent = `Phase ${st.phase}`;
+  $('statT').textContent = st.t !== undefined ? st.t : '—';
+  $('statH').textContent = st.h !== undefined ? st.h : '—';
+  $('statMu').textContent = st.muFound >= 0 ? st.muFound : '—';
+  $('statLambda').textContent = st.lambdaFound > 0 ? st.lambdaFound : '—';
+  $('statSteps').textContent = idx;
+  drawList(st);
+}
+
+function init() {
+  stop();
+  buildList();
+  buildSteps();
+  stepIdx = 0;
+  $('statPhase').textContent = '—';
+  $('statT').textContent = '—';
+  $('statH').textContent = '—';
+  $('statMu').textContent = '—';
+  $('statLambda').textContent = '—';
+  $('statSteps').textContent = '0';
+  drawList({phase: 0, t: 0, h: 0, meetingNode: -1, muFound: -1, lambdaFound: -1});
+  $('stepInfo').textContent = 'Press Play or Step to start.';
+  $('btnPlay').textContent = '▶ Play';
+}
+
+function step() {
+  if (stepIdx >= steps.length) return;
+  applyStep(stepIdx);
+  stepIdx++;
+  if (stepIdx >= steps.length) stop();
+}
+
+function play() {
+  if (stepIdx >= steps.length) { init(); }
+  playing = true;
+  $('btnPlay').textContent = '⏸ Pause';
+  function tick() {
+    if (!playing || stepIdx >= steps.length) { stop(); return; }
+    step();
+    timer = setTimeout(tick, getSpeed());
+  }
+  tick();
+}
+
+function stop() {
+  playing = false;
+  clearTimeout(timer);
+  $('btnPlay').textContent = '▶ Play';
+}
+
+$('btnPlay').addEventListener('click', () => playing ? stop() : play());
+$('btnStep').addEventListener('click', () => { stop(); step(); });
+$('btnReset').addEventListener('click', init);
+$('muInput').addEventListener('change', init);
+$('lambdaInput').addEventListener('change', init);
+
+// Resize canvas for HiDPI
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const container = canvas.parentElement;
+  const w = Math.min(container.clientWidth - 32, 780);
+  const h = Math.round(w * 0.48);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  if (steps.length && stepIdx > 0) applyStep(Math.max(0, stepIdx - 1));
+  else init();
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+</script>
+</body>
+</html>
