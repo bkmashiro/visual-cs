@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge &amp; Articulation Points — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #101720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header a { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+  header a:hover { color: var(--text); }
+  header h1 { font-size: 1.1rem; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ─── Canvas panel ─── */
+  .canvas-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 72px;
+  }
+  .stat-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { color: var(--text); font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums; }
+  .stat-value.warn { color: var(--warn); }
+  .stat-value.gold { color: var(--gold); }
+  .stat-value.accent { color: var(--accent); }
+
+  svg#graph {
+    background: #0a0e15;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: block;
+    width: 100%;
+    max-width: 680px;
+    height: 440px;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+  button {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button:hover { background: #21262d; border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+  button.primary:hover { opacity: 0.85; }
+  button:disabled { opacity: 0.35; cursor: default; }
+  .speed-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  input[type=range] { width: 100px; accent-color: var(--accent); }
+
+  /* ─── Side panel ─── */
+  .panel {
+    width: 300px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-section h3 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* Node state table */
+  .node-table { width: 100%; border-collapse: collapse; font-size: 0.74rem; }
+  .node-table th {
+    color: var(--muted);
+    font-weight: 600;
+    padding: 3px 5px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .node-table td {
+    padding: 3px 5px;
+    font-family: monospace;
+    border-bottom: 1px solid #21262d;
+  }
+  .node-table tr.active td { background: #0f2040; color: var(--accent); }
+  .node-table tr.ap td { background: #2a2000; color: var(--gold); }
+  .node-table tr.done td { color: var(--muted); }
+
+  /* Log panel */
+  .log-wrap {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 220px;
+  }
+  .log-entry {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border-left: 3px solid var(--border);
+    background: #0d1117;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .log-entry.current {
+    border-left-color: var(--accent);
+    background: #0f1f38;
+    color: var(--text);
+  }
+  .log-entry.bridge { border-left-color: var(--warn); background: #1f0d0d; }
+  .log-entry.ap { border-left-color: var(--gold); background: #1f1800; }
+
+  /* Legend */
+  .legend { display: flex; flex-direction: column; gap: 6px; }
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); }
+  .legend-dot {
+    width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; border: 2px solid transparent;
+  }
+  .legend-line {
+    width: 24px; height: 3px; border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* Explain */
+  .explain {
+    font-size: 0.8rem;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+  .explain strong { color: var(--text); }
+  .explain code {
+    font-family: monospace;
+    background: #21262d;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    color: var(--accent);
+  }
+
+  footer {
+    text-align: center;
+    padding: 10px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* SVG element styles */
+  .edge { stroke: #334155; stroke-width: 2; fill: none; }
+  .edge.tree { stroke: #3d5a80; stroke-width: 2.5; }
+  .edge.back { stroke: #a371f7; stroke-width: 2; stroke-dasharray: 5 3; }
+  .edge.active-edge { stroke: var(--accent); stroke-width: 3; }
+  .edge.bridge { stroke: var(--warn); stroke-width: 3.5; }
+
+  .node-circle {
+    stroke-width: 2.5;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .node-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .node-disc-low {
+    font-size: 9px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    font-family: monospace;
+    fill: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">← visual-cs</a>
+  <h1>Bridge &amp; <span>Articulation Points</span></h1>
+</header>
+
+<div class="main">
+  <div class="canvas-wrap">
+    <div class="stats-bar">
+      <div class="stat">
+        <span class="stat-label">Nodes</span>
+        <span class="stat-value" id="statNodes">10</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Edges</span>
+        <span class="stat-value" id="statEdges">13</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Bridges</span>
+        <span class="stat-value warn" id="statBridges">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Artic. Pts</span>
+        <span class="stat-value gold" id="statAPs">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Step</span>
+        <span class="stat-value accent" id="statStep">0 / 0</span>
+      </div>
+    </div>
+
+    <svg id="graph" viewBox="0 0 680 440">
+      <defs>
+        <filter id="glow-accent">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-warn">
+          <feGaussianBlur stdDeviation="5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-gold">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <g id="edgeLayer"></g>
+      <g id="nodeLayer"></g>
+    </svg>
+
+    <div class="controls">
+      <button id="btnStep">Step →</button>
+      <button id="btnRun" class="primary">▶ Run</button>
+      <button id="btnReset">↺ Reset</button>
+      <div class="speed-wrap">
+        Speed
+        <input type="range" id="speed" min="80" max="1400" value="700">
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-section">
+      <h3>Step Log</h3>
+      <div class="log-wrap" id="logWrap"></div>
+    </div>
+    <div class="panel-section">
+      <h3>Node State (disc / low)</h3>
+      <table class="node-table">
+        <thead>
+          <tr><th>Node</th><th>disc</th><th>low</th><th>parent</th><th>AP?</th></tr>
+        </thead>
+        <tbody id="nodeTable"></tbody>
+      </table>
+    </div>
+    <div class="panel-section">
+      <h3>How It Works</h3>
+      <div class="explain">
+        <strong>Bridges</strong>: Edge <code>(u,v)</code> is a bridge if <code>low[v] &gt; disc[u]</code> — removing it disconnects the graph.<br><br>
+        <strong>Articulation Points</strong>: Vertex <code>u</code> is an AP if:<br>
+        &bull; <em>Root</em> of DFS tree with 2+ children, or<br>
+        &bull; Non-root where some child <code>v</code> has <code>low[v] &ge; disc[u]</code>.<br><br>
+        Both are found in a single <strong>O(V + E)</strong> DFS pass using <em>discovery time</em> and <em>low</em> values.
+      </div>
+    </div>
+    <div class="panel-section">
+      <h3>Legend</h3>
+      <div class="legend">
+        <div class="legend-row"><div class="legend-dot" style="background:#58a6ff33;border-color:#58a6ff"></div>Unvisited node</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#58a6ff55;border-color:#58a6ff;box-shadow:0 0 8px #58a6ff"></div>Current DFS node</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#a371f733;border-color:#a371f7"></div>Visited (in DFS tree)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#f7816633;border-color:#f78166;box-shadow:0 0 8px #f78166"></div>Bridge endpoint</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#e3b34133;border-color:#e3b341;box-shadow:0 0 8px #e3b341"></div>Articulation point</div>
+        <div class="legend-row"><div class="legend-line" style="background:#3d5a80"></div>Tree edge</div>
+        <div class="legend-row"><div class="legend-line" style="background:#a371f7;height:2px;background:repeating-linear-gradient(90deg,#a371f7 0,#a371f7 5px,transparent 5px,transparent 8px)"></div>Back edge</div>
+        <div class="legend-row"><div class="legend-line" style="background:#f78166"></div>Bridge edge</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS
+</footer>
+
+<script>
+// ─── Graph definition ─────────────────────────────────────────────────────────
+// A predefined undirected graph with clear bridges and articulation points.
+// Topology: two cliques (0-1-2-3) and (5-6-7), connected via articulation
+// points 2 and 4, with a chain 2-4-5 and a pendant 8-9.
+//
+//  0 -- 1        8
+//  |  / |        |
+//  | /  |        9
+//  2----3
+//  |
+//  4          (4 is AP: bridge to chain)
+//  |
+//  5 -- 6     (5 is AP: bridge to 7 group)
+//  |  \ |
+//  7----+
+//       |
+//      (6-7 cycle)
+
+const NODES = [
+  { id: 0, x: 120, y: 100 },
+  { id: 1, x: 240, y:  60 },
+  { id: 2, x: 240, y: 180 },
+  { id: 3, x: 120, y: 220 },
+  { id: 4, x: 340, y: 260 },
+  { id: 5, x: 460, y: 180 },
+  { id: 6, x: 560, y: 260 },
+  { id: 7, x: 460, y: 340 },
+  { id: 8, x: 560, y:  80 },
+  { id: 9, x: 620, y: 160 },
+];
+
+// Undirected edges
+const EDGE_DEFS = [
+  [0, 1], [0, 3], [1, 2], [2, 3],   // cycle: 0-1-2-3
+  [1, 2],                             // chord inside (makes 1-2 non-bridge)
+  [2, 4],                             // BRIDGE: 2-4
+  [4, 5],                             // BRIDGE: 4-5
+  [5, 6], [6, 7], [7, 5],            // cycle: 5-6-7
+  [8, 9],                             // BRIDGE: 8-9 (isolated component)
+  [5, 8],                             // BRIDGE: 5-8
+];
+
+// Deduplicate and normalise edge list
+const edgeSet = new Set();
+const EDGES = [];
+EDGE_DEFS.forEach(([a, b]) => {
+  const key = `${Math.min(a,b)}-${Math.max(a,b)}`;
+  if (!edgeSet.has(key)) {
+    edgeSet.add(key);
+    EDGES.push([a, b]);
+  }
+});
+
+const N = NODES.length;
+
+// Adjacency list (undirected)
+function buildAdj() {
+  const adj = Array.from({length: N}, () => []);
+  EDGES.forEach(([a, b]) => { adj[a].push(b); adj[b].push(a); });
+  return adj;
+}
+
+// ─── Algorithm: produce step-by-step snapshots ────────────────────────────────
+function runAlgorithm() {
+  const adj = buildAdj();
+  const disc   = new Array(N).fill(-1);
+  const low    = new Array(N).fill(-1);
+  const parent = new Array(N).fill(-1);
+  const visited = new Array(N).fill(false);
+  const bridges = new Set();      // "a-b" keys
+  const aps     = new Set();
+
+  let timer = 0;
+  const steps = [];
+
+  function edgeKey(a, b) { return `${Math.min(a,b)}-${Math.max(a,b)}`; }
+
+  function snap(opts = {}) {
+    steps.push({
+      disc: [...disc],
+      low:  [...low],
+      parent: [...parent],
+      visited: [...visited],
+      bridges: new Set(bridges),
+      aps: new Set(aps),
+      ...opts,
+    });
+  }
+
+  function dfs(u) {
+    visited[u] = true;
+    disc[u] = low[u] = timer++;
+    snap({
+      cur: u,
+      msg: `Visit node ${u}: disc[${u}] = low[${u}] = ${disc[u]}`,
+      kind: 'visit',
+    });
+
+    let childCount = 0;
+
+    for (const v of adj[u]) {
+      if (!visited[v]) {
+        // Tree edge
+        childCount++;
+        parent[v] = u;
+        snap({
+          cur: u,
+          activeEdge: edgeKey(u, v),
+          edgeType: 'tree',
+          msg: `Tree edge ${u}→${v}: recurse into ${v}`,
+          kind: 'tree-edge',
+        });
+
+        dfs(v);
+
+        low[u] = Math.min(low[u], low[v]);
+        snap({
+          cur: u,
+          activeEdge: edgeKey(u, v),
+          edgeType: 'tree',
+          msg: `Back from ${v}: low[${u}] = min(low[${u}], low[${v}]) = ${low[u]}`,
+          kind: 'update-low',
+        });
+
+        // Bridge check
+        if (low[v] > disc[u]) {
+          bridges.add(edgeKey(u, v));
+          snap({
+            cur: u,
+            activeEdge: edgeKey(u, v),
+            bridges: new Set(bridges),
+            aps: new Set(aps),
+            msg: `BRIDGE found! Edge (${u},${v}): low[${v}]=${low[v]} > disc[${u}]=${disc[u]}`,
+            kind: 'bridge',
+          });
+        }
+
+        // Articulation point check
+        if (parent[u] === -1 && childCount === 2) {
+          // Root with 2+ children — mark now (first time count hits 2)
+          aps.add(u);
+          snap({
+            cur: u,
+            aps: new Set(aps),
+            bridges: new Set(bridges),
+            msg: `AP found! Node ${u} is DFS root with ≥2 children`,
+            kind: 'ap',
+          });
+        } else if (parent[u] !== -1 && low[v] >= disc[u]) {
+          aps.add(u);
+          snap({
+            cur: u,
+            aps: new Set(aps),
+            bridges: new Set(bridges),
+            msg: `AP found! Node ${u}: low[${v}]=${low[v]} ≥ disc[${u}]=${disc[u]}`,
+            kind: 'ap',
+          });
+        }
+      } else if (v !== parent[u]) {
+        // Back edge
+        low[u] = Math.min(low[u], disc[v]);
+        snap({
+          cur: u,
+          activeEdge: edgeKey(u, v),
+          edgeType: 'back',
+          msg: `Back edge ${u}→${v} (already visited): low[${u}] = min(low[${u}], disc[${v}]) = ${low[u]}`,
+          kind: 'back-edge',
+        });
+      }
+    }
+  }
+
+  // DFS from all unvisited nodes (handles disconnected graphs)
+  for (let s = 0; s < N; s++) {
+    if (!visited[s]) {
+      snap({
+        cur: s,
+        msg: `Start DFS from node ${s}`,
+        kind: 'start',
+      });
+      dfs(s);
+    }
+  }
+
+  snap({
+    msg: `Done! Found ${bridges.size} bridge(s) and ${aps.size} articulation point(s).`,
+    kind: 'done',
+    bridges: new Set(bridges),
+    aps: new Set(aps),
+  });
+
+  return steps;
+}
+
+// ─── Rendering helpers ────────────────────────────────────────────────────────
+const svg = document.getElementById('graph');
+const edgeLayer = document.getElementById('edgeLayer');
+const nodeLayer = document.getElementById('nodeLayer');
+
+function edgeKey(a, b) { return `${Math.min(a,b)}-${Math.max(a,b)}`; }
+
+// Track which edges have been classified as tree/back in the current step
+let treeEdges = new Set();
+let backEdges  = new Set();
+
+// Build initial SVG elements
+const svgEdges = {};
+const svgNodes = {};
+const svgLabels = {};
+const svgDiscLow = {};
+
+function initSVG() {
+  edgeLayer.innerHTML = '';
+  nodeLayer.innerHTML = '';
+  treeEdges.clear();
+  backEdges.clear();
+
+  EDGES.forEach(([a, b]) => {
+    const key = edgeKey(a, b);
+    const na = NODES[a], nb = NODES[b];
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', na.x);
+    line.setAttribute('y1', na.y);
+    line.setAttribute('x2', nb.x);
+    line.setAttribute('y2', nb.y);
+    line.classList.add('edge');
+    line.setAttribute('data-key', key);
+    edgeLayer.appendChild(line);
+    svgEdges[key] = line;
+  });
+
+  NODES.forEach(n => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('data-id', n.id);
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', n.x);
+    circle.setAttribute('cy', n.y);
+    circle.setAttribute('r', 20);
+    circle.classList.add('node-circle');
+    circle.setAttribute('fill', '#58a6ff1a');
+    circle.setAttribute('stroke', '#58a6ff');
+    g.appendChild(circle);
+    svgNodes[n.id] = circle;
+
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', n.x);
+    label.setAttribute('y', n.y);
+    label.classList.add('node-label');
+    label.setAttribute('fill', '#58a6ff');
+    label.textContent = String(n.id);
+    g.appendChild(label);
+    svgLabels[n.id] = label;
+
+    const dl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    dl.setAttribute('x', n.x);
+    dl.setAttribute('y', n.y + 32);
+    dl.classList.add('node-disc-low');
+    dl.textContent = '';
+    g.appendChild(dl);
+    svgDiscLow[n.id] = dl;
+
+    nodeLayer.appendChild(g);
+  });
+}
+
+function applyState(state) {
+  if (!state) return;
+  const { disc, low, visited, bridges, aps, cur, activeEdge, edgeType, kind } = state;
+
+  // Classify edges cumulatively
+  if (activeEdge && edgeType === 'tree') treeEdges.add(activeEdge);
+  if (activeEdge && edgeType === 'back') backEdges.add(activeEdge);
+
+  // Update edges
+  EDGES.forEach(([a, b]) => {
+    const key = edgeKey(a, b);
+    const el = svgEdges[key];
+    el.className.baseVal = 'edge';
+    el.removeAttribute('filter');
+
+    if (bridges && bridges.has(key)) {
+      el.className.baseVal = 'edge bridge';
+      el.setAttribute('stroke', 'var(--warn)');
+      el.setAttribute('stroke-width', '3.5');
+      el.setAttribute('filter', 'url(#glow-warn)');
+    } else if (key === activeEdge) {
+      el.className.baseVal = 'edge active-edge';
+      el.setAttribute('stroke', 'var(--accent)');
+      el.setAttribute('stroke-width', '3');
+    } else if (treeEdges.has(key)) {
+      el.className.baseVal = 'edge tree';
+      el.setAttribute('stroke', '#3d5a80');
+      el.setAttribute('stroke-width', '2.5');
+      el.removeAttribute('stroke-dasharray');
+    } else if (backEdges.has(key)) {
+      el.className.baseVal = 'edge back';
+      el.setAttribute('stroke', '#a371f7');
+      el.setAttribute('stroke-width', '2');
+      el.setAttribute('stroke-dasharray', '5 3');
+    } else {
+      el.setAttribute('stroke', '#334155');
+      el.setAttribute('stroke-width', '2');
+      el.removeAttribute('stroke-dasharray');
+    }
+  });
+
+  // Update nodes
+  NODES.forEach(n => {
+    const id = n.id;
+    const circle = svgNodes[id];
+    const label  = svgLabels[id];
+    const dl     = svgDiscLow[id];
+
+    circle.removeAttribute('filter');
+    circle.removeAttribute('stroke-dasharray');
+
+    const d = disc ? disc[id] : -1;
+    const l = low  ? low[id]  : -1;
+
+    if (d >= 0) {
+      dl.textContent = `d:${d} l:${l}`;
+    } else {
+      dl.textContent = '';
+    }
+
+    if (aps && aps.has(id)) {
+      circle.setAttribute('fill', '#e3b34133');
+      circle.setAttribute('stroke', 'var(--gold)');
+      label.setAttribute('fill', 'var(--gold)');
+      circle.setAttribute('filter', 'url(#glow-gold)');
+    } else if (id === cur) {
+      circle.setAttribute('fill', '#58a6ff44');
+      circle.setAttribute('stroke', 'var(--accent)');
+      label.setAttribute('fill', 'var(--text)');
+      circle.setAttribute('filter', 'url(#glow-accent)');
+    } else if (bridges && [...bridges].some(k => k.split('-').map(Number).includes(id))) {
+      circle.setAttribute('fill', '#f7816622');
+      circle.setAttribute('stroke', 'var(--warn)');
+      label.setAttribute('fill', 'var(--warn)');
+    } else if (visited && visited[id]) {
+      circle.setAttribute('fill', '#a371f722');
+      circle.setAttribute('stroke', '#a371f7');
+      label.setAttribute('fill', '#a371f7');
+    } else {
+      circle.setAttribute('fill', '#58a6ff1a');
+      circle.setAttribute('stroke', '#58a6ff');
+      label.setAttribute('fill', '#58a6ff');
+    }
+  });
+
+  // Stats
+  document.getElementById('statBridges').textContent = bridges ? bridges.size : 0;
+  document.getElementById('statAPs').textContent = aps ? aps.size : 0;
+
+  // Node table
+  updateTable(state);
+}
+
+function updateTable(state) {
+  const { disc, low, parent, aps, cur } = state;
+  const tb = document.getElementById('nodeTable');
+  tb.innerHTML = '';
+  NODES.forEach(n => {
+    const tr = document.createElement('tr');
+    const d = disc ? disc[n.id] : -1;
+    const l = low  ? low[n.id]  : -1;
+    const p = parent ? parent[n.id] : -1;
+    const isAP = aps && aps.has(n.id);
+
+    if (cur === n.id) tr.className = 'active';
+    else if (isAP)  tr.className = 'ap';
+    else if (d >= 0) tr.className = 'done';
+
+    tr.innerHTML = `
+      <td>${n.id}</td>
+      <td>${d >= 0 ? d : '—'}</td>
+      <td>${l >= 0 ? l : '—'}</td>
+      <td>${p >= 0 ? p : '—'}</td>
+      <td>${isAP ? '★' : ''}</td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+
+function addLog(state, idx, isCurrent) {
+  const { msg, kind } = state;
+  const logWrap = document.getElementById('logWrap');
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  if (isCurrent) el.className += ' current';
+  if (kind === 'bridge') el.className += ' bridge';
+  if (kind === 'ap')     el.className += ' ap';
+  el.textContent = `[${idx}] ${msg}`;
+  logWrap.appendChild(el);
+  if (isCurrent) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// ─── Step engine ──────────────────────────────────────────────────────────────
+let steps = [];
+let stepIdx = 0;
+let running = false;
+let animTimer = null;
+
+function resetVisualization() {
+  clearTimeout(animTimer);
+  running = false;
+  steps = [];
+  stepIdx = 0;
+  treeEdges.clear();
+  backEdges.clear();
+  document.getElementById('logWrap').innerHTML = '';
+  document.getElementById('nodeTable').innerHTML = '';
+  document.getElementById('statBridges').textContent = '0';
+  document.getElementById('statAPs').textContent = '0';
+  document.getElementById('statStep').textContent = '0 / 0';
+  initSVG();
+}
+
+function doStep() {
+  if (steps.length === 0) {
+    steps = runAlgorithm();
+    stepIdx = 0;
+    treeEdges.clear();
+    backEdges.clear();
+    document.getElementById('logWrap').innerHTML = '';
+  }
+  if (stepIdx >= steps.length) return false;
+
+  const state = steps[stepIdx];
+  applyState(state);
+  addLog(state, stepIdx + 1, true);
+  document.getElementById('statStep').textContent = `${stepIdx + 1} / ${steps.length}`;
+
+  // Dim previous log entries
+  const entries = document.querySelectorAll('.log-entry');
+  entries.forEach((e, i) => {
+    if (i < entries.length - 1) e.classList.remove('current');
+  });
+
+  stepIdx++;
+  return stepIdx < steps.length;
+}
+
+function scheduleNext() {
+  if (stepIdx >= steps.length) { running = false; return; }
+  const delay = 1500 - parseInt(document.getElementById('speed').value);
+  animTimer = setTimeout(() => {
+    const hasMore = doStep();
+    if (hasMore && running) scheduleNext();
+    else running = false;
+  }, delay);
+}
+
+document.getElementById('btnStep').addEventListener('click', () => {
+  clearTimeout(animTimer);
+  running = false;
+  doStep();
+});
+
+document.getElementById('btnRun').addEventListener('click', () => {
+  if (running) {
+    clearTimeout(animTimer);
+    running = false;
+    document.getElementById('btnRun').textContent = '▶ Run';
+    return;
+  }
+  if (stepIdx >= steps.length && steps.length > 0) return; // already done
+  running = true;
+  document.getElementById('btnRun').textContent = '⏸ Pause';
+  scheduleNext();
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  document.getElementById('btnRun').textContent = '▶ Run';
+  resetVisualization();
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.getElementById('statNodes').textContent = N;
+document.getElementById('statEdges').textContent = EDGES.length;
+initSVG();
+</script>
+</body>
+</html>
