@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KMP String Matching — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--or:#f97316;--or0:rgba(249,115,22,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);--rd:#f85149;--rd0:rgba(248,81,73,.15);--bl:#58a6ff;--bl0:rgba(88,166,255,.15);--yl:#e3b341;--yl0:rgba(227,179,65,.15);--pu:#d2a8ff;--pu0:rgba(210,168,255,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--or)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--or)}
+.layout{display:grid;grid-template-columns:1fr 310px;min-height:calc(100vh - 50px)}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.irow{display:flex;gap:10px;flex-wrap:wrap}
+.ig{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.ig label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.ig input{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:.92rem;font-family:'Cascadia Code','Fira Code',monospace;outline:none;transition:border-color .2s}
+.ig input:focus{border-color:var(--or)}
+.presets{display:flex;flex-wrap:wrap;gap:5px}
+.pb{font-size:.7rem;padding:3px 9px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-weight:500;transition:all .15s}
+.pb:hover{color:var(--or);border-color:var(--or)}
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--or);color:var(--or)}
+button.pr{background:var(--or);border-color:var(--or);color:#0d1117}
+button.pr:hover{background:#ea6c0a}
+button:disabled{opacity:.35;cursor:not-allowed}
+.spd{margin-left:auto;display:flex;align-items:center;gap:6px}
+.spd label{font-size:.72rem;color:var(--muted)}
+input[type=range]{accent-color:var(--or);width:80px;cursor:pointer}
+.sbar{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:12px;font-size:.82rem;min-height:42px}
+.badge{font-size:.67rem;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px;font-weight:700;flex-shrink:0}
+.badge.rdy{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.badge.bld{background:var(--pu0);border:1px solid var(--pu);color:var(--pu)}
+.badge.sch{background:var(--bl0);border:1px solid var(--bl);color:var(--bl)}
+.badge.dn{background:var(--gr0);border:1px solid var(--gr);color:var(--gr)}
+.smsg{flex:1;font-size:.8rem;color:var(--muted)}
+.cnts{display:flex;gap:12px;font-size:.73rem;color:var(--muted);flex-shrink:0}
+.cnts b{color:var(--text)}
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+.vbox{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px}
+.sblock{display:flex;flex-direction:column;gap:13px}
+.srow{display:flex;flex-direction:column;gap:4px}
+.srlbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.crail{display:flex;flex-wrap:wrap;gap:3px}
+.cc{width:33px;height:37px;border:1px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Cascadia Code','Fira Code',monospace;font-size:.9rem;font-weight:700;transition:background .16s,border-color .16s,color .16s;position:relative;flex-shrink:0}
+.cc .ci{font-size:.44rem;color:var(--muted);font-weight:400;position:absolute;bottom:2px;font-family:sans-serif}
+.cc.inn{color:#444}
+.cc.cur{background:var(--or0);border-color:var(--or);color:var(--or);box-shadow:0 0 9px rgba(249,115,22,.22)}
+.cc.ok{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+.cc.bad{background:var(--rd0);border-color:var(--rd);color:var(--rd);animation:jig .22s ease}
+.cc.fnd{background:var(--yl0);border-color:var(--yl);color:var(--yl);animation:pop .35s ease}
+.cc.skp{background:var(--pu0);border-color:var(--pu);color:var(--pu)}
+@keyframes jig{0%,100%{transform:translateX(0)}30%{transform:translateX(-3px)}70%{transform:translateX(3px)}}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.16)}100%{transform:scale(1)}}
+.prail{display:flex;flex-wrap:wrap;gap:3px}
+.pc{width:33px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.67rem;font-weight:700;flex-shrink:0;color:transparent;transition:color .13s}
+.pc.i{color:var(--bl)}.pc.j{color:var(--or)}
+.fsec{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px}
+.fgrid{display:flex;flex-direction:column;gap:3px}
+.frow{display:flex;gap:3px;align-items:center}
+.flbl{font-size:.64rem;color:var(--muted);width:50px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+.fc2{width:33px;height:28px;border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:.8rem;font-weight:700;transition:all .18s;flex-shrink:0;color:var(--muted)}
+.fc2.act{background:var(--or0);border-color:var(--or);color:var(--or)}
+.fc2.blt{background:var(--bl0);border-color:var(--bl);color:var(--bl)}
+.mrail{display:flex;flex-wrap:wrap;gap:5px;min-height:26px}
+.mbdg{background:var(--yl0);border:1px solid var(--yl);color:var(--yl);padding:2px 9px;border-radius:20px;font-size:.73rem;font-weight:700;font-family:monospace;animation:si .28s ease}
+@keyframes si{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.ibox{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;font-size:.77rem;line-height:1.58;color:var(--muted)}
+.ibox h3{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:8px}
+.ibox p{margin-bottom:6px}.ibox p:last-child{margin-bottom:0}
+.ibox code{background:var(--s2);padding:1px 5px;border-radius:3px;font-family:monospace;color:var(--or);font-size:.75rem}
+.cx{font-weight:600}.cx.g{color:var(--gr)}.cx.o{color:var(--or)}.cx.b{color:var(--bl)}.cx.p{color:var(--pu)}.cx.y{color:var(--yl)}.cx.r{color:var(--rd)}
+.cxr{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:.75rem}
+.cxr:last-child{border-bottom:none}.cxr .l{color:var(--muted)}.cxr .v{font-weight:700;color:var(--bl);font-family:monospace}
+.lbox{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px;max-height:210px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.lbox::-webkit-scrollbar{width:3px}.lbox::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.le{font-size:.69rem;font-family:monospace;color:var(--muted);line-height:1.42}
+.le.ok{color:var(--gr)}.le.bad{color:var(--rd)}.le.fnd{color:var(--yl);font-weight:700}.le.jmp{color:var(--pu)}
+.le.ph{color:var(--or);font-weight:700;padding-top:3px;border-top:1px solid var(--border);margin-top:2px}
+@media(max-width:840px){.layout{grid-template-columns:1fr}.sidebar{border-top:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔍 <span>KMP</span> — Knuth-Morris-Pratt String Matching</h1>
+  <a href="../../index.html">← All Visualizations</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="irow">
+    <div class="ig" style="flex:3"><label>Text (Haystack)</label><input id="tIn" value="AABABCABABCABABCABABD" maxlength="60" spellcheck="false"></div>
+    <div class="ig" style="flex:2"><label>Pattern (Needle)</label><input id="pIn" value="ABABCABABD" maxlength="28" spellcheck="false"></div>
+  </div>
+  <div>
+    <div class="slbl">Quick Presets</div>
+    <div class="presets">
+      <button class="pb" onclick="preset('AABABCABABCABABCABABD','ABABCABABD')">KMP classic</button>
+      <button class="pb" onclick="preset('AAAAAAAAAB','AAAAB')">Worst case</button>
+      <button class="pb" onclick="preset('ABCABCABCABC','ABCABC')">Repeating</button>
+      <button class="pb" onclick="preset('HELLO WORLD','WORLD')">Simple</button>
+      <button class="pb" onclick="preset('ABACABABACABA','ABACABA')">Palindrome</button>
+      <button class="pb" onclick="preset('MISSISSIPPI','ISSI')">Mississippi</button>
+    </div>
+  </div>
+  <div class="ctrls">
+    <button class="pr" id="bStart" onclick="startVis()">▶ Start</button>
+    <button id="bStep" onclick="step1()" disabled>⏭ Step</button>
+    <button id="bPause" onclick="togglePause()" disabled>⏸ Pause</button>
+    <button onclick="resetVis()">↺ Reset</button>
+    <div class="spd"><label>Speed</label><input type="range" id="spd" min="1" max="10" value="5"><label id="spdL">5×</label></div>
+  </div>
+  <div class="sbar">
+    <span class="badge rdy" id="badge">Ready</span>
+    <span class="smsg" id="smsg">Configure inputs, then press Start.</span>
+    <div class="cnts"><span>Comparisons: <b id="cmpN">0</b></span><span>Matches: <b id="mN">0</b></span></div>
+  </div>
+  <div class="fsec">
+    <div class="slbl">Phase 1 — Failure Function (Prefix Table)</div>
+    <div class="fgrid" id="fgrid"></div>
+  </div>
+  <div class="vbox">
+    <div class="slbl">Phase 2 — Search</div>
+    <div class="sblock">
+      <div class="srow">
+        <div class="srlbl">Text &nbsp;<span style="color:var(--bl);font-size:.62rem;font-family:monospace">i ↓</span></div>
+        <div class="prail" id="iptr"></div>
+        <div class="crail" id="trow"></div>
+      </div>
+      <div class="srow">
+        <div class="srlbl">Pattern &nbsp;<span style="color:var(--or);font-size:.62rem;font-family:monospace">j ↓</span></div>
+        <div class="prail" id="jptr"></div>
+        <div class="crail" id="prow"></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="slbl">Matches Found</div>
+    <div class="mrail" id="mrail"><span style="color:var(--muted);font-size:.76rem">None yet…</span></div>
+  </div>
+</div>
+<div class="sidebar">
+  <div class="ibox">
+    <h3>🧠 How KMP Works</h3>
+    <p>KMP avoids redundant comparisons using a <span class="cx o">failure function</span> precomputed from the pattern.</p>
+    <p><code>fail[k]</code> = length of longest proper prefix of <code>pat[0..k]</code> that is also a suffix.</p>
+    <p>On <span class="cx r">mismatch</span> at <code>j</code>: jump <code>j → fail[j-1]</code>. The text pointer <code>i</code> <span class="cx g">never moves backward</span>.</p>
+    <p>Total: <span class="cx b">O(n+m)</span> comparisons — linear time!</p>
+  </div>
+  <div class="ibox">
+    <h3>⚡ Complexity</h3>
+    <div class="cxr"><span class="l">Preprocessing</span><span class="v">O(m)</span></div>
+    <div class="cxr"><span class="l">Search</span><span class="v">O(n)</span></div>
+    <div class="cxr"><span class="l">Total</span><span class="v">O(n + m)</span></div>
+    <div class="cxr"><span class="l">Space</span><span class="v">O(m)</span></div>
+    <div class="cxr"><span class="l">Brute-force</span><span class="v">O(n · m)</span></div>
+    <p style="margin-top:8px;font-size:.72rem">n = |text|, m = |pattern|</p>
+  </div>
+  <div class="ibox">
+    <h3>🎨 Legend</h3>
+    <p><span class="cx o">■</span> Current comparison</p>
+    <p><span class="cx g">■</span> Characters matched</p>
+    <p><span class="cx r">■</span> Mismatch</p>
+    <p><span class="cx y">■</span> Full match found</p>
+    <p><span class="cx p">■</span> Skip via failure function</p>
+    <p><span class="cx b">■</span> Failure value built</p>
+  </div>
+  <div>
+    <div class="slbl">Step Log</div>
+    <div class="lbox" id="lbox"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let TXT='',PAT='',FAIL=[],steps=[],si=0,running=false,paused=false,tim=null;
+
+$('spd').addEventListener('input',()=>$('spdL').textContent=$('spd').value+'×');
+const delay=()=>Math.round(1000-+$('spd').value*90);
+
+function preset(t,p){$('tIn').value=t;$('pIn').value=p;resetVis()}
+
+function buildFail(pat){
+  const m=pat.length,f=new Array(m).fill(0);
+  let k=0;
+  for(let i=1;i<m;i++){
+    while(k>0&&pat[i]!==pat[k])k=f[k-1];
+    if(pat[i]===pat[k])k++;
+    f[i]=k;
+  }
+  return f;
+}
+
+function genSteps(txt,pat){
+  const n=txt.length,m=pat.length,out=[];
+  // --- Phase 1: build fail ---
+  const fail=new Array(m).fill(null);
+  out.push({k:'ph',msg:'Phase 1: Computing failure function…',fail:[...fail]});
+  let k=0;
+  for(let i=1;i<m;i++){
+    while(k>0&&pat[i]!==pat[k]){
+      out.push({k:'fbk',i,ki:k,fail:[...fail],msg:`Build: pat[${i}]='${pat[i]}' ≠ pat[${k}]='${pat[k]}', back k→${fail[k-1]??0}`});
+      k=(fail[k-1]??0);
+    }
+    if(pat[i]===pat[k])k++;
+    fail[i]=k;
+    out.push({k:'fs',i,v:k,fail:[...fail],msg:`fail[${i}] = ${k}  (border of "${pat.slice(0,i+1)}")`});
+  }
+  if(fail[0]===null)fail[0]=0;
+  out.push({k:'fd',fail:[...fail],msg:'Failure function ready — starting search…'});
+
+  // --- Phase 2: search ---
+  const found=[]; let cmp=0;
+  out.push({k:'sp',msg:'Phase 2: Scanning text…',i:0,j:0,found:[...found],cmp});
+  let j=0;
+  for(let i=0;i<n;i++){
+    while(j>0&&txt[i]!==pat[j]){
+      const oj=j,nj=fail[j-1]??0; cmp++;
+      out.push({k:'sm',i,j:oj,nj,found:[...found],cmp,
+        msg:`Mismatch txt[${i}]='${txt[i]}' vs pat[${oj}]='${pat[oj]}' — jump j: ${oj}→${nj}`});
+      j=nj;
+    }
+    cmp++;
+    if(txt[i]===pat[j]){
+      out.push({k:'sc',i,j,found:[...found],cmp,
+        msg:`Match txt[${i}]='${txt[i]}' = pat[${j}]='${pat[j]}' ✓`});
+      j++;
+    } else {
+      out.push({k:'sn',i,j,found:[...found],cmp,
+        msg:`No match txt[${i}]='${txt[i]}' vs pat[0]='${pat[0]}'`});
+    }
+    if(j===m){
+      const pos=i-m+1; found.push(pos);
+      out.push({k:'sf',i,j,pos,found:[...found],cmp,
+        msg:`🎉 Match at index ${pos}! j → fail[${m-1}]=${fail[m-1]??0}`});
+      j=fail[m-1]??0;
+    }
+  }
+  out.push({k:'sd',found:[...found],cmp,msg:`Done! ${found.length} match(es) in ${txt.length}-char text.`});
+  return out;
+}
+
+function buildDOM(){
+  // fail grid
+  const fg=$('fgrid'); fg.innerHTML='';
+  const mkr=(lbl,cells,ids)=>{
+    const r=document.createElement('div');r.className='frow';
+    const l=document.createElement('div');l.className='flbl';l.textContent=lbl;r.appendChild(l);
+    cells.forEach((v,i)=>{
+      const c=document.createElement('div');c.className='fc2';if(ids)c.id=ids+i;
+      c.textContent=v;r.appendChild(c);
+    });fg.appendChild(r);
+  };
+  mkr('index',[...PAT].map((_,i)=>i),null);
+  mkr('pattern',[...PAT],null);
+  mkr('fail[]',new Array(PAT.length).fill('—'),'fc-');
+
+  // text row
+  const tr=$('trow');tr.innerHTML='';const ip=$('iptr');ip.innerHTML='';
+  for(let i=0;i<TXT.length;i++){
+    const p=document.createElement('div');p.className='pc';p.id=`ip-${i}`;ip.appendChild(p);
+    const c=document.createElement('div');c.className='cc inn';c.id=`tc-${i}`;
+    c.innerHTML=`${TXT[i]}<span class="ci">${i}</span>`;tr.appendChild(c);
+  }
+  // pattern row
+  const pr=$('prow');pr.innerHTML='';const jp=$('jptr');jp.innerHTML='';
+  for(let j=0;j<PAT.length;j++){
+    const p=document.createElement('div');p.className='pc';p.id=`jp-${j}`;jp.appendChild(p);
+    const c=document.createElement('div');c.className='cc inn';c.id=`pc-${j}`;
+    c.innerHTML=`${PAT[j]}<span class="ci">${j}</span>`;pr.appendChild(c);
+  }
+}
+
+function setcc(id,cls){const c=$(id);if(c){c.className='cc '+cls;}}
+function setptr(id,cls){const c=$(id);if(c){c.className='pc '+cls;}}
+function clearPtrs(){
+  for(let i=0;i<TXT.length;i++){const c=$('ip-'+i);if(c)c.className='pc';}
+  for(let j=0;j<PAT.length;j++){const c=$('jp-'+j);if(c)c.className='pc';}
+}
+function resetSearchDisplay(){
+  for(let i=0;i<TXT.length;i++) setcc('tc-'+i,'inn');
+  for(let j=0;j<PAT.length;j++) setcc('pc-'+j,'inn');
+  clearPtrs();
+}
+
+function log(msg,cls){
+  const lb=$('lbox'),e=document.createElement('div');
+  e.className='le '+(cls||'');e.textContent=msg;lb.appendChild(e);
+  lb.scrollTop=lb.scrollHeight;
+}
+function renderMatches(found){
+  const r=$('mrail');
+  if(!found.length){r.innerHTML='<span style="color:var(--muted);font-size:.76rem">None yet…</span>';return;}
+  r.innerHTML='';
+  found.forEach(p=>{
+    const b=document.createElement('div');b.className='mbdg';
+    b.textContent=`idx ${p}: "${TXT.slice(p,p+PAT.length)}"`;r.appendChild(b);
+  });
+}
+
+function applyStep(s){
+  const m=PAT.length;
+  const badge=$('badge');
+
+  // badge
+  if(['ph','fbk','fs','fd'].includes(s.k)){badge.className='badge bld';badge.textContent='Building';}
+  else if(s.k==='sd'){badge.className='badge dn';badge.textContent='Done';}
+  else{badge.className='badge sch';badge.textContent='Searching';}
+
+  $('smsg').textContent=s.msg;
+  if(s.cmp!==undefined)$('cmpN').textContent=s.cmp;
+  if(s.found!==undefined){$('mN').textContent=s.found.length;renderMatches(s.found);}
+
+  // failure table
+  if(s.fail!==undefined){
+    for(let i=0;i<m;i++){
+      const c=$('fc-'+i);if(!c)continue;
+      if(s.fail[i]===null){c.textContent='—';c.className='fc2';}
+      else{c.textContent=s.fail[i];c.className='fc2 blt';}
+    }
+    if(s.k==='fs'&&s.i!==undefined){const c=$('fc-'+s.i);if(c)c.className='fc2 act';}
+  }
+
+  // search display
+  if(s.k==='sp') resetSearchDisplay();
+  if(s.k==='sc'){
+    clearPtrs();
+    setcc('tc-'+s.i,'cur');setcc('pc-'+s.j,'cur');
+    setptr('ip-'+s.i,'i');setptr('jp-'+s.j,'j');
+    for(let k=s.i-s.j;k<s.i;k++) setcc('tc-'+k,'ok');
+    for(let k=0;k<s.j;k++) setcc('pc-'+k,'ok');
+    log(`i=${s.i} j=${s.j}: '${TXT[s.i]}'='${PAT[s.j]}' ✓`,'ok');
+  }
+  if(s.k==='sn'){
+    clearPtrs();
+    setcc('tc-'+s.i,'bad');setcc('pc-'+s.j,'bad');
+    setptr('ip-'+s.i,'i');setptr('jp-'+s.j,'j');
+    log(`i=${s.i} j=${s.j}: '${TXT[s.i]}'≠'${PAT[s.j]}'`,'bad');
+  }
+  if(s.k==='sm'){
+    clearPtrs();
+    setcc('tc-'+s.i,'bad');setcc('pc-'+s.j,'bad');
+    setptr('ip-'+s.i,'i');setptr('jp-'+s.j,'j');
+    // highlight skipped pattern cells
+    for(let k=s.nj;k<s.j;k++) setcc('pc-'+k,'skp');
+    log(`Mismatch i=${s.i} j=${s.j} → jump j→${s.nj}`,'jmp');
+  }
+  if(s.k==='sf'){
+    clearPtrs();
+    const pos=s.pos;
+    for(let k=pos;k<pos+m;k++) setcc('tc-'+k,'fnd');
+    for(let k=0;k<m;k++) setcc('pc-'+k,'fnd');
+    log(`🎉 MATCH at index ${pos}`,'fnd');
+  }
+  if(s.k==='sd'){
+    for(let i=0;i<TXT.length;i++){
+      const c=$('tc-'+i);if(c&&(c.className.includes('inn')||c.className.includes('ok')||c.className.includes('bad')||c.className.includes('cur'))){c.className='cc inn';}
+    }
+    clearPtrs();
+  }
+}
+
+function stepOnce(){
+  if(si>=steps.length)return;
+  applyStep(steps[si++]);
+  if(si>=steps.length){ finishVis(); }
+}
+
+function run(){
+  if(!running||paused)return;
+  if(si>=steps.length){finishVis();return;}
+  applyStep(steps[si++]);
+  tim=setTimeout(run,delay());
+}
+
+function startVis(){
+  resetVis();
+  TXT=$('tIn').value.trim().toUpperCase();
+  PAT=$('pIn').value.trim().toUpperCase();
+  if(!TXT||!PAT){alert('Please enter text and pattern.');return;}
+  FAIL=buildFail(PAT); steps=genSteps(TXT,PAT); si=0;
+  buildDOM();
+  $('bStart').disabled=true;$('bStep').disabled=false;$('bPause').disabled=false;
+  running=true;paused=false;
+  $('lbox').innerHTML='';$('mrail').innerHTML='<span style="color:var(--muted);font-size:.76rem">None yet…</span>';
+  run();
+}
+
+function step1(){
+  if(!steps.length){
+    TXT=$('tIn').value.trim().toUpperCase();
+    PAT=$('pIn').value.trim().toUpperCase();
+    if(!TXT||!PAT)return;
+    FAIL=buildFail(PAT);steps=genSteps(TXT,PAT);si=0;
+    buildDOM();$('bStart').disabled=true;$('bPause').disabled=false;
+    running=true;paused=true;
+    $('lbox').innerHTML='';$('mrail').innerHTML='<span style="color:var(--muted);font-size:.76rem">None yet…</span>';
+  }
+  stepOnce();
+}
+
+function togglePause(){
+  if(!running)return;
+  paused=!paused;
+  $('bPause').textContent=paused?'▶ Resume':'⏸ Pause';
+  if(!paused)run();
+}
+
+function finishVis(){
+  running=false;clearTimeout(tim);
+  $('bStart').disabled=false;$('bStep').disabled=true;$('bPause').disabled=true;
+  $('bPause').textContent='⏸ Pause';
+  $('badge').className='badge dn';$('badge').textContent='Done';
+}
+
+function resetVis(){
+  running=false;paused=false;clearTimeout(tim);
+  steps=[];si=0;
+  $('bStart').disabled=false;$('bStep').disabled=false;$('bPause').disabled=true;
+  $('bPause').textContent='⏸ Pause';
+  $('badge').className='badge rdy';$('badge').textContent='Ready';
+  $('smsg').textContent='Configure inputs, then press Start.';
+  $('cmpN').textContent='0';$('mN').textContent='0';
+  $('trow').innerHTML='';$('prow').innerHTML='';
+  $('iptr').innerHTML='';$('jptr').innerHTML='';
+  $('fgrid').innerHTML='';$('lbox').innerHTML='';
+  $('mrail').innerHTML='<span style="color:var(--muted);font-size:.76rem">None yet…</span>';
+}
+</script>
+</body>
+</html>

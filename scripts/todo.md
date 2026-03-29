@@ -1,8 +1,6 @@
 # Visual-CS Todo Queue
 
 ## Upcoming
-- knuth-morris-pratt — KMP String Matching (pattern search with failure function)
-- rabin-karp — Rabin-Karp (rolling hash string search)
 - suffix-array — Suffix Array (efficient string indexing)
 - hash-table — Hash Table (collision handling visualization)
 - splay-tree — Splay Tree (self-adjusting BST)
@@ -11,6 +9,8 @@
 - huffman-coding — Huffman Coding (optimal prefix-free compression)
 
 ## Done
+- rabin-karp — Rabin-Karp (rolling hash string search) ✅ 2026-03-29
+- knuth-morris-pratt — KMP String Matching (pattern search with failure function) ✅ 2026-03-27
 - convex-hull — Convex Hull (Graham scan / Jarvis march) ✅ 2026-03-25
 - tarjan-scc — Tarjan's SCC Algorithm (strongly connected components) ✅ 2026-03-23
 - prims-algorithm — Prim's Algorithm (MST via greedy vertex expansion) ✅ 2026-03-21
