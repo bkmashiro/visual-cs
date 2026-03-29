@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Levenshtein Distance — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --panel: #111720;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --green: #7ee787;
+  --warn: #f78166;
+  --gold: #e3b341;
+  --violet: #a371f7;
+  --pink: #f778ba;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+header h1 { font-size: 1rem; font-weight: 700; flex: 1; }
+header h1 span { color: var(--accent); }
+
+.layout {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  min-height: 0;
+}
+.sidebar {
+  width: 300px;
+  min-width: 260px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+  overflow-y: auto;
+}
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  overflow: auto;
+  gap: 20px;
+}
+
+.section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.input-group { display: flex; flex-direction: column; gap: 8px; }
+.input-group label { font-size: 0.82rem; color: var(--muted); }
+.input-group input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-group input:focus { border-color: var(--accent); }
+
+.btn {
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 9px 16px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.speed-row { display: flex; align-items: center; gap: 10px; }
+.speed-row label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.speed-row input[type=range] { flex: 1; accent-color: var(--accent); }
+
+.stat-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; }
+.stat-row .val { color: var(--accent); font-weight: 700; font-size: 1rem; }
+.stat-row .lbl { color: var(--muted); }
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-swatch {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Matrix */
+.matrix-wrapper {
+  overflow: auto;
+  max-width: 100%;
+}
+table.dp-matrix {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-family: 'Courier New', monospace;
+}
+table.dp-matrix th, table.dp-matrix td {
+  width: 38px; height: 38px;
+  text-align: center;
+  vertical-align: middle;
+  border: 1px solid var(--border);
+  transition: background 0.25s, color 0.25s;
+  position: relative;
+}
+table.dp-matrix th {
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+table.dp-matrix td {
+  background: var(--panel);
+  color: var(--text);
+  cursor: default;
+  font-size: 0.9rem;
+}
+td.cell-empty { color: var(--muted); }
+td.cell-current { background: #1f3a5f; color: var(--accent); font-weight: 700; outline: 2px solid var(--accent); outline-offset: -2px; }
+td.cell-match { background: #1a3a1a; color: var(--green); }
+td.cell-insert { background: #3a1a2a; color: var(--pink); }
+td.cell-delete { background: #3a2a1a; color: var(--gold); }
+td.cell-replace { background: #2a1a3a; color: var(--violet); }
+td.cell-path { background: #1f2a1f; color: var(--green); font-weight: 700; outline: 2px solid #3fb950; outline-offset: -2px; }
+td.cell-done { opacity: 0.6; }
+
+.strings-display {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.string-vis {
+  display: flex;
+  gap: 0;
+}
+.char-box {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border);
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--surface);
+  transition: background 0.25s, color 0.25s;
+}
+.char-box:first-child { border-radius: 6px 0 0 6px; }
+.char-box:last-child { border-radius: 0 6px 6px 0; }
+.char-box.hl { background: var(--accent); color: #000; }
+
+.ops-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 140px;
+  overflow-y: auto;
+  font-size: 0.78rem;
+  font-family: 'Courier New', monospace;
+  line-height: 1.8;
+}
+.op-match { color: var(--green); }
+.op-insert { color: var(--pink); }
+.op-delete { color: var(--gold); }
+.op-replace { color: var(--violet); }
+
+.info-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 640px;
+  width: 100%;
+}
+.info-box h3 { color: var(--text); font-size: 0.9rem; margin-bottom: 8px; }
+.info-box code {
+  background: var(--panel);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.step-info {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  min-height: 48px;
+  max-width: 640px;
+  width: 100%;
+  color: var(--text);
+  line-height: 1.6;
+}
+.step-info .highlight { color: var(--accent); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">← Home</a>
+  <h1>Levenshtein <span>Distance</span></h1>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <div>
+      <div class="section-title">Input Strings</div>
+      <div class="input-group">
+        <label>Source (s)</label>
+        <input type="text" id="strS" value="kitten" maxlength="14" placeholder="source">
+      </div>
+      <div style="height:8px"></div>
+      <div class="input-group">
+        <label>Target (t)</label>
+        <input type="text" id="strT" value="sitting" maxlength="14" placeholder="target">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Playback</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnPlay">▶ Play</button>
+        <button class="btn btn-secondary" id="btnStep">Step</button>
+        <button class="btn btn-secondary" id="btnReset">Reset</button>
+      </div>
+      <div style="height:8px"></div>
+      <div class="speed-row">
+        <label>Speed</label>
+        <input type="range" id="speed" min="1" max="10" value="5">
+      </div>
+    </div>
+
+    <div class="stat-box">
+      <div class="section-title">Stats</div>
+      <div class="stat-row"><span class="lbl">Edit distance</span><span class="val" id="statDist">—</span></div>
+      <div class="stat-row"><span class="lbl">Cells filled</span><span class="val" id="statCells">0</span></div>
+      <div class="stat-row"><span class="lbl">Operations</span><span class="val" id="statOps">—</span></div>
+      <div class="stat-row"><span class="lbl">Similarity</span><span class="val" id="statSim">—</span></div>
+    </div>
+
+    <div>
+      <div class="section-title">Legend</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#1f3a5f;outline:2px solid #58a6ff;outline-offset:-2px"></div><span>Current cell</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1a3a1a"></div><span style="color:var(--green)">Match (cost 0)</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#3a2a1a"></div><span style="color:var(--gold)">Delete</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#3a1a2a"></div><span style="color:var(--pink)">Insert</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#2a1a3a"></div><span style="color:var(--violet)">Replace (substitution)</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1f2a1f;outline:2px solid #3fb950;outline-offset:-2px"></div><span>Optimal path</span></div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <h3>How it works</h3>
+      <p>The DP recurrence is:<br>
+      <code>dp[i][j] = 0</code> if <code>i=0, j=0</code><br>
+      <code>dp[i][0] = i</code>, <code>dp[0][j] = j</code> (base cases)<br><br>
+      For each cell <code>(i,j)</code>:<br>
+      — if <code>s[i] == t[j]</code>: <code>dp[i][j] = dp[i-1][j-1]</code> (match)<br>
+      — else: <code>min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+1)</code><br>
+      (delete, insert, replace)</p>
+    </div>
+
+    <div>
+      <div class="section-title">Preset Examples</div>
+      <div class="btn-row" style="flex-direction:column">
+        <button class="btn btn-secondary" onclick="setPreset('kitten','sitting')">kitten → sitting</button>
+        <button class="btn btn-secondary" onclick="setPreset('sunday','saturday')">sunday → saturday</button>
+        <button class="btn btn-secondary" onclick="setPreset('abc','abc')">abc → abc (same)</button>
+        <button class="btn btn-secondary" onclick="setPreset('','hello')">empty → hello</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="strings-display">
+      <div>
+        <div class="section-title" style="margin-bottom:6px">Source <span id="sLen" style="color:var(--accent)"></span></div>
+        <div class="string-vis" id="visS"></div>
+      </div>
+      <div>
+        <div class="section-title" style="margin-bottom:6px">Target <span id="tLen" style="color:var(--accent)"></span></div>
+        <div class="string-vis" id="visT"></div>
+      </div>
+    </div>
+
+    <div class="step-info" id="stepInfo">Press Play or Step to start the DP table fill.</div>
+
+    <div class="matrix-wrapper">
+      <table class="dp-matrix" id="dpTable"></table>
+    </div>
+
+    <div style="max-width:640px;width:100%">
+      <div class="section-title" style="margin-bottom:6px">Alignment / Edit Operations</div>
+      <div class="ops-list" id="opsList"><span style="color:var(--muted)">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+let s = '', t = '';
+let dp = [], steps = [], stepIdx = 0;
+let playing = false, timer = null;
+
+function getSpeed() { return 1100 - $('speed').value * 100; }
+
+function setPreset(a, b) {
+  $('strS').value = a; $('strT').value = b;
+  init();
+}
+
+function buildStrVis(id, str, hlIdx) {
+  const el = $(id);
+  el.innerHTML = '';
+  for (let i = 0; i < str.length; i++) {
+    const d = document.createElement('div');
+    d.className = 'char-box' + (i === hlIdx ? ' hl' : '');
+    d.textContent = str[i] || ' ';
+    el.appendChild(d);
+  }
+  if (!str.length) {
+    const d = document.createElement('div');
+    d.className = 'char-box';
+    d.style.color = 'var(--muted)';
+    d.textContent = 'ε';
+    el.appendChild(d);
+  }
+}
+
+function buildTable() {
+  const table = $('dpTable');
+  table.innerHTML = '';
+  const rows = s.length + 2, cols = t.length + 2;
+
+  // Header row
+  const headRow = document.createElement('tr');
+  for (let j = 0; j < cols; j++) {
+    const th = document.createElement('th');
+    if (j === 0) th.textContent = '';
+    else if (j === 1) th.textContent = 'ε';
+    else th.textContent = t[j - 2];
+    headRow.appendChild(th);
+  }
+  table.appendChild(headRow);
+
+  for (let i = 0; i <= s.length; i++) {
+    const tr = document.createElement('tr');
+    // Row header
+    const rh = document.createElement('th');
+    rh.textContent = i === 0 ? 'ε' : s[i - 1];
+    tr.appendChild(rh);
+    // index col
+    const ic = document.createElement('td');
+    ic.id = `cell-${i}-0`;
+    ic.className = 'cell-empty';
+    ic.textContent = '—';
+    tr.appendChild(ic);
+    for (let j = 1; j <= t.length; j++) {
+      const td = document.createElement('td');
+      td.id = `cell-${i}-${j}`;
+      td.className = 'cell-empty';
+      td.textContent = '·';
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+}
+
+function buildSteps() {
+  steps = [];
+  const m = s.length, n = t.length;
+  dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(null));
+
+  // Base cases
+  for (let i = 0; i <= m; i++) steps.push({type:'base', i, j:0, val:i});
+  for (let j = 1; j <= n; j++) steps.push({type:'base', i:0, j, val:j});
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const match = s[i-1] === t[j-1];
+      const diag = (dp[i-1]?.[j-1] ?? 0);
+      const up   = (dp[i-1]?.[j]   ?? i-1);
+      const left = (dp[i]?.[j-1]   ?? j-1);
+      // We store these lazily; steps just record what to compute
+      steps.push({type:'compute', i, j, match, si:i-1, tj:j-1});
+    }
+  }
+  steps.push({type:'done'});
+}
+
+function applyStep(idx) {
+  if (idx >= steps.length) return;
+  const st = steps[idx];
+
+  // Recompute dp up to this step
+  recomputeDp(idx);
+
+  // Clear previous current highlight
+  document.querySelectorAll('.cell-current').forEach(el => {
+    el.classList.remove('cell-current');
+  });
+
+  if (st.type === 'base') {
+    dp[st.i][st.j] = st.val;
+    const cell = $(`cell-${st.i}-${st.j}`);
+    if (cell) { cell.textContent = st.val; cell.className = 'cell-match'; }
+    updateStepInfo(`Base case: dp[${st.i}][${st.j}] = ${st.val}`);
+  } else if (st.type === 'compute') {
+    const {i, j, match, si, tj} = st;
+    const diag = dp[i-1][j-1];
+    const up   = dp[i-1][j];
+    const left = dp[i][j-1];
+    let val, cls;
+    if (match) {
+      val = diag; cls = 'cell-match';
+      updateStepInfo(`dp[${i}][${j}]: <span class="highlight">'${s[si]}' == '${t[tj]}'</span> → match, cost=0 → dp[${i}][${j}] = ${diag}`);
+    } else {
+      const minVal = Math.min(up, left, diag);
+      val = minVal + 1;
+      if (minVal === diag) { cls = 'cell-replace'; updateStepInfo(`dp[${i}][${j}]: <span class="highlight">'${s[si]}' ≠ '${t[tj]}'</span> → replace → min(del=${up+1}, ins=${left+1}, rep=${diag+1}) = ${val}`); }
+      else if (minVal === up) { cls = 'cell-delete'; updateStepInfo(`dp[${i}][${j}]: <span class="highlight">'${s[si]}' ≠ '${t[tj]}'</span> → delete → min(del=${up+1}, ins=${left+1}, rep=${diag+1}) = ${val}`); }
+      else { cls = 'cell-insert'; updateStepInfo(`dp[${i}][${j}]: <span class="highlight">'${s[si]}' ≠ '${t[tj]}'</span> → insert → min(del=${up+1}, ins=${left+1}, rep=${diag+1}) = ${val}`); }
+    }
+    dp[i][j] = val;
+    const cell = $(`cell-${i}-${j}`);
+    if (cell) { cell.textContent = val; cell.className = cls + ' cell-current'; }
+    buildStrVis('visS', s, si);
+    buildStrVis('visT', t, tj);
+    $('statCells').textContent = idx + 1;
+  } else if (st.type === 'done') {
+    buildStrVis('visS', s, -1);
+    buildStrVis('visT', t, -1);
+    const dist = dp[s.length][t.length];
+    $('statDist').textContent = dist;
+    const maxLen = Math.max(s.length, t.length, 1);
+    $('statSim').textContent = ((1 - dist / maxLen) * 100).toFixed(1) + '%';
+    tracePath();
+    updateStepInfo(`Done! Edit distance = <span class="highlight">${dist}</span>`);
+  }
+
+  $('statCells').textContent = Math.max(0, idx - (s.length + t.length) + 1);
+}
+
+function recomputeDp(upTo) {
+  const m = s.length, n = t.length;
+  dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(null));
+  for (let k = 0; k <= upTo && k < steps.length; k++) {
+    const st = steps[k];
+    if (st.type === 'base') dp[st.i][st.j] = st.val;
+    else if (st.type === 'compute') {
+      const {i, j, match} = st;
+      if (dp[i-1][j-1] === null || dp[i-1][j] === null || dp[i][j-1] === null) continue;
+      const diag = dp[i-1][j-1], up = dp[i-1][j], left = dp[i][j-1];
+      dp[i][j] = match ? diag : Math.min(up, left, diag) + 1;
+    }
+  }
+}
+
+function tracePath() {
+  let i = s.length, j = t.length;
+  const path = [];
+  while (i > 0 || j > 0) {
+    path.push([i, j]);
+    if (i === 0) { j--; }
+    else if (j === 0) { i--; }
+    else {
+      const diag = dp[i-1][j-1], up = dp[i-1][j], left = dp[i][j-1];
+      if (s[i-1] === t[j-1] && diag === dp[i][j]) { i--; j--; }
+      else if (diag <= up && diag <= left) { i--; j--; }
+      else if (up <= left) { i--; }
+      else { j--; }
+    }
+  }
+  path.push([0, 0]);
+
+  path.forEach(([pi, pj]) => {
+    const cell = $(`cell-${pi}-${pj}`);
+    if (cell) cell.classList.add('cell-path');
+  });
+
+  // Build ops
+  const ops = [];
+  for (let k = path.length - 1; k > 0; k--) {
+    const [pi, pj] = path[k];
+    const [ni, nj] = path[k - 1];
+    if (ni === pi + 1 && nj === pj + 1) {
+      if (s[pi] === t[pj]) ops.push({type:'match', sc: s[pi], tc: t[pj]});
+      else ops.push({type:'replace', sc: s[pi], tc: t[pj]});
+    } else if (ni === pi + 1) {
+      ops.push({type:'delete', sc: s[pi]});
+    } else {
+      ops.push({type:'insert', tc: t[pj]});
+    }
+  }
+
+  $('statOps').textContent = ops.filter(o => o.type !== 'match').length;
+
+  const ol = $('opsList');
+  ol.innerHTML = '';
+  ops.forEach(op => {
+    const span = document.createElement('div');
+    if (op.type === 'match')   { span.className = 'op-match';   span.textContent = `  match   '${op.sc}'`; }
+    if (op.type === 'replace') { span.className = 'op-replace'; span.textContent = `  replace '${op.sc}' → '${op.tc}'`; }
+    if (op.type === 'delete')  { span.className = 'op-delete';  span.textContent = `  delete  '${op.sc}'`; }
+    if (op.type === 'insert')  { span.className = 'op-insert';  span.textContent = `  insert  '${op.tc}'`; }
+    ol.appendChild(span);
+  });
+}
+
+function updateStepInfo(html) {
+  $('stepInfo').innerHTML = html;
+}
+
+function init() {
+  s = $('strS').value.toLowerCase().slice(0, 14);
+  t = $('strT').value.toLowerCase().slice(0, 14);
+  $('sLen').textContent = `(${s.length})`;
+  $('tLen').textContent = `(${t.length})`;
+  stop();
+  stepIdx = 0;
+  buildSteps();
+  buildTable();
+  buildStrVis('visS', s, -1);
+  buildStrVis('visT', t, -1);
+  $('statDist').textContent = '—';
+  $('statCells').textContent = '0';
+  $('statOps').textContent = '—';
+  $('statSim').textContent = '—';
+  $('opsList').innerHTML = '<span style="color:var(--muted)">—</span>';
+  updateStepInfo('Press Play or Step to start the DP table fill.');
+  $('btnPlay').textContent = '▶ Play';
+}
+
+function step() {
+  if (stepIdx >= steps.length) return;
+  applyStep(stepIdx);
+  stepIdx++;
+  if (stepIdx >= steps.length) stop();
+}
+
+function play() {
+  if (stepIdx >= steps.length) { init(); }
+  playing = true;
+  $('btnPlay').textContent = '⏸ Pause';
+  function tick() {
+    if (!playing || stepIdx >= steps.length) { stop(); return; }
+    step();
+    timer = setTimeout(tick, getSpeed());
+  }
+  tick();
+}
+
+function stop() {
+  playing = false;
+  clearTimeout(timer);
+  $('btnPlay').textContent = '▶ Play';
+}
+
+$('btnPlay').addEventListener('click', () => { playing ? stop() : play(); });
+$('btnStep').addEventListener('click', () => { stop(); step(); });
+$('btnReset').addEventListener('click', init);
+$('strS').addEventListener('input', init);
+$('strT').addEventListener('input', init);
+
+init();
+</script>
+</body>
+</html>

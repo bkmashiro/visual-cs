@@ -3,6 +3,8 @@
 ## Upcoming
 
 ## Done
+- levenshtein-distance — Levenshtein Distance (edit distance DP table fill with alignment trace) ✅ 2026-03-29
+- cycle-detection — Floyd's Cycle Detection (tortoise & hare, 3-phase: detect + μ + λ) ✅ 2026-03-29
 - skip-list — Skip List (probabilistic multi-level linked list) ✅ 2026-03-29
 - aho-corasick — Aho-Corasick Multi-Pattern String Matching (trie + failure links + output links) ✅ 2026-03-29
 - fibonacci-heap — Fibonacci Heap (lazy consolidation, decrease-key cascading cuts, amortized O(1) insert) ✅ 2026-03-29

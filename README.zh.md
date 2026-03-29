@@ -49,6 +49,8 @@
 | [伸展树](./visualizations/splay-tree/) | 数据结构 | 自调整 BST，逐步回放 zig / zig-zig / zig-zag 访问旋转 |
 | [Treap](./visualizations/treap/) | 数据结构 | 随机化 BST + 堆优先级，通过插入上浮与删除下沉旋转维持平衡 |
 | [斐波那契堆](./visualizations/fibonacci-heap/) | 数据结构 | 惰性优先队列，插入/decrease-key 均摊 O(1)；可视化整合过程与级联剪切传播 |
+| [Levenshtein 编辑距离](./visualizations/levenshtein-distance/) | 动态规划 | DP 表格逐格填充，按操作类型着色（匹配/删除/插入/替换），并追踪最优对齐路径 |
+| [环检测](./visualizations/cycle-detection/) | 链表 | Floyd 龟兔算法三阶段演示：检测环、定位环起点 μ、测量环长 λ，支持自定义尾长和环长 |
 
 ---
 
