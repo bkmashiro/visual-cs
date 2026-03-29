@@ -51,6 +51,7 @@
 | [Fibonacci Heap](./visualizations/fibonacci-heap/) | Data Structure | Lazy priority queue with amortized O(1) insert/decrease-key; watch consolidation and cascading cuts |
 | [Levenshtein Distance](./visualizations/levenshtein-distance/) | Dynamic Programming | DP table fill with color-coded match/delete/insert/replace cells and optimal alignment path trace |
 | [Cycle Detection](./visualizations/cycle-detection/) | Linked List | Floyd's Tortoise & Hare — 3-phase detection, cycle start μ, and cycle length λ on a configurable list |
+| [Rope](./visualizations/rope/) | String | Chunked binary string tree with node weights, animated index traversal, split, and concat |
 
 ---
 

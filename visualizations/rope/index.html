@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rope — visual-cs</title>
+<style>
+:root{
+  --bg:#0b1020;--surface:#11192d;--panel:#16233d;--panel2:#1c2b49;--border:#2e4268;
+  --text:#e8eefc;--muted:#93a4c7;--accent:#7dd3fc;--accent0:rgba(125,211,252,.15);
+  --good:#34d399;--good0:rgba(52,211,153,.15);--gold:#fbbf24;--gold0:rgba(251,191,36,.14);
+  --warn:#fb7185;--warn0:rgba(251,113,133,.15);--violet:#c084fc;--violet0:rgba(192,132,252,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(125,211,252,.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(192,132,252,.12), transparent 24%),
+    linear-gradient(180deg, #09101d 0%, #0b1020 100%);
+}
+header{
+  position:sticky;top:0;z-index:20;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 24px;background:rgba(11,16,32,.88);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+header h1{font-size:1.05rem;font-weight:700;letter-spacing:.03em}
+header h1 span{color:var(--accent)}
+header a{color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:6px 12px;border-radius:999px;font-size:.78rem}
+header a:hover{color:var(--text);border-color:var(--accent)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:calc(100vh - 58px)}
+@media (max-width:980px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;display:flex;flex-direction:column;gap:16px}
+.sidebar{padding:22px;border-left:1px solid var(--border);background:rgba(17,25,45,.72);display:flex;flex-direction:column;gap:16px}
+@media (max-width:980px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.hero{
+  padding:18px 20px;border:1px solid var(--border);border-radius:20px;
+  background:linear-gradient(135deg, rgba(125,211,252,.12), rgba(192,132,252,.08) 55%, rgba(52,211,153,.08));
+}
+.hero h2{font-size:1.55rem;margin-bottom:8px}
+.hero p{color:var(--muted);line-height:1.65;max-width:72ch}
+.panel{
+  background:linear-gradient(180deg, rgba(22,35,61,.94), rgba(17,25,45,.96));
+  border:1px solid var(--border);border-radius:18px;padding:16px;
+  box-shadow:0 18px 40px rgba(0,0,0,.18);
+}
+.section-label,.sidebar h3{
+  font-size:.68rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:700
+}
+.controls{display:flex;flex-direction:column;gap:12px}
+.input-grid{display:grid;grid-template-columns:2fr 110px 110px 110px;gap:10px}
+@media (max-width:900px){.input-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.input-grid{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:.72rem;color:var(--muted);font-weight:600}
+.field input{
+  width:100%;padding:10px 12px;border-radius:12px;background:rgba(12,18,34,.92);
+  border:1px solid var(--border);color:var(--text);outline:none;font-size:.95rem
+}
+.field input:focus{border-color:var(--accent)}
+.presets,.btn-row,.meta-row,.legend,.mini-cards,.chunks{display:flex;flex-wrap:wrap;gap:8px}
+button{
+  border:1px solid var(--border);background:#10192e;color:var(--text);border-radius:999px;
+  padding:9px 14px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.18s ease
+}
+button:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+button.primary{background:linear-gradient(135deg, var(--accent), #38bdf8);color:#08111e;border-color:transparent}
+button.primary:hover{color:#08111e;opacity:.92}
+button:disabled{opacity:.4;cursor:default;transform:none}
+.preset{padding:5px 10px;font-size:.74rem;background:#0d1630}
+.speed{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.78rem}
+.speed input{accent-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{
+  border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(12,18,34,.72)
+}
+.stat .k{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+.stat .v{font-size:1.15rem;font-weight:800;margin-top:5px}
+.stage{padding:10px;border-radius:18px;background:linear-gradient(180deg, rgba(9,14,29,.92), rgba(11,16,32,.96));min-height:400px}
+.stage svg{width:100%;height:auto;display:block}
+.result{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px
+}
+@media (max-width:780px){.result{grid-template-columns:1fr}}
+.result-card{
+  border:1px solid var(--border);border-radius:16px;padding:14px;background:rgba(10,16,31,.72)
+}
+.result-card strong{display:block;margin-bottom:8px}
+.result-card code{
+  display:block;word-break:break-word;padding:8px 10px;border-radius:10px;background:#0b1327;
+  color:var(--accent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.84rem
+}
+.chunks{margin-top:10px}
+.chunk{
+  padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:var(--panel);
+  color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem
+}
+.chunk.empty{color:var(--muted)}
+.log{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto}
+.log-entry{
+  padding:8px 10px;border-radius:12px;background:#0b1327;border-left:3px solid var(--border);
+  font-size:.78rem;line-height:1.5;color:var(--muted)
+}
+.log-entry.active{border-left-color:var(--accent);background:var(--accent0);color:var(--text)}
+.log-entry.good{border-left-color:var(--good);background:var(--good0);color:var(--good)}
+.log-entry.warn{border-left-color:var(--warn);background:var(--warn0);color:#fecdd3}
+.legend-item,.mini{
+  display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted)
+}
+.swatch{width:12px;height:12px;border-radius:4px;border:1px solid var(--border);flex:none}
+.mini-cards{flex-direction:column}
+.mini{
+  padding:10px 12px;border-radius:14px;background:rgba(10,16,31,.7);border:1px solid var(--border);align-items:flex-start
+}
+.mini span{display:block}
+.explain{font-size:.8rem;color:var(--muted);line-height:1.7}
+.explain code{background:#0b1327;padding:2px 5px;border-radius:6px;color:var(--accent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.footer-note{font-size:.76rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Rope</span></h1>
+  <a href="../../index.html">← Back</a>
+</header>
+
+<div class="layout">
+  <main class="main">
+    <section class="hero">
+      <h2>Rope: split and concatenate long strings without copying everything.</h2>
+      <p>Leaves store short chunks, internal nodes store the left-subtree weight, and index lookup walks the tree by comparing the query position against each weight. Try build, index, split, then concatenate the halves back together.</p>
+    </section>
+
+    <section class="panel controls">
+      <div class="section-label">Interactive Demo</div>
+      <div class="input-grid">
+        <div class="field">
+          <label>Source Text</label>
+          <input id="textInput" type="text" value="visualizationmakesropesfeelpractical" maxlength="72" spellcheck="false">
+        </div>
+        <div class="field">
+          <label>Chunk Size</label>
+          <input id="chunkInput" type="number" min="2" max="8" value="4">
+        </div>
+        <div class="field">
+          <label>Index Query</label>
+          <input id="indexInput" type="number" min="0" value="9">
+        </div>
+        <div class="field">
+          <label>Split At</label>
+          <input id="splitInput" type="number" min="0" value="14">
+        </div>
+      </div>
+      <div class="presets">
+        <button class="preset" data-text="visualizationmakesropesfeelpractical" data-chunk="4">Default</button>
+        <button class="preset" data-text="concatenateandsplitwithoutlinearcopy" data-chunk="5">Editor Buffer</button>
+        <button class="preset" data-text="datastructuresmatterwhenstringsgrow" data-chunk="3">Small Leaves</button>
+      </div>
+      <div class="btn-row">
+        <button class="primary" id="buildBtn">Build Rope</button>
+        <button id="indexBtn">Animate Index</button>
+        <button id="splitBtn">Animate Split</button>
+        <button id="concatBtn">Concat Halves</button>
+        <button id="playBtn">▶ Play</button>
+        <button id="pauseBtn" disabled>⏸ Pause</button>
+        <button id="stepBtn">Step</button>
+        <button id="resetBtn">Reset</button>
+        <div class="speed">
+          <span>Speed</span>
+          <input id="speedInput" type="range" min="1" max="10" value="5">
+          <span id="speedLabel">5</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat"><div class="k">Length</div><div class="v" id="statLength">0</div></div>
+      <div class="stat"><div class="k">Leaves</div><div class="v" id="statLeaves">0</div></div>
+      <div class="stat"><div class="k">Height</div><div class="v" id="statHeight">0</div></div>
+      <div class="stat"><div class="k">Operation</div><div class="v" id="statOp">Build</div></div>
+      <div class="stat"><div class="k">Result</div><div class="v" id="statResult">Ready</div></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-label">Rope Tree</div>
+      <div class="stage" id="stage"></div>
+    </section>
+
+    <section class="result">
+      <div class="result-card">
+        <strong>Current String</strong>
+        <code id="currentText"></code>
+        <div class="chunks" id="currentChunks"></div>
+      </div>
+      <div class="result-card">
+        <strong>Left Half / Query Result</strong>
+        <code id="leftText">—</code>
+        <div class="chunks" id="leftChunks"></div>
+      </div>
+      <div class="result-card">
+        <strong>Right Half</strong>
+        <code id="rightText">—</code>
+        <div class="chunks" id="rightChunks"></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="sidebar">
+    <section>
+      <h3>Legend</h3>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:rgba(255,255,255,.04)"></span>Normal node / chunk</div>
+        <div class="legend-item"><span class="swatch" style="background:var(--accent0);border-color:var(--accent)"></span>Traversal focus</div>
+        <div class="legend-item"><span class="swatch" style="background:var(--gold0);border-color:var(--gold)"></span>Decision branch</div>
+        <div class="legend-item"><span class="swatch" style="background:var(--good0);border-color:var(--good)"></span>Final answer or finished split</div>
+        <div class="legend-item"><span class="swatch" style="background:var(--warn0);border-color:var(--warn)"></span>Concatenation join</div>
+      </div>
+    </section>
+
+    <section>
+      <h3>What Rope Stores</h3>
+      <div class="mini-cards">
+        <div class="mini"><span><strong>Leaf</strong></span><span>Small text chunk like <code>visi</code> or <code>rope</code>.</span></div>
+        <div class="mini"><span><strong>Internal Node Weight</strong></span><span>Length of the left subtree. If <code>i &lt; weight</code>, go left; otherwise go right with <code>i - weight</code>.</span></div>
+        <div class="mini"><span><strong>Split</strong></span><span>Break one logical string into two ropes near an index, then reuse both subtrees.</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h3>Step Log</h3>
+      <div class="log" id="log"></div>
+    </section>
+
+    <section>
+      <h3>How It Works</h3>
+      <div class="explain">
+        Build leaves of size <code>k</code>, then merge adjacent nodes upward into a balanced binary tree. Internal node weight equals the length of its left subtree, so index lookup compares against that weight at every level. Split and concat become tree operations instead of repeatedly copying a full string.
+        <br><br>
+        Average operations are near <code>O(log n)</code> on a balanced rope, while the logical string stays the same as <code>leaf1 + leaf2 + ...</code>.
+      </div>
+    </section>
+
+    <div class="footer-note">Pure HTML/CSS/JS. No dependencies.</div>
+  </aside>
+</div>
+
+<script>
+const stage = document.getElementById('stage');
+const logEl = document.getElementById('log');
+const textInput = document.getElementById('textInput');
+const chunkInput = document.getElementById('chunkInput');
+const indexInput = document.getElementById('indexInput');
+const splitInput = document.getElementById('splitInput');
+const speedInput = document.getElementById('speedInput');
+const speedLabel = document.getElementById('speedLabel');
+const currentTextEl = document.getElementById('currentText');
+const leftTextEl = document.getElementById('leftText');
+const rightTextEl = document.getElementById('rightText');
+const currentChunksEl = document.getElementById('currentChunks');
+const leftChunksEl = document.getElementById('leftChunks');
+const rightChunksEl = document.getElementById('rightChunks');
+
+const state = {
+  sourceText: '',
+  chunkSize: 4,
+  rope: null,
+  lastSplit: null,
+  mode: 'build',
+  steps: [],
+  stepIndex: -1,
+  timer: null
+};
+
+let nodeId = 0;
+const nid = () => `n${++nodeId}`;
+
+function chunkText(text, size){
+  const out = [];
+  for(let i = 0; i < text.length; i += size) out.push(text.slice(i, i + size));
+  return out.length ? out : [''];
+}
+
+function makeLeaf(text){
+  return { id: nid(), kind: 'leaf', text, length: text.length, weight: text.length, left: null, right: null };
+}
+
+function merge(left, right){
+  return {
+    id: nid(),
+    kind: 'internal',
+    left,
+    right,
+    length: left.length + right.length,
+    weight: left.length,
+    text: null
+  };
+}
+
+function buildRope(text, size){
+  const leaves = chunkText(text, size).map(makeLeaf);
+  const buildSteps = leaves.map((leaf, i) => ({
+    type: 'leaf',
+    focus: [leaf.id],
+    desc: `Create leaf ${i + 1} containing "${leaf.text || '∅'}".`,
+    result: leaf.text || 'empty leaf'
+  }));
+  let layer = leaves.slice();
+  while(layer.length > 1){
+    const next = [];
+    for(let i = 0; i < layer.length; i += 2){
+      if(i + 1 >= layer.length){
+        next.push(layer[i]);
+        buildSteps.push({
+          type: 'carry',
+          focus: [layer[i].id],
+          desc: `Carry ${describeNode(layer[i])} to the next level without merging.`,
+          result: `length ${layer[i].length}`
+        });
+        continue;
+      }
+      const parent = merge(layer[i], layer[i + 1]);
+      next.push(parent);
+      buildSteps.push({
+        type: 'merge',
+        focus: [layer[i].id, layer[i + 1].id, parent.id],
+        decision: [layer[i].id, layer[i + 1].id],
+        desc: `Merge ${describeNode(layer[i])} + ${describeNode(layer[i + 1])} into a parent with weight ${parent.weight}.`,
+        result: `parent length ${parent.length}`
+      });
+    }
+    layer = next;
+  }
+  return { root: layer[0], leaves, buildSteps };
+}
+
+function describeNode(node){
+  return node.kind === 'leaf' ? `"${node.text || '∅'}"` : `node(w=${node.weight}, len=${node.length})`;
+}
+
+function collectLeaves(node, out = []){
+  if(!node) return out;
+  if(node.kind === 'leaf'){ out.push(node.text); return out; }
+  collectLeaves(node.left, out);
+  collectLeaves(node.right, out);
+  return out;
+}
+
+function height(node){
+  if(!node) return 0;
+  if(node.kind === 'leaf') return 1;
+  return 1 + Math.max(height(node.left), height(node.right));
+}
+
+function pathToIndex(node, index){
+  const steps = [];
+  let curr = node;
+  let i = index;
+  while(curr){
+    if(curr.kind === 'leaf'){
+      const ch = curr.text[i] ?? '';
+      steps.push({
+        type: 'answer',
+        focus: [curr.id],
+        good: [curr.id],
+        desc: `Reached leaf "${curr.text}". Offset ${i} yields character "${ch || '∅'}".`,
+        result: ch || 'out of range'
+      });
+      break;
+    }
+    const goLeft = i < curr.weight;
+    steps.push({
+      type: 'decision',
+      focus: [curr.id, goLeft ? curr.left.id : curr.right.id],
+      decision: [goLeft ? curr.left.id : curr.right.id],
+      desc: goLeft
+        ? `Index ${i} is smaller than weight ${curr.weight}, so descend left.`
+        : `Index ${i} is at least weight ${curr.weight}, so go right with new index ${i - curr.weight}.`,
+      result: goLeft ? 'left branch' : `right branch → ${i - curr.weight}`
+    });
+    if(!goLeft) i -= curr.weight;
+    curr = goLeft ? curr.left : curr.right;
+  }
+  return steps;
+}
+
+function splitSteps(node, splitAt, chunkSize){
+  const clamped = Math.max(0, Math.min(splitAt, node.length));
+  const base = pathToIndex(node, Math.min(clamped, Math.max(0, node.length - 1))).slice(0, -1);
+  const leftText = flatten(node).slice(0, clamped);
+  const rightText = flatten(node).slice(clamped);
+  const leftRope = buildRope(leftText, chunkSize).root;
+  const rightRope = buildRope(rightText, chunkSize).root;
+  base.push({
+    type: 'split',
+    focus: [node.id],
+    good: [node.id],
+    desc: `Split the logical string at ${clamped}. Left keeps ${leftText.length} chars, right keeps ${rightText.length}.`,
+    result: `"${leftText}" | "${rightText}"`
+  });
+  return { steps: base, leftText, rightText, leftRope, rightRope };
+}
+
+function flatten(node){
+  return collectLeaves(node, []).join('');
+}
+
+function concatSteps(leftText, rightText, chunkSize){
+  const joined = leftText + rightText;
+  const built = buildRope(joined, chunkSize);
+  return {
+    steps: [{
+      type: 'concat',
+      focus: built.root ? [built.root.id] : [],
+      warn: built.root ? [built.root.id] : [],
+      desc: `Concatenate left + right halves into one logical string again.`,
+      result: joined
+    }].concat(built.buildSteps),
+    rope: built.root,
+    text: joined
+  };
+}
+
+function setStats(resultText){
+  document.getElementById('statLength').textContent = state.rope ? state.rope.length : 0;
+  document.getElementById('statLeaves').textContent = state.rope ? collectLeaves(state.rope).length : 0;
+  document.getElementById('statHeight').textContent = state.rope ? height(state.rope) : 0;
+  document.getElementById('statOp').textContent = state.mode;
+  document.getElementById('statResult').textContent = resultText || 'Ready';
+}
+
+function renderChunks(el, text){
+  el.innerHTML = '';
+  const parts = text ? chunkText(text, state.chunkSize) : [];
+  if(!parts.length){
+    const empty = document.createElement('span');
+    empty.className = 'chunk empty';
+    empty.textContent = 'empty';
+    el.appendChild(empty);
+    return;
+  }
+  parts.forEach(part => {
+    const span = document.createElement('span');
+    span.className = 'chunk';
+    span.textContent = part;
+    el.appendChild(span);
+  });
+}
+
+function updateResultCards(){
+  const full = state.rope ? flatten(state.rope) : '';
+  currentTextEl.textContent = full || '∅';
+  renderChunks(currentChunksEl, full);
+  if(state.mode === 'index' && state.steps[state.stepIndex]){
+    leftTextEl.textContent = state.steps[state.stepIndex].result || '—';
+    rightTextEl.textContent = '—';
+    renderChunks(leftChunksEl, '');
+    renderChunks(rightChunksEl, '');
+    return;
+  }
+  if(state.lastSplit){
+    leftTextEl.textContent = state.lastSplit.leftText || '∅';
+    rightTextEl.textContent = state.lastSplit.rightText || '∅';
+    renderChunks(leftChunksEl, state.lastSplit.leftText);
+    renderChunks(rightChunksEl, state.lastSplit.rightText);
+  }else{
+    leftTextEl.textContent = '—';
+    rightTextEl.textContent = '—';
+    renderChunks(leftChunksEl, '');
+    renderChunks(rightChunksEl, '');
+  }
+}
+
+function computePositions(root){
+  const map = new Map();
+  let leafIndex = 0;
+  function walk(node, depth){
+    if(node.kind === 'leaf'){
+      const x = 90 + leafIndex * 112;
+      leafIndex += 1;
+      const y = 70 + depth * 92;
+      map.set(node.id, { x, y, node });
+      return x;
+    }
+    const lx = walk(node.left, depth + 1);
+    const rx = walk(node.right, depth + 1);
+    const x = (lx + rx) / 2;
+    const y = 70 + depth * 92;
+    map.set(node.id, { x, y, node });
+    return x;
+  }
+  walk(root, 0);
+  return map;
+}
+
+function renderTree(root, step = null){
+  if(!root){
+    stage.innerHTML = '<div class="footer-note">Build a rope first.</div>';
+    return;
+  }
+  const pos = computePositions(root);
+  const maxX = Math.max(...Array.from(pos.values()).map(v => v.x));
+  const maxY = Math.max(...Array.from(pos.values()).map(v => v.y));
+  const width = maxX + 90;
+  const heightPx = maxY + 90;
+  const focus = new Set(step?.focus || []);
+  const decision = new Set(step?.decision || []);
+  const good = new Set(step?.good || []);
+  const warn = new Set(step?.warn || []);
+
+  const lines = [];
+  const nodes = [];
+  pos.forEach(({ x, y, node }) => {
+    if(node.left){
+      const lp = pos.get(node.left.id);
+      lines.push(`<line x1="${x}" y1="${y}" x2="${lp.x}" y2="${lp.y}" stroke="${decision.has(node.left.id) ? '#fbbf24' : '#45608d'}" stroke-width="${decision.has(node.left.id) ? 3 : 2}" />`);
+    }
+    if(node.right){
+      const rp = pos.get(node.right.id);
+      lines.push(`<line x1="${x}" y1="${y}" x2="${rp.x}" y2="${rp.y}" stroke="${decision.has(node.right.id) ? '#fbbf24' : '#45608d'}" stroke-width="${decision.has(node.right.id) ? 3 : 2}" />`);
+    }
+  });
+
+  pos.forEach(({ x, y, node }) => {
+    let fill = 'rgba(255,255,255,.04)';
+    let stroke = '#4a638c';
+    if(focus.has(node.id)){ fill = 'rgba(125,211,252,.16)'; stroke = '#7dd3fc'; }
+    if(decision.has(node.id)){ fill = 'rgba(251,191,36,.18)'; stroke = '#fbbf24'; }
+    if(good.has(node.id)){ fill = 'rgba(52,211,153,.16)'; stroke = '#34d399'; }
+    if(warn.has(node.id)){ fill = 'rgba(251,113,133,.18)'; stroke = '#fb7185'; }
+    const label = node.kind === 'leaf' ? (node.text || '∅') : `w=${node.weight}`;
+    const sub = node.kind === 'leaf' ? `len=${node.length}` : `len=${node.length}`;
+    nodes.push(`
+      <g>
+        <circle cx="${x}" cy="${y}" r="28" fill="${fill}" stroke="${stroke}" stroke-width="2.5"></circle>
+        <text x="${x}" y="${y - 3}" text-anchor="middle" fill="#e8eefc" font-size="12" font-weight="700" font-family="ui-monospace, monospace">${escapeXml(label)}</text>
+        <text x="${x}" y="${y + 13}" text-anchor="middle" fill="#93a4c7" font-size="10" font-family="ui-monospace, monospace">${sub}</text>
+      </g>`);
+  });
+
+  stage.innerHTML = `<svg viewBox="0 0 ${width} ${heightPx}" role="img" aria-label="Rope tree">
+    ${lines.join('')}
+    ${nodes.join('')}
+  </svg>`;
+}
+
+function escapeXml(text){
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderLog(){
+  logEl.innerHTML = '';
+  if(!state.steps.length){
+    logEl.innerHTML = '<div class="log-entry">No animation loaded.</div>';
+    return;
+  }
+  state.steps.forEach((step, idx) => {
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    if(idx === state.stepIndex) div.classList.add('active');
+    if(step.type === 'answer' || step.type === 'split') div.classList.add('good');
+    if(step.type === 'concat') div.classList.add('warn');
+    div.textContent = `${idx + 1}. ${step.desc}`;
+    logEl.appendChild(div);
+  });
+}
+
+function applyStep(){
+  const step = state.steps[state.stepIndex] || null;
+  renderTree(state.rope, step);
+  renderLog();
+  const result = step?.result || 'Ready';
+  setStats(result);
+  updateResultCards();
+}
+
+function resetAnimation(){
+  pause();
+  state.stepIndex = state.steps.length ? 0 : -1;
+  if(state.stepIndex === 0) applyStep();
+  else{
+    renderTree(state.rope);
+    renderLog();
+    setStats('Ready');
+    updateResultCards();
+  }
+}
+
+function play(){
+  if(!state.steps.length) return;
+  pause();
+  document.getElementById('playBtn').disabled = true;
+  document.getElementById('pauseBtn').disabled = false;
+  const tick = () => {
+    if(state.stepIndex >= state.steps.length - 1){
+      pause();
+      return;
+    }
+    state.stepIndex += 1;
+    applyStep();
+    state.timer = setTimeout(tick, 1200 - speedInput.value * 90);
+  };
+  if(state.stepIndex < 0) state.stepIndex = 0;
+  applyStep();
+  state.timer = setTimeout(tick, 1200 - speedInput.value * 90);
+}
+
+function pause(){
+  clearTimeout(state.timer);
+  state.timer = null;
+  document.getElementById('playBtn').disabled = false;
+  document.getElementById('pauseBtn').disabled = true;
+}
+
+function stepForward(){
+  if(!state.steps.length) return;
+  pause();
+  state.stepIndex = Math.min(state.steps.length - 1, state.stepIndex + 1);
+  applyStep();
+}
+
+function buildFromInputs(){
+  pause();
+  const text = (textInput.value || '').replace(/\s+/g, '');
+  const chunkSize = Math.max(2, Math.min(8, Number(chunkInput.value) || 4));
+  textInput.value = text;
+  chunkInput.value = chunkSize;
+  indexInput.max = Math.max(0, text.length - 1);
+  splitInput.max = text.length;
+  splitInput.value = Math.min(Number(splitInput.value) || 0, text.length);
+  indexInput.value = Math.min(Number(indexInput.value) || 0, Math.max(0, text.length - 1));
+
+  state.sourceText = text;
+  state.chunkSize = chunkSize;
+  const built = buildRope(text, chunkSize);
+  state.rope = built.root;
+  state.mode = 'build';
+  state.lastSplit = null;
+  state.steps = built.buildSteps;
+  state.stepIndex = 0;
+  applyStep();
+}
+
+function animateIndex(){
+  if(!state.rope) buildFromInputs();
+  const index = Math.max(0, Math.min(Number(indexInput.value) || 0, Math.max(0, state.rope.length - 1)));
+  indexInput.value = index;
+  state.mode = 'index';
+  state.steps = pathToIndex(state.rope, index);
+  state.stepIndex = 0;
+  applyStep();
+}
+
+function animateSplit(){
+  if(!state.rope) buildFromInputs();
+  const splitAt = Math.max(0, Math.min(Number(splitInput.value) || 0, state.rope.length));
+  splitInput.value = splitAt;
+  const result = splitSteps(state.rope, splitAt, state.chunkSize);
+  state.mode = 'split';
+  state.steps = result.steps;
+  state.stepIndex = 0;
+  state.lastSplit = {
+    leftText: result.leftText,
+    rightText: result.rightText,
+    leftRope: result.leftRope,
+    rightRope: result.rightRope
+  };
+  applyStep();
+}
+
+function animateConcat(){
+  if(!state.lastSplit){
+    animateSplit();
+    return;
+  }
+  const result = concatSteps(state.lastSplit.leftText, state.lastSplit.rightText, state.chunkSize);
+  state.mode = 'concat';
+  state.rope = result.rope;
+  state.steps = result.steps;
+  state.stepIndex = 0;
+  applyStep();
+}
+
+document.getElementById('buildBtn').addEventListener('click', buildFromInputs);
+document.getElementById('indexBtn').addEventListener('click', animateIndex);
+document.getElementById('splitBtn').addEventListener('click', animateSplit);
+document.getElementById('concatBtn').addEventListener('click', animateConcat);
+document.getElementById('playBtn').addEventListener('click', play);
+document.getElementById('pauseBtn').addEventListener('click', pause);
+document.getElementById('stepBtn').addEventListener('click', stepForward);
+document.getElementById('resetBtn').addEventListener('click', buildFromInputs);
+speedInput.addEventListener('input', () => { speedLabel.textContent = speedInput.value; });
+
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    textInput.value = btn.dataset.text;
+    chunkInput.value = btn.dataset.chunk;
+    buildFromInputs();
+  });
+});
+
+buildFromInputs();
+</script>
+</body>
+</html>

@@ -51,6 +51,7 @@
 | [斐波那契堆](./visualizations/fibonacci-heap/) | 数据结构 | 惰性优先队列，插入/decrease-key 均摊 O(1)；可视化整合过程与级联剪切传播 |
 | [Levenshtein 编辑距离](./visualizations/levenshtein-distance/) | 动态规划 | DP 表格逐格填充，按操作类型着色（匹配/删除/插入/替换），并追踪最优对齐路径 |
 | [环检测](./visualizations/cycle-detection/) | 链表 | Floyd 龟兔算法三阶段演示：检测环、定位环起点 μ、测量环长 λ，支持自定义尾长和环长 |
+| [Rope 字符串树](./visualizations/rope/) | 字符串 | 分块二叉字符串树，展示节点权重、按索引查找路径、分裂与拼接 |
 
 ---
 
