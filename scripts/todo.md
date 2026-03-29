@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- segment-tree — Segment Tree (range sum query, point update, lazy propagation range add) ✅ 2026-03-29
 - bloom-filter — Bloom Filter (probabilistic membership, k hash functions, false-positive rate visualization) ✅ 2026-03-29
 - lcs — Longest Common Subsequence (DP table fill + traceback, LCS highlight in both strings) ✅ 2026-03-29
 - levenshtein-distance — Levenshtein Distance (edit distance DP table fill with alignment trace) ✅ 2026-03-29

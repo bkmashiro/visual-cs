@@ -386,6 +386,40 @@
     font-size: 0.9rem;
   }
   .notes strong { color: var(--text); }
+  .step-guide {
+    display: grid;
+    gap: 10px;
+  }
+  .step-guide-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .step-guide-title h3 {
+    margin: 0;
+    font-size: 0.98rem;
+    letter-spacing: -0.02em;
+  }
+  .step-guide p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 0.9rem;
+  }
+  .step-guide ol {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--text);
+    display: grid;
+    gap: 8px;
+    line-height: 1.55;
+    font-size: 0.9rem;
+  }
+  .step-guide li::marker {
+    color: var(--accent);
+    font-weight: 800;
+  }
   .seed-row {
     display: flex;
     flex-wrap: wrap;
@@ -536,6 +570,18 @@
         <div class="notes">
           <strong>Complexity:</strong> search, insert, and delete are all <code>O(log n)</code> when the invariants hold. The color bit lets the tree stay balanced with fewer rigid constraints than AVL trees, so updates use a small number of rotations plus recoloring.
         </div>
+        <div class="notes step-guide">
+          <div class="step-guide-title">
+            <h3>Step explainer</h3>
+            <span class="badge" id="step-badge">Ready</span>
+          </div>
+          <p id="step-summary">Each frame explains what the current recolor, rotation, splice, or search comparison is doing.</p>
+          <ol id="step-list">
+            <li>Build or modify the BST shape.</li>
+            <li>Repair any red-red or black-height violations.</li>
+            <li>Replay the frames to inspect the balancing decisions.</li>
+          </ol>
+        </div>
       </div>
     </section>
   </div>
@@ -582,6 +628,236 @@
   const frameLabel = document.getElementById("frame-label");
   const frameType = document.getElementById("frame-type");
   const eventLog = document.getElementById("event-log");
+  const stepBadge = document.getElementById("step-badge");
+  const stepSummary = document.getElementById("step-summary");
+  const stepList = document.getElementById("step-list");
+
+  const STEP_COPY = {
+    "Insert start": {
+      summary: "Insertion begins as a normal BST walk. Balancing only starts after the new red leaf is attached.",
+      steps: [
+        "Walk down the tree to find the insertion point.",
+        "Record the visited nodes so the search path can be replayed.",
+        "Prepare to inspect the parent, uncle, and grandparent."
+      ]
+    },
+    "BST insert": {
+      summary: "The key is now placed in BST order. Any remaining problem is purely a local red-black property violation.",
+      steps: [
+        "Attach the new node as a red leaf.",
+        "If the parent is black, the insert is already valid.",
+        "If the parent is red, enter fix-up and resolve the local conflict."
+      ]
+    },
+    "Color flip": {
+      summary: "A red uncle means the subtree can be repaired by recoloring before checking the next higher level.",
+      steps: [
+        "Paint the parent and uncle black.",
+        "Paint the grandparent red so black height stays unchanged.",
+        "Continue repair from the grandparent if a red-red conflict moved upward."
+      ]
+    },
+    "Recolor pivot": {
+      summary: "After straightening the subtree into a line, recolor the pivot nodes so a single rotation can finish the insert repair.",
+      steps: [
+        "Paint the parent black so it can become the local root.",
+        "Paint the grandparent red so the red-red edge disappears after rotation.",
+        "Rotate around the grandparent to restore balance."
+      ]
+    },
+    "Rotate left": {
+      summary: "A left rotation lifts the right child while preserving the in-order sequence of the subtree.",
+      steps: [
+        "Promote the right child into the subtree root position.",
+        "Move the promoted node's left subtree onto the old pivot's right edge.",
+        "Reconnect parent links so the BST order is unchanged."
+      ]
+    },
+    "Rotate right": {
+      summary: "A right rotation is the mirror image: it lifts the left child without changing sorted order.",
+      steps: [
+        "Promote the left child into the subtree root position.",
+        "Move the promoted node's right subtree onto the old pivot's left edge.",
+        "Reconnect the rotated subtree to its former parent."
+      ]
+    },
+    "Insert done": {
+      summary: "Insertion ends by forcing the root black and verifying that the entire tree satisfies the five invariants again.",
+      steps: [
+        "Paint the root black regardless of the previous case.",
+        "Check that no red node has a red child.",
+        "Confirm equal black height on all root-to-NIL paths."
+      ]
+    },
+    "Delete start": {
+      summary: "Deletion starts as BST deletion. Only removing a black node can create the extra-black fix-up cases.",
+      steps: [
+        "Search for the target node.",
+        "Classify whether it has zero, one, or two children.",
+        "Track the color of the node that will be physically removed."
+      ]
+    },
+    "Delete locate": {
+      summary: "The target node is fixed in place; the algorithm now chooses direct splice or successor promotion.",
+      steps: [
+        "Highlight the node being removed.",
+        "Choose the correct BST delete case.",
+        "Preserve BST ordering before any balancing work starts."
+      ]
+    },
+    "Delete splice": {
+      summary: "Leaf and single-child deletion are direct transplants. Any balancing work depends on the removed node's original color.",
+      steps: [
+        "Replace the deleted node with its child or with NIL.",
+        "Reconnect the surrounding parent links.",
+        "Carry an extra black upward only if a black node disappeared."
+      ]
+    },
+    "Successor swap": {
+      summary: "For two-child deletion, the in-order successor preserves sorted order while moving the real removal site downward.",
+      steps: [
+        "Find the minimum node in the right subtree.",
+        "Treat that successor as the node that will be physically removed.",
+        "Prepare to transplant it into the deleted node's position."
+      ]
+    },
+    "Successor detach": {
+      summary: "If the successor is deeper in the subtree, detach it first so its old parent keeps a valid child link.",
+      steps: [
+        "Replace the successor with its right child.",
+        "Attach the deleted node's right subtree under the successor.",
+        "Keep tracking the removed node's original color for fix-up."
+      ]
+    },
+    "Successor promote": {
+      summary: "The successor now replaces the deleted node and inherits its color so path black counts remain aligned.",
+      steps: [
+        "Attach the deleted node's left subtree under the successor.",
+        "Copy the deleted node's color onto the successor.",
+        "Continue only if the physically removed node had been black."
+      ]
+    },
+    "Delete recolor": {
+      summary: "A red sibling is converted into a black-sibling case by swapping colors with the parent and rotating once.",
+      steps: [
+        "Paint the sibling black.",
+        "Paint the parent red.",
+        "Rotate so the next iteration sees a black sibling."
+      ]
+    },
+    "Push black up": {
+      summary: "If the sibling and both sibling children are black, the extra black cannot be absorbed locally and moves upward.",
+      steps: [
+        "Paint the sibling red to donate one black level.",
+        "Move the extra black marker from the current node to the parent.",
+        "Repeat until another case can absorb it."
+      ]
+    },
+    "Prepare sibling": {
+      summary: "An inward red nephew must be rotated outward before the final deletion fix-up can borrow black height correctly.",
+      steps: [
+        "Recolor the sibling and its inner child.",
+        "Rotate around the sibling to expose an outer red child.",
+        "Re-enter the final borrow-and-rotate case."
+      ]
+    },
+    "Delete final rotate": {
+      summary: "The outer red nephew now supplies the missing black height, and one final rotation restores the subtree.",
+      steps: [
+        "Copy the parent's old color onto the sibling.",
+        "Paint the parent black and the far nephew black.",
+        "Rotate around the parent to absorb the extra black completely."
+      ]
+    },
+    "Delete done": {
+      summary: "Deletion fix-up ends when the current node is black again, which removes the extra-black imbalance.",
+      steps: [
+        "Paint the current node black if it is real.",
+        "Stop the fix-up loop because black height is restored locally.",
+        "Re-check the root and all property badges."
+      ]
+    },
+    "Delete complete": {
+      summary: "The delete operation is over. The root is normalized to black and the tree is ready for the next command.",
+      steps: [
+        "Force the root black.",
+        "Verify the five red-black properties.",
+        "Replay the frames again to inspect the repair sequence."
+      ]
+    },
+    "Search start": {
+      summary: "Search is read-only. It only follows BST ordering and never recolors or rotates.",
+      steps: [
+        "Start from the root.",
+        "Compare the target with the current node.",
+        "Move left or right according to BST order."
+      ]
+    },
+    "Search step": {
+      summary: "Each step highlights both the active comparison node and the path already traversed from the root.",
+      steps: [
+        "Inspect the current key.",
+        "Decide whether the target is smaller, larger, or equal.",
+        "Advance into the chosen subtree without changing structure."
+      ]
+    },
+    "Search hit": {
+      summary: "The target has been found. The visualization stops on the successful comparison node.",
+      steps: [
+        "Highlight the matching node.",
+        "Leave the tree unchanged because search is read-only.",
+        "Use replay to inspect the exact root-to-target path."
+      ]
+    },
+    "Search miss": {
+      summary: "The search reached an implicit NIL leaf, so the requested key is not present in the tree.",
+      steps: [
+        "Replay the visited comparison nodes.",
+        "Notice that no recolor or rotation occurs.",
+        "Try inserting the missing key to see the next balancing sequence."
+      ]
+    },
+    "Seed": {
+      summary: "A seed sequence bulk-loads the tree by chaining together standard red-black inserts.",
+      steps: [
+        "Reset the tree to empty.",
+        "Insert each listed value using the normal insert routine.",
+        "Land on the final balanced tree for immediate exploration."
+      ]
+    },
+    "Insert demo": {
+      summary: "The classic insert demo is chosen to trigger both recoloring and rotations in a compact example.",
+      steps: [
+        "Start from an empty tree.",
+        "Insert the values in the shown order.",
+        "Replay to compare triangle and line cases."
+      ]
+    },
+    "Random batch": {
+      summary: "Batch insert shows that local recolors and rotations keep the tree balanced under arbitrary input order.",
+      steps: [
+        "Generate unique random keys.",
+        "Insert them one by one with the normal fix-up routine.",
+        "Replay the combined frames to inspect the balancing work."
+      ]
+    },
+    "Clear": {
+      summary: "Clearing removes every node and returns to the empty-tree state, where the invariants hold vacuously.",
+      steps: [
+        "Discard the current tree.",
+        "Reset counters and recorded frames.",
+        "Begin again with a new sequence."
+      ]
+    },
+    "Ready": {
+      summary: "No operation is active. Use the controls or demos to build a tree and inspect the repair steps.",
+      steps: [
+        "Insert a value or load a prepared demo.",
+        "Use Play, Step, and Replay to inspect the frames.",
+        "Compare the structure view with the five property badges."
+      ]
+    }
+  };
 
   function makeNil() {
     const nil = { id: 0, value: null, color: BLACK, left: null, right: null, parent: null, isNil: true };
@@ -600,7 +876,10 @@
   let currentFrame = null;
   let playbackTimer = null;
   let treeVersion = 0;
-  let fitScale = 1;
+  let transitionFromFrame = null;
+  let transitionStart = 0;
+  let transitionDuration = 320;
+  let transitionRaf = null;
 
   function resetTree() {
     NIL = makeNil();
