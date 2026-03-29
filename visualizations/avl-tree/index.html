@@ -219,7 +219,7 @@
     <div class="workspace panel">
       <canvas id="tree-canvas" width="980" height="680"></canvas>
       <div class="overlay">
-        <div class="pill"><strong>Node label</strong> value + balance factor</div>
+        <div class="pill"><strong>Node label</strong> value + height + balance factor</div>
         <div class="pill" id="rotation-pill">No rotation in focus</div>
       </div>
     </div>
@@ -236,7 +236,7 @@
   </div>
 
   <div class="legend">
-    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Balanced node (BF = -1 / 0 / 1)</div>
+    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Balanced node (height shown above BF)</div>
     <div class="legend-item"><div class="swatch" style="background:#ff7b72"></div>Deleted / unstable node focus</div>
     <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Inserted or selected node</div>
     <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Rotation path highlight</div>
@@ -371,128 +371,207 @@ function appendFrame(tree, message, meta = {}) {
   });
 }
 
-function insertRec(node, key, trace, opIndex) {
-  if (!node) {
-    const created = new AVLNode(key);
-    trace.push({ message: `Insert ${key}: new leaf created`, focusKey: key, highlightKeys: [key] });
-    return created;
+function setChild(parent, previousChild, nextChild) {
+  if (!parent) {
+    root = nextChild;
+    return;
   }
-  if (key < node.key) {
-    node.left = insertRec(node.left, key, trace, opIndex);
-  } else if (key > node.key) {
-    node.right = insertRec(node.right, key, trace, opIndex);
-  } else {
-    trace.push({ message: `Insert ${key}: duplicate ignored`, focusKey: key, highlightKeys: [key] });
-    return node;
+  if (parent.left === previousChild) {
+    parent.left = nextChild;
+  } else if (parent.right === previousChild) {
+    parent.right = nextChild;
   }
-  updateHeight(node);
-  const bf = balance(node);
-  trace.push({
-    message: `Update ${node.key}: balance factor = ${bf}`,
-    focusKey: node.key,
-    highlightKeys: [node.key]
-  });
-  if (bf > 1 && key < node.left.key) {
-    trace.push({ message: `LL rotation at ${node.key}`, rotation: 'LL', highlightKeys: [node.key, node.left.key], focusKey: node.key });
-    return rotateRight(node);
-  }
-  if (bf < -1 && key > node.right.key) {
-    trace.push({ message: `RR rotation at ${node.key}`, rotation: 'RR', highlightKeys: [node.key, node.right.key], focusKey: node.key });
-    return rotateLeft(node);
-  }
-  if (bf > 1 && key > node.left.key) {
-    trace.push({
-      message: `LR rotation at ${node.key}`,
-      rotation: 'LR',
-      highlightKeys: [node.key, node.left.key, node.left.right ? node.left.right.key : key],
-      focusKey: node.key
-    });
-    node.left = rotateLeft(node.left);
-    return rotateRight(node);
-  }
-  if (bf < -1 && key < node.right.key) {
-    trace.push({
-      message: `RL rotation at ${node.key}`,
-      rotation: 'RL',
-      highlightKeys: [node.key, node.right.key, node.right.left ? node.right.left.key : key],
-      focusKey: node.key
-    });
-    node.right = rotateRight(node.right);
-    return rotateLeft(node);
-  }
-  return node;
 }
 
-function deleteRec(node, key, trace) {
-  if (!node) {
-    trace.push({ message: `Delete ${key}: value not found`, focusKey: key, highlightKeys: [key] });
-    return null;
+function recordStep(message, meta = {}, opIndex = operations.length - 1) {
+  appendFrame(root, message, {
+    rotation: meta.rotation || '',
+    highlightKeys: meta.highlightKeys || [],
+    focusKey: meta.focusKey ?? null,
+    opIndex
+  });
+}
+
+function rebalanceAlongPath(path, key, opIndex, mode) {
+  for (let index = path.length - 1; index >= 0; index -= 1) {
+    const node = path[index];
+    updateHeight(node);
+    const bf = balance(node);
+    recordStep(
+      `${mode === 'Insert' ? 'Update' : 'Recompute'} ${node.key}: height = ${node.height}, balance factor = ${bf}`,
+      { focusKey: node.key, highlightKeys: [node.key] },
+      opIndex
+    );
+    if (bf > 1) {
+      if (balance(node.left) >= 0) {
+        recordStep(`LL rotation at ${node.key}`, { rotation: 'LL', focusKey: node.key, highlightKeys: [node.key, node.left.key] }, opIndex);
+        const rotated = rotateRight(node);
+        setChild(path[index - 1] || null, node, rotated);
+        path[index] = rotated;
+        recordStep(`LL rotation completed at ${rotated.key}`, { rotation: 'LL', focusKey: rotated.key, highlightKeys: [rotated.key, rotated.right ? rotated.right.key : rotated.key] }, opIndex);
+      } else {
+        const pivot = node.left.right;
+        recordStep(`LR rotation at ${node.key}`, {
+          rotation: 'LR',
+          focusKey: node.key,
+          highlightKeys: [node.key, node.left.key, pivot ? pivot.key : node.left.key]
+        }, opIndex);
+        node.left = rotateLeft(node.left);
+        recordStep(`LR step 1: left-rotate child ${node.left.key}`, {
+          rotation: 'LR',
+          focusKey: node.left.key,
+          highlightKeys: [node.key, node.left.key, node.left.left ? node.left.left.key : node.key]
+        }, opIndex);
+        const rotated = rotateRight(node);
+        setChild(path[index - 1] || null, node, rotated);
+        path[index] = rotated;
+        recordStep(`LR rotation completed at ${rotated.key}`, {
+          rotation: 'LR',
+          focusKey: rotated.key,
+          highlightKeys: [rotated.key, rotated.left ? rotated.left.key : rotated.key, rotated.right ? rotated.right.key : rotated.key]
+        }, opIndex);
+      }
+    } else if (bf < -1) {
+      if (balance(node.right) <= 0) {
+        recordStep(`RR rotation at ${node.key}`, { rotation: 'RR', focusKey: node.key, highlightKeys: [node.key, node.right.key] }, opIndex);
+        const rotated = rotateLeft(node);
+        setChild(path[index - 1] || null, node, rotated);
+        path[index] = rotated;
+        recordStep(`RR rotation completed at ${rotated.key}`, { rotation: 'RR', focusKey: rotated.key, highlightKeys: [rotated.key, rotated.left ? rotated.left.key : rotated.key] }, opIndex);
+      } else {
+        const pivot = node.right.left;
+        recordStep(`RL rotation at ${node.key}`, {
+          rotation: 'RL',
+          focusKey: node.key,
+          highlightKeys: [node.key, node.right.key, pivot ? pivot.key : node.right.key]
+        }, opIndex);
+        node.right = rotateRight(node.right);
+        recordStep(`RL step 1: right-rotate child ${node.right.key}`, {
+          rotation: 'RL',
+          focusKey: node.right.key,
+          highlightKeys: [node.key, node.right.key, node.right.right ? node.right.right.key : node.key]
+        }, opIndex);
+        const rotated = rotateLeft(node);
+        setChild(path[index - 1] || null, node, rotated);
+        path[index] = rotated;
+        recordStep(`RL rotation completed at ${rotated.key}`, {
+          rotation: 'RL',
+          focusKey: rotated.key,
+          highlightKeys: [rotated.key, rotated.left ? rotated.left.key : rotated.key, rotated.right ? rotated.right.key : rotated.key]
+        }, opIndex);
+      }
+    }
   }
-  if (key < node.key) {
-    node.left = deleteRec(node.left, key, trace);
-  } else if (key > node.key) {
-    node.right = deleteRec(node.right, key, trace);
-  } else {
-    trace.push({ message: `Delete ${key}: remove node`, focusKey: key, highlightKeys: [key] });
-    if (!node.left || !node.right) return node.left || node.right;
-    const succ = minNode(node.right);
-    trace.push({ message: `Replace ${key} with successor ${succ.key}`, focusKey: succ.key, highlightKeys: [key, succ.key] });
+}
+
+function insertValue(key, opIndex) {
+  if (!root) {
+    root = new AVLNode(key);
+    recordStep(`Insert ${key}: new root created`, { focusKey: key, highlightKeys: [key] }, opIndex);
+    return;
+  }
+  const path = [];
+  let node = root;
+  while (node) {
+    path.push(node);
+    if (key < node.key) {
+      if (!node.left) {
+        node.left = new AVLNode(key);
+        path.push(node.left);
+        recordStep(`Insert ${key}: attach as left child of ${node.key}`, { focusKey: key, highlightKeys: [key, node.key] }, opIndex);
+        rebalanceAlongPath(path.slice(0, -1), key, opIndex, 'Insert');
+        return;
+      }
+      node = node.left;
+    } else if (key > node.key) {
+      if (!node.right) {
+        node.right = new AVLNode(key);
+        path.push(node.right);
+        recordStep(`Insert ${key}: attach as right child of ${node.key}`, { focusKey: key, highlightKeys: [key, node.key] }, opIndex);
+        rebalanceAlongPath(path.slice(0, -1), key, opIndex, 'Insert');
+        return;
+      }
+      node = node.right;
+    } else {
+      recordStep(`Insert ${key}: duplicate ignored`, { focusKey: key, highlightKeys: [key] }, opIndex);
+      return;
+    }
+  }
+}
+
+function deleteValue(key, opIndex) {
+  const path = [];
+  let node = root;
+  let parent = null;
+  while (node && node.key !== key) {
+    path.push(node);
+    parent = node;
+    node = key < node.key ? node.left : node.right;
+  }
+  if (!node) {
+    recordStep(`Delete ${key}: value not found`, { focusKey: key, highlightKeys: [key] }, opIndex);
+    return;
+  }
+
+  if (node.left && node.right) {
+    path.push(node);
+    let succParent = node;
+    let succ = node.right;
+    while (succ.left) {
+      path.push(succ);
+      succParent = succ;
+      succ = succ.left;
+    }
+    recordStep(`Replace ${node.key} with successor ${succ.key}`, { focusKey: succ.key, highlightKeys: [node.key, succ.key] }, opIndex);
     node.key = succ.key;
-    node.right = deleteRec(node.right, succ.key, trace);
+    parent = succParent;
+    node = succ;
   }
-  if (!node) return null;
-  updateHeight(node);
-  const bf = balance(node);
-  trace.push({
-    message: `Recompute ${node.key}: balance factor = ${bf}`,
-    focusKey: node.key,
-    highlightKeys: [node.key]
-  });
-  if (bf > 1 && balance(node.left) >= 0) {
-    trace.push({ message: `LL rotation at ${node.key}`, rotation: 'LL', highlightKeys: [node.key, node.left.key], focusKey: node.key });
-    return rotateRight(node);
+
+  const child = node.left || node.right;
+  if (!parent) {
+    root = child;
+  } else {
+    setChild(parent, node, child);
   }
-  if (bf > 1 && balance(node.left) < 0) {
-    trace.push({
-      message: `LR rotation at ${node.key}`,
-      rotation: 'LR',
-      highlightKeys: [node.key, node.left.key, node.left.right ? node.left.right.key : node.left.key],
-      focusKey: node.key
-    });
-    node.left = rotateLeft(node.left);
-    return rotateRight(node);
+  recordStep(`Delete ${key}: remove node`, { focusKey: key, highlightKeys: child ? [key, child.key] : [key] }, opIndex);
+
+  const rebalancePath = [];
+  let cursor = root;
+  while (cursor) {
+    rebalancePath.push(cursor);
+    if (key < cursor.key) {
+      cursor = cursor.left;
+    } else if (key > cursor.key) {
+      cursor = cursor.right;
+    } else {
+      break;
+    }
   }
-  if (bf < -1 && balance(node.right) <= 0) {
-    trace.push({ message: `RR rotation at ${node.key}`, rotation: 'RR', highlightKeys: [node.key, node.right.key], focusKey: node.key });
-    return rotateLeft(node);
+  if (rebalancePath.length === 0 && root) {
+    rebalancePath.push(root);
   }
-  if (bf < -1 && balance(node.right) > 0) {
-    trace.push({
-      message: `RL rotation at ${node.key}`,
-      rotation: 'RL',
-      highlightKeys: [node.key, node.right.key, node.right.left ? node.right.left.key : node.right.key],
-      focusKey: node.key
-    });
-    node.right = rotateRight(node.right);
-    return rotateLeft(node);
+  if (parent && !rebalancePath.includes(parent)) {
+    const stack = [];
+    let probe = root;
+    while (probe && probe !== parent) {
+      stack.push(probe);
+      probe = parent.key < probe.key ? probe.left : probe.right;
+    }
+    if (probe === parent) rebalancePath.splice(0, rebalancePath.length, ...stack, probe);
   }
-  return node;
+  rebalanceAlongPath(rebalancePath, key, opIndex, 'Delete');
 }
 
-function addOperation(type, value, runner) {
-  const trace = [];
+function addOperation(type, value) {
   const before = cloneTree(root);
   const opIndex = operations.length;
   operations.push({ type, value, label: `${type} ${value}` });
   appendFrame(before, `Start ${type} ${value}`, { focusKey: value, highlightKeys: [value], opIndex });
-  root = runner(cloneTree(root), value, trace);
-  for (const item of trace) {
-    appendFrame(root, item.message, {
-      rotation: item.rotation,
-      focusKey: item.focusKey,
-      highlightKeys: item.highlightKeys,
-      opIndex
-    });
+  if (type === 'Insert') {
+    insertValue(value, opIndex);
+  } else {
+    deleteValue(value, opIndex);
   }
   appendFrame(root, `${type} ${value} complete`, { focusKey: value, highlightKeys: [value], opIndex });
   currentFrameIndex = timeline.length - 1;
@@ -511,7 +590,7 @@ function loadSample() {
     ['Insert', 27], ['Delete', 20], ['Insert', 26]
   ];
   for (const [type, value] of demo) {
-    addOperation(type, value, type === 'Insert' ? insertRec : deleteRec);
+    addOperation(type, value);
   }
   currentFrameIndex = 0;
   renderFrame();
@@ -590,12 +669,16 @@ function renderCanvas(frame) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `${17 / view.scale}px sans-serif`;
-    ctx.fillText(String(item.node.key), item.x, item.y - 5 / view.scale);
-    ctx.fillStyle = '#0b1020';
-    ctx.fillRect(item.x - 18 / view.scale, item.y + 9 / view.scale, 36 / view.scale, 14 / view.scale);
+    ctx.fillText(String(item.node.key), item.x, item.y - 10 / view.scale);
+    ctx.fillStyle = 'rgba(11,16,32,0.92)';
+    ctx.fillRect(item.x - 20 / view.scale, item.y + 2 / view.scale, 40 / view.scale, 12 / view.scale);
+    ctx.fillRect(item.x - 22 / view.scale, item.y + 16 / view.scale, 44 / view.scale, 14 / view.scale);
+    ctx.fillStyle = '#93c5fd';
+    ctx.font = `${10 / view.scale}px sans-serif`;
+    ctx.fillText(`H ${item.node.height}`, item.x, item.y + 8 / view.scale);
     ctx.fillStyle = '#facc15';
     ctx.font = `${10 / view.scale}px sans-serif`;
-    ctx.fillText(`BF ${bf}`, item.x, item.y + 16 / view.scale);
+    ctx.fillText(`BF ${bf}`, item.x, item.y + 23 / view.scale);
   }
 
   ctx.restore();
@@ -651,13 +734,13 @@ function parseValue() {
 insertBtn.addEventListener('click', () => {
   const value = parseValue();
   if (value == null) return;
-  addOperation('Insert', value, insertRec);
+  addOperation('Insert', value);
 });
 
 deleteBtn.addEventListener('click', () => {
   const value = parseValue();
   if (value == null) return;
-  addOperation('Delete', value, deleteRec);
+  addOperation('Delete', value);
 });
 
 sampleBtn.addEventListener('click', loadSample);

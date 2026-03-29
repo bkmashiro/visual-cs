@@ -26,7 +26,7 @@
 | [网格 BFS](./visualizations/bfs-grid/) | 图算法 | 交互式寻路演示 |
 | [快速排序](./visualizations/quicksort/) | 排序 | 分区与基准点动画 |
 | [生命游戏](./visualizations/game-of-life/) | 模拟 | Conway 元胞自动机 |
-| [AVL 树](./visualizations/avl-tree/) | 树 | 自平衡 BST，旋转动画 |
+| [AVL 树](./visualizations/avl-tree/) | 树 | 自平衡 BST，支持插入/删除回放，显示节点高度、平衡因子与 LL/RR/LR/RL 旋转 |
 | [Dijkstra](./visualizations/dijkstra/) | 图算法 | 网格上的加权最短路 |
 | [堆排序](./visualizations/heap-sort/) | 排序 | 最大堆构建与提取 |
 | [红黑树](./visualizations/red-black-tree/) | 树 | 带颜色规则的自平衡 BST |

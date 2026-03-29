@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- avl-tree — AVL Tree (self-balancing BST with rotation replay) ✅ 2026-03-29
 - huffman-coding — Huffman Coding (optimal prefix-free compression) ✅ 2026-03-29
 - quadtree — Quadtree (2D spatial partitioning) ✅ 2026-03-29
 - treap — Treap (randomized BST) ✅ 2026-03-29
