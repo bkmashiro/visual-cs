@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- manacher — Manacher's Algorithm (longest palindromic substring in O(n), center expansion with p-array) ✅ 2026-03-29
 - bridge-articulation — Bridge & Articulation Points (Tarjan DFS, disc/low values, bridge detection low[v]>disc[u], cut-vertex detection) ✅ 2026-03-29
 - segment-tree — Segment Tree (range sum query, point update, lazy propagation range add) ✅ 2026-03-29
 - bloom-filter — Bloom Filter (probabilistic membership, k hash functions, false-positive rate visualization) ✅ 2026-03-29

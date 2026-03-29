@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manacher's Algorithm — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --accent:#58a6ff;--accent0:rgba(88,166,255,.15);
+  --good:#3fb950;--good0:rgba(63,185,80,.15);
+  --warn:#f78166;--warn0:rgba(247,129,102,.15);
+  --gold:#e3b341;--gold0:rgba(227,179,65,.15);
+  --violet:#a371f7;--violet0:rgba(163,113,247,.15);
+  --cyan:#67e8f9;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--accent)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:1fr 310px;flex:1;min-height:0}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+
+/* Input row */
+.irow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.ig{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px}
+.ig label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.ig input{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:.95rem;font-family:'Cascadia Code','Fira Code',monospace;outline:none;transition:border-color .2s;width:100%}
+.ig input:focus{border-color:var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.pb{font-size:.7rem;padding:3px 9px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-weight:500;transition:all .15s}
+.pb:hover{color:var(--accent);border-color:var(--accent)}
+
+/* Controls */
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.pr{background:var(--accent);border-color:var(--accent);color:#0d1117}
+button.pr:hover{opacity:.85}
+button:disabled{opacity:.35;cursor:default;pointer-events:none}
+.speed-wrap{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted)}
+input[type=range]{width:90px;accent-color:var(--accent)}
+
+/* Section labels */
+.sec-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;margin-bottom:6px}
+
+/* ── Transformed string display ── */
+.transform-row{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);flex-wrap:wrap;font-family:monospace}
+.transform-row code{color:var(--accent);background:var(--s2);padding:2px 7px;border-radius:4px;font-size:.85rem}
+
+/* ── Main character cells ── */
+.cells-wrap{overflow-x:auto;padding-bottom:4px}
+.cells-outer{display:inline-flex;flex-direction:column;gap:0;min-width:max-content}
+
+/* index row, char row, p-value row, mirror row */
+.cell-row{display:flex;gap:2px;align-items:flex-end}
+.cell{
+  width:36px;min-width:36px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Cascadia Code','Fira Code',monospace;
+  font-size:.95rem;font-weight:700;
+  border-radius:6px;
+  border:2px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  transition:all .25s;
+  position:relative;
+  flex-shrink:0;
+}
+.cell.sep{color:var(--muted);background:transparent;border-color:transparent;font-size:.8rem}
+.cell.center{background:var(--accent0);border-color:var(--accent);color:var(--accent)}
+.cell.mirror{background:var(--gold0);border-color:var(--gold);color:var(--gold)}
+.cell.in-palindrome{background:var(--violet0);border-color:var(--violet);color:var(--violet)}
+.cell.longest{background:var(--good0);border-color:var(--good);color:var(--good)}
+.cell.current{background:var(--warn0);border-color:var(--warn);color:var(--warn)}
+.cell.expanded{background:var(--accent0);border-color:var(--accent);color:var(--accent)}
+.cell.boundary{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan)}
+
+.cell-idx{height:20px;font-size:.65rem;color:var(--muted);font-family:monospace}
+.cell-p{height:28px;font-size:.75rem;color:var(--violet);font-family:monospace;font-weight:700}
+.cell-p.current{color:var(--warn)}
+.cell-p.longest{color:var(--good)}
+
+/* Center / boundary arc */
+.arc-row{height:30px;position:relative}
+.arc-svg{width:100%;height:30px;overflow:visible}
+
+/* Stats */
+.stats-bar{display:flex;gap:12px;flex-wrap:wrap}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:.78rem;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:70px}
+.stat-label{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-weight:700;font-size:1rem;font-variant-numeric:tabular-nums}
+.stat-value.accent{color:var(--accent)}
+.stat-value.good{color:var(--good)}
+.stat-value.gold{color:var(--gold)}
+.stat-value.violet{color:var(--violet)}
+
+/* Result banner */
+.result-banner{
+  background:var(--good0);border:1px solid var(--good);
+  border-radius:8px;padding:12px 16px;
+  font-size:.9rem;display:none;
+}
+.result-banner strong{color:var(--good)}
+.result-banner code{font-family:monospace;background:var(--s2);padding:2px 6px;border-radius:4px;color:var(--gold);font-size:.88rem}
+
+/* Sidebar */
+.sb-section{display:flex;flex-direction:column;gap:8px}
+.sb-section h3{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700}
+
+/* P array table */
+.p-table{width:100%;border-collapse:collapse;font-size:.74rem}
+.p-table th{color:var(--muted);font-weight:600;padding:3px 5px;text-align:left;border-bottom:1px solid var(--border)}
+.p-table td{padding:4px 5px;font-family:monospace;border-bottom:1px solid #21262d}
+.p-table tr.active td{background:var(--warn0);color:var(--warn)}
+.p-table tr.longest td{background:var(--good0);color:var(--good)}
+
+/* Log */
+.log-wrap{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.log-entry{font-size:.76rem;line-height:1.5;padding:5px 8px;border-radius:4px;border-left:3px solid var(--border);background:#0d1117;color:var(--muted)}
+.log-entry.current{border-left-color:var(--accent);background:var(--accent0);color:var(--text)}
+.log-entry.expand{border-left-color:var(--violet);background:var(--violet0)}
+.log-entry.copy{border-left-color:var(--gold);background:var(--gold0)}
+.log-entry.done{border-left-color:var(--good);background:var(--good0)}
+
+/* Explain */
+.explain{font-size:.79rem;line-height:1.65;color:var(--muted)}
+.explain strong{color:var(--text)}
+.explain code{font-family:monospace;background:var(--s2);padding:1px 4px;border-radius:3px;font-size:.78rem;color:var(--accent)}
+
+/* Legend */
+.legend{display:flex;flex-direction:column;gap:5px}
+.legend-row{display:flex;align-items:center;gap:8px;font-size:.76rem;color:var(--muted)}
+.legend-dot{width:13px;height:13px;border-radius:3px;flex-shrink:0;border:2px solid transparent}
+
+footer{text-align:center;padding:10px;font-size:.75rem;color:var(--muted);border-top:1px solid var(--border)}
+footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Manacher's <span>Algorithm</span></h1>
+  <a href="../../index.html">← visual-cs</a>
+</header>
+
+<div class="layout">
+  <div class="main">
+    <!-- Input -->
+    <div>
+      <div class="sec-label">Input String</div>
+      <div class="irow">
+        <div class="ig" style="flex:2">
+          <input id="input-str" type="text" value="abacabadabacaba" maxlength="30" placeholder="Enter string…" spellcheck="false" autocomplete="off"/>
+        </div>
+        <button class="pr" id="btn-build" style="height:38px">Build Steps</button>
+      </div>
+      <div class="presets" style="margin-top:8px">
+        <span style="font-size:.68rem;color:var(--muted);align-self:center">Presets:</span>
+        <button class="pb" data-v="abacabadabacaba">abacabadabacaba</button>
+        <button class="pb" data-v="racecar">racecar</button>
+        <button class="pb" data-v="aabbaa">aabbaa</button>
+        <button class="pb" data-v="abcba">abcba</button>
+        <button class="pb" data-v="aaaa">aaaa</button>
+        <button class="pb" data-v="abcdef">abcdef (no palindrome)</button>
+      </div>
+    </div>
+
+    <!-- Transform display -->
+    <div class="transform-row" id="transform-row"></div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-label">Length</div><div class="stat-value accent" id="st-n">0</div></div>
+      <div class="stat"><div class="stat-label">Center i</div><div class="stat-value gold" id="st-i">—</div></div>
+      <div class="stat"><div class="stat-label">R boundary</div><div class="stat-value accent" id="st-r">—</div></div>
+      <div class="stat"><div class="stat-label">p[i]</div><div class="stat-value violet" id="st-pi">—</div></div>
+      <div class="stat"><div class="stat-label">Best len</div><div class="stat-value good" id="st-best">—</div></div>
+    </div>
+
+    <!-- Cell visualization -->
+    <div class="cells-wrap">
+      <div class="cells-outer" id="cells-outer"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="ctrls">
+      <button class="pr" id="btn-run">▶ Run</button>
+      <button id="btn-step">Step →</button>
+      <button id="btn-reset">↺ Reset</button>
+      <div class="speed-wrap">
+        <span>Speed</span>
+        <input type="range" id="speed" min="1" max="10" value="5">
+        <span id="speed-label">5×</span>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result-banner" id="result-banner"></div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <h3>p[ ] Array</h3>
+      <table class="p-table" id="p-table">
+        <thead><tr><th>i</th><th>T[i]</th><th>p[i]</th><th>palindrome</th></tr></thead>
+        <tbody id="p-body"></tbody>
+      </table>
+    </div>
+
+    <div class="sb-section">
+      <h3>Step Log</h3>
+      <div class="log-wrap" id="log"></div>
+    </div>
+
+    <div class="sb-section">
+      <h3>Legend</h3>
+      <div class="legend">
+        <div class="legend-row"><div class="legend-dot" style="background:var(--warn0);border-color:var(--warn)"></div>Current center i</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--accent0);border-color:var(--accent)"></div>Boundary C/R window</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--gold0);border-color:var(--gold)"></div>Mirror position i'</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--violet0);border-color:var(--violet)"></div>Within palindrome (p[i] fill)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--good0);border-color:var(--good)"></div>Best (longest) palindrome so far</div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <h3>How It Works</h3>
+      <div class="explain">
+        Transform <em>s</em> → <em>T</em> by inserting <code>#</code> separators, giving a unified odd-length treatment for all palindromes.<br><br>
+        <strong>p[i]</strong> = radius of the longest palindrome centered at T[i].<br><br>
+        Maintain a <strong>rightmost boundary R</strong> and its center <strong>C</strong>. For each new center <em>i</em>:<br>
+        • If i &lt; R, initialize <code>p[i] = min(p[mirror], R-i)</code> (<em>free copy</em>)<br>
+        • Then expand naively from that starting radius.<br><br>
+        This reuse of prior work gives <strong>O(n)</strong> overall — each character is visited at most twice.
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="../../index.html">← All visualizations</a> · visual-cs · Pure HTML/CSS/JS
+</footer>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let T = [];       // transformed string (with #)
+let pArr = [];    // p array
+let steps = [];   // animation steps
+let stepIdx = 0;
+let running = false;
+let animTimer = null;
+
+// ─── DOM ─────────────────────────────────────────────────────────────────────
+const inputStr    = document.getElementById('input-str');
+const btnBuild    = document.getElementById('btn-build');
+const btnRun      = document.getElementById('btn-run');
+const btnStep     = document.getElementById('btn-step');
+const btnReset    = document.getElementById('btn-reset');
+const speedInput  = document.getElementById('speed');
+const speedLabel  = document.getElementById('speed-label');
+const cellsOuter  = document.getElementById('cells-outer');
+const pBody       = document.getElementById('p-body');
+const logEl       = document.getElementById('log');
+const resultBanner = document.getElementById('result-banner');
+const transformRow = document.getElementById('transform-row');
+
+speedInput.addEventListener('input', () => speedLabel.textContent = speedInput.value + '×');
+document.querySelectorAll('.pb').forEach(b => b.addEventListener('click', () => {
+  inputStr.value = b.dataset.v.replace(/ .*/,'');
+  build();
+}));
+btnBuild.addEventListener('click', build);
+inputStr.addEventListener('keydown', e => { if (e.key === 'Enter') build(); });
+
+// ─── Transform ───────────────────────────────────────────────────────────────
+function transform(s) {
+  // T = ^#s[0]#s[1]#...s[n-1]#$
+  // Use boundary sentinels ^ and $ to avoid bounds checks
+  const t = ['^', '#'];
+  for (const c of s) { t.push(c); t.push('#'); }
+  t.push('$');
+  return t;
+}
+
+// ─── Build steps ─────────────────────────────────────────────────────────────
+function buildSteps(s) {
+  const t = transform(s);
+  const n = t.length;
+  const p = new Array(n).fill(0);
+  const allSteps = [];
+  let C = 0, R = 0;
+  let bestLen = 0, bestCenter = 0;
+
+  for (let i = 1; i < n - 1; i++) {
+    const mirror = 2 * C - i;
+    let initP;
+    let copyFrom = null;
+
+    if (i < R) {
+      initP = Math.min(p[mirror], R - i);
+      copyFrom = mirror;
+    } else {
+      initP = 0;
+    }
+
+    p[i] = initP;
+    const stepBeforeExpand = {
+      type: 'init',
+      i, C, R, mirror: copyFrom !== null ? mirror : null,
+      p: [...p],
+      bestLen, bestCenter,
+      msg: copyFrom !== null
+        ? `i=${i} (${t[i]}): inside window — copy p[${mirror}]=${p[mirror]}, R-i=${R-i}, init p[i]=${initP}`
+        : `i=${i} (${t[i]}): outside window — start expanding from 0`,
+    };
+    allSteps.push(stepBeforeExpand);
+
+    // Expand
+    const expandStart = p[i];
+    while (t[i + p[i] + 1] === t[i - p[i] - 1]) {
+      p[i]++;
+    }
+
+    if (p[i] > expandStart) {
+      allSteps.push({
+        type: 'expand',
+        i, C, R, mirror: copyFrom !== null ? mirror : null,
+        expandFrom: expandStart,
+        expandTo: p[i],
+        p: [...p],
+        bestLen, bestCenter,
+        msg: `Expand at i=${i}: radius grew ${expandStart} → ${p[i]}`,
+      });
+    }
+
+    // Update C, R
+    if (i + p[i] > R) {
+      C = i; R = i + p[i];
+    }
+
+    // Update best
+    if (p[i] > bestLen) {
+      bestLen = p[i];
+      bestCenter = i;
+    }
+  }
+
+  // Done step
+  // Recover palindrome from T
+  const startT = bestCenter - bestLen;
+  const endT   = bestCenter + bestLen;
+  const result = t.slice(startT, endT + 1).filter(c => c !== '#' && c !== '^' && c !== '$').join('');
+  allSteps.push({
+    type: 'done',
+    i: -1, C, R,
+    p: [...p],
+    bestLen, bestCenter,
+    result,
+    msg: `Done! Longest palindrome: "${result}" (length ${result.length})`,
+  });
+
+  return { t, p, steps: allSteps };
+}
+
+// ─── Build & init ─────────────────────────────────────────────────────────────
+function build() {
+  stopAnim();
+  const s = inputStr.value.trim();
+  if (!s) return;
+  const out = buildSteps(s);
+  T = out.t;
+  pArr = out.p;
+  steps = out.steps;
+  stepIdx = 0;
+  resultBanner.style.display = 'none';
+
+  transformRow.innerHTML = `<span>Transformed:</span> <code>${T.join(' ')}</code> <span style="color:var(--muted)">(length ${T.length})</span>`;
+  document.getElementById('st-n').textContent = s.length;
+  document.getElementById('st-i').textContent = '—';
+  document.getElementById('st-r').textContent = '—';
+  document.getElementById('st-pi').textContent = '—';
+  document.getElementById('st-best').textContent = '—';
+
+  buildCells(T);
+  buildPTable(T, pArr, -1, -1);
+  clearLog();
+  btnRun.disabled = false;
+  btnStep.disabled = false;
+  btnRun.textContent = '▶ Run';
+}
+
+// ─── Cell DOM ─────────────────────────────────────────────────────────────────
+let cellEls = [];   // per T index: {idx, char, p}
+function buildCells(t) {
+  cellsOuter.innerHTML = '';
+  cellEls = [];
+
+  const idxRow  = document.createElement('div'); idxRow.className = 'cell-row';
+  const charRow = document.createElement('div'); charRow.className = 'cell-row';
+  const pRow    = document.createElement('div'); pRow.className = 'cell-row';
+
+  t.forEach((ch, i) => {
+    // skip sentinels ^ and $
+    if (ch === '^' || ch === '$') {
+      cellEls.push(null);
+      return;
+    }
+    const idxCell = document.createElement('div');
+    idxCell.className = 'cell cell-idx';
+    idxCell.style.height = '18px';
+    idxCell.style.fontSize = '.6rem';
+    idxCell.style.background = 'transparent';
+    idxCell.style.border = 'none';
+    idxCell.style.color = 'var(--muted)';
+    idxCell.style.width = '36px';
+    idxCell.style.minWidth = '36px';
+    idxCell.textContent = i;
+
+    const charCell = document.createElement('div');
+    charCell.className = 'cell' + (ch === '#' ? ' sep' : '');
+    charCell.textContent = ch;
+
+    const pCell = document.createElement('div');
+    pCell.className = 'cell-p';
+    pCell.style.height = '26px';
+    pCell.style.width = '36px';
+    pCell.style.minWidth = '36px';
+    pCell.style.display = 'flex';
+    pCell.style.alignItems = 'center';
+    pCell.style.justifyContent = 'center';
+    pCell.style.fontFamily = 'monospace';
+    pCell.style.fontSize = '.72rem';
+    pCell.style.color = 'var(--border)';
+    pCell.textContent = '·';
+
+    idxRow.appendChild(idxCell);
+    charRow.appendChild(charCell);
+    pRow.appendChild(pCell);
+
+    cellEls[i] = { idx: idxCell, char: charCell, p: pCell };
+  });
+
+  cellsOuter.appendChild(idxRow);
+  cellsOuter.appendChild(charRow);
+  cellsOuter.appendChild(pRow);
+}
+
+// ─── Apply step ──────────────────────────────────────────────────────────────
+function applyStep(step) {
+  const n = T.length;
+
+  // Reset cells
+  for (let i = 0; i < n; i++) {
+    const el = cellEls[i];
+    if (!el) continue;
+    const ch = T[i];
+    el.char.className = 'cell' + (ch === '#' ? ' sep' : '');
+    el.p.className = 'cell-p';
+    el.p.textContent = step.p[i] > 0 ? step.p[i] : '·';
+    el.p.style.color = step.p[i] > 0 ? 'var(--violet)' : 'var(--border)';
+  }
+
+  if (step.type !== 'done' && step.i >= 0) {
+    const ci = step.i;
+    const C  = step.C;
+    const R  = step.R;
+
+    // Mark window [C-p[C], C+p[C]] as boundary
+    if (C > 0 && step.p[C] > 0) {
+      for (let k = C - step.p[C]; k <= C + step.p[C]; k++) {
+        if (cellEls[k]) cellEls[k].char.classList.add('in-palindrome');
+      }
+    }
+
+    // Current center
+    if (cellEls[ci]) {
+      cellEls[ci].char.className = 'cell' + (T[ci]==='#'?' sep':'') + ' current';
+      cellEls[ci].p.className = 'cell-p current';
+      cellEls[ci].p.style.color = 'var(--warn)';
+    }
+
+    // Mirror
+    if (step.mirror !== null && cellEls[step.mirror]) {
+      cellEls[step.mirror].char.classList.add('mirror');
+    }
+
+    // Right boundary R highlight
+    if (cellEls[R]) cellEls[R].char.classList.add('boundary');
+    if (cellEls[C]) cellEls[C].char.classList.add('center');
+  }
+
+  // Best palindrome highlight
+  if (step.bestLen > 0 && step.type !== 'done') {
+    const bc = step.bestCenter;
+    const bl = step.bestLen;
+    for (let k = bc - bl; k <= bc + bl; k++) {
+      if (cellEls[k] && !cellEls[k].char.classList.contains('current')) {
+        cellEls[k].char.classList.add('longest');
+      }
+    }
+    if (cellEls[bc]) {
+      cellEls[bc].p.classList.add('longest');
+      cellEls[bc].p.style.color = 'var(--good)';
+    }
+  }
+
+  // Done: mark all longest
+  if (step.type === 'done') {
+    const bc = step.bestCenter;
+    const bl = step.bestLen;
+    for (let k = bc - bl; k <= bc + bl; k++) {
+      if (cellEls[k]) {
+        cellEls[k].char.className = 'cell' + (T[k]==='#'?' sep':'') + ' longest';
+      }
+    }
+    resultBanner.style.display = 'block';
+    resultBanner.innerHTML = `Longest palindromic substring: <code>${step.result}</code> — length <strong>${step.result.length}</strong>`;
+  }
+
+  // p-values
+  for (let i = 0; i < n; i++) {
+    if (!cellEls[i]) continue;
+    if (step.p[i] > 0) {
+      cellEls[i].p.textContent = step.p[i];
+    }
+  }
+
+  // Stats
+  document.getElementById('st-i').textContent  = step.i >= 0 ? step.i : '—';
+  document.getElementById('st-r').textContent  = step.R > 0 ? step.R : '—';
+  document.getElementById('st-pi').textContent = step.i >= 0 && step.p[step.i] !== undefined ? step.p[step.i] : '—';
+  document.getElementById('st-best').textContent = step.bestLen > 0 ? step.bestLen : '—';
+
+  buildPTable(T, step.p, step.i, step.bestCenter);
+  addLog(step);
+}
+
+// ─── P table ─────────────────────────────────────────────────────────────────
+function buildPTable(t, p, activeI, bestI) {
+  pBody.innerHTML = '';
+  // Only show non-sentinel positions
+  for (let i = 1; i < t.length - 1; i++) {
+    const tr = document.createElement('tr');
+    const palLen = p[i];
+    // recover substring
+    let sub = '';
+    if (palLen > 0) {
+      sub = t.slice(i - palLen, i + palLen + 1).filter(c => c !== '#').join('');
+    }
+    if (i === activeI) tr.className = 'active';
+    else if (i === bestI && p[bestI] > 0) tr.className = 'longest';
+    tr.innerHTML = `<td>${i}</td><td>${t[i]}</td><td>${palLen}</td><td>${sub || '—'}</td>`;
+    pBody.appendChild(tr);
+  }
+}
+
+// ─── Log ─────────────────────────────────────────────────────────────────────
+function clearLog() { logEl.innerHTML = ''; }
+function addLog(step) {
+  const div = document.createElement('div');
+  let cls = 'log-entry current';
+  if (step.type === 'expand') cls += ' expand';
+  if (step.type === 'copy' || (step.type === 'init' && step.mirror !== null)) cls += ' copy';
+  if (step.type === 'done') cls += ' done';
+  div.className = cls;
+  div.innerHTML = step.msg;
+  logEl.prepend(div);
+  [...logEl.children].forEach((el, i) => {
+    if (i > 0) el.className = el.className.replace(' current','');
+  });
+}
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+function doStep() {
+  if (stepIdx >= steps.length) return false;
+  applyStep(steps[stepIdx]);
+  stepIdx++;
+  if (stepIdx >= steps.length) {
+    btnRun.textContent = '▶ Run';
+    btnRun.disabled = true;
+    btnStep.disabled = true;
+    stopAnim();
+  }
+  return true;
+}
+
+function stopAnim() {
+  running = false;
+  if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+  btnRun.textContent = '▶ Run';
+}
+
+function scheduleNext() {
+  if (!running) return;
+  const delay = Math.round(1100 / parseInt(speedInput.value));
+  animTimer = setTimeout(() => {
+    if (!doStep()) { stopAnim(); return; }
+    scheduleNext();
+  }, delay);
+}
+
+btnRun.addEventListener('click', () => {
+  if (running) {
+    stopAnim();
+  } else {
+    if (stepIdx >= steps.length) return;
+    running = true;
+    btnRun.textContent = '⏸ Pause';
+    scheduleNext();
+  }
+});
+btnStep.addEventListener('click', () => { stopAnim(); doStep(); });
+btnReset.addEventListener('click', () => { stopAnim(); build(); });
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+build();
+</script>
+</body>
+</html>
