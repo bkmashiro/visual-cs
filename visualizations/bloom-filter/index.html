@@ -3,411 +3,466 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bloom Filter - visual-cs</title>
+<title>Bloom Filter — visual-cs</title>
 <style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface-2: #0a0f16;
-    --border: #30363d;
-    --text: #e6edf3;
-    --muted: #8b949e;
-    --accent: #58a6ff;
-    --hash-1: #58a6ff;
-    --hash-2: #f59e0b;
-    --hash-3: #d2a8ff;
-    --hit: #3fb950;
-    --miss: #8b949e;
-    --fp: #ff7b72;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 24%), var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    min-height: 100vh;
-  }
-  header {
-    background: rgba(22, 27, 34, 0.92);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  header a { color: var(--accent); text-decoration: none; }
-  .main { max-width: 1220px; margin: 0 auto; padding: 28px 24px 40px; }
-  .stats, .controls, .panel, .bits, .explain {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-  }
-  .stats, .controls { display: flex; gap: 14px; flex-wrap: wrap; padding: 14px 18px; margin-bottom: 16px; }
-  .stat { min-width: 130px; }
-  .stat-value { font-size: 1.3rem; font-weight: 800; }
-  .stat-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
-  .controls { align-items: center; }
-  input[type="text"] {
-    width: 220px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 8px;
-    padding: 10px 12px;
-  }
-  button {
-    border: none;
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-weight: 700;
-    cursor: pointer;
-    background: var(--accent);
-    color: #061018;
-  }
-  button.secondary {
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-  button:disabled { opacity: 0.45; cursor: default; }
-  .layout {
-    display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
-    gap: 16px;
-  }
-  .panel { padding: 16px; }
-  .panel h2 { font-size: 0.95rem; margin-bottom: 12px; color: var(--muted); }
-  .bits {
-    padding: 18px;
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 10px;
-    background: linear-gradient(180deg, rgba(88,166,255,0.05), transparent 30%), #0a1017;
-  }
-  .bit {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    min-height: 64px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
-    background: #0b121a;
-    transition: transform 0.2s, border-color 0.2s, background 0.2s;
-  }
-  .bit strong { font-size: 1.1rem; }
-  .bit small { color: var(--muted); }
-  .bit.set { background: rgba(63,185,80,0.18); border-color: #3fb950; }
-  .bit.active.hash1 { border-color: var(--hash-1); transform: translateY(-4px); }
-  .bit.active.hash2 { border-color: var(--hash-2); transform: translateY(-4px); }
-  .bit.active.hash3 { border-color: var(--hash-3); transform: translateY(-4px); }
-  .hash-list, .history {
-    display: grid;
-    gap: 10px;
-  }
-  .hash-card, .result-card {
-    background: #0b121a;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
-  }
-  .hash-card h3, .result-card h3 { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
-  .hash-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .hash-value { font-weight: 800; }
-  .pill {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 999px;
-    font-size: 0.76rem;
-    font-weight: 700;
-    margin-right: 6px;
-  }
-  .history-item {
-    border-top: 1px solid #1f2732;
-    padding-top: 10px;
-    color: var(--muted);
-    font-size: 0.88rem;
-  }
-  .history-item:first-child { border-top: none; padding-top: 0; }
-  .explain { margin-top: 18px; padding: 24px 28px; }
-  .explain h2 { color: var(--accent); margin-bottom: 12px; }
-  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
-  .explain ul { padding-left: 18px; margin-top: 10px; }
-  @media (max-width: 980px) {
-    .layout { grid-template-columns: 1fr; }
-    .bits { grid-template-columns: repeat(6, 1fr); }
-  }
-  @media (max-width: 640px) {
-    .bits { grid-template-columns: repeat(4, 1fr); }
-  }
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+  --ac:#a855f7;--ac0:rgba(168,85,247,.15);
+  --gr:#3fb950;--gr0:rgba(63,185,80,.15);
+  --rd:#f85149;--rd0:rgba(248,81,73,.15);
+  --bl:#58a6ff;--bl0:rgba(88,166,255,.15);
+  --yl:#e3b341;--yl0:rgba(227,179,65,.15);
+  --or:#f97316;--or0:rgba(249,115,22,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.irow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.ig{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.ig label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.ig input[type=text]{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:.92rem;font-family:'Cascadia Code','Fira Code',monospace;outline:none;transition:border-color .2s;width:100%}
+.ig input:focus{border-color:var(--ac)}
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.ins{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+button.ins:hover{background:var(--gr);color:#0d1117}
+button.qry{background:var(--bl0);border-color:var(--bl);color:var(--bl)}
+button.qry:hover{background:var(--bl);color:#0d1117}
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+.sbar{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:.82rem;min-height:42px}
+.badge{font-size:.67rem;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px;font-weight:700;flex-shrink:0}
+.badge.rdy{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.badge.ins{background:var(--gr0);border:1px solid var(--gr);color:var(--gr)}
+.badge.hit{background:var(--yl0);border:1px solid var(--yl);color:var(--yl)}
+.badge.fp{background:var(--or0);border:1px solid var(--or);color:var(--or)}
+.badge.miss{background:var(--rd0);border:1px solid var(--rd);color:var(--rd)}
+.badge.done{background:var(--ac0);border:1px solid var(--ac);color:var(--ac)}
+.smsg{flex:1;font-size:.8rem;color:var(--muted)}
+.bit-section{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px}
+.bit-grid{display:flex;flex-wrap:wrap;gap:3px;margin-top:10px}
+.bit-cell{width:28px;height:28px;border-radius:5px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-family:monospace;font-weight:700;transition:all .25s;position:relative;background:var(--bg);color:var(--muted)}
+.bit-cell.on{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.bit-cell.hash0{background:rgba(168,85,247,.35);border-color:var(--ac);color:#fff}
+.bit-cell.hash1{background:rgba(88,166,255,.35);border-color:var(--bl);color:#fff}
+.bit-cell.hash2{background:rgba(63,185,80,.35);border-color:var(--gr);color:#fff}
+.bit-cell.hash3{background:rgba(227,179,65,.35);border-color:var(--yl);color:#fff}
+.bit-cell.set-anim{animation:setbit .35s ease}
+@keyframes setbit{0%{transform:scale(1)}50%{transform:scale(1.35)}100%{transform:scale(1)}}
+.bit-cell .idx{position:absolute;top:1px;right:2px;font-size:.38rem;color:var(--muted);font-weight:400}
+.hash-trace{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.hash-row{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.78rem;font-family:monospace;transition:all .2s}
+.hash-row.active0{border-color:var(--ac);background:var(--ac0)}
+.hash-row.active1{border-color:var(--bl);background:var(--bl0)}
+.hash-row.active2{border-color:var(--gr);background:var(--gr0)}
+.hash-row.active3{border-color:var(--yl);background:var(--yl0)}
+.hash-row.qmatch{border-color:var(--yl);background:var(--yl0)}
+.hash-row.qnomatch{border-color:var(--rd);background:var(--rd0)}
+.hash-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.hash-dot.h0{background:var(--ac)}.hash-dot.h1{background:var(--bl)}.hash-dot.h2{background:var(--gr)}.hash-dot.h3{background:var(--yl)}
+.hash-label{color:var(--muted);min-width:90px;font-size:.72rem}
+.hash-val{font-weight:700;min-width:44px}
+.hash-bit{margin-left:auto;font-size:.72rem;padding:2px 8px;border-radius:12px;font-weight:700}
+.hash-bit.one{background:var(--ac0);color:var(--ac);border:1px solid var(--ac)}
+.hash-bit.zero{background:var(--rd0);color:var(--rd);border:1px solid var(--rd)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:4px}
+.stat-card .v{font-family:monospace;font-size:1.15rem;font-weight:700}
+.stat-card .v.ac{color:var(--ac)}.stat-card .v.gr{color:var(--gr)}.stat-card .v.or{color:var(--or)}.stat-card .v.bl{color:var(--bl)}
+.item-list{display:flex;flex-wrap:wrap;gap:5px;min-height:24px}
+.item-tag{font-size:.72rem;padding:2px 9px;border-radius:20px;font-family:monospace;font-weight:600;background:var(--ac0);border:1px solid var(--ac);color:var(--ac);animation:pop .3s ease}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+.lbox{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.lbox::-webkit-scrollbar{width:3px}.lbox::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.le{font-size:.69rem;font-family:monospace;color:var(--muted);line-height:1.42}
+.le.ins{color:var(--gr)}.le.hit{color:var(--yl)}.le.fp{color:var(--or)}.le.miss{color:var(--rd)}
+.ibox{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px}
+.ibox h3{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:8px}
+.ibox p{margin-bottom:6px;font-size:.77rem;line-height:1.58;color:var(--muted)}
+.ibox p:last-child{margin-bottom:0}
+.ibox code{background:var(--s2);padding:1px 5px;border-radius:3px;font-family:monospace;color:var(--ac);font-size:.75rem}
+.cxr{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:.75rem}
+.cxr:last-child{border-bottom:none}.cxr .l{color:var(--muted)}.cxr .r{font-weight:700;color:var(--bl);font-family:monospace}
+.presets{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.pb{font-size:.7rem;padding:3px 9px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-weight:500;transition:all .15s}
+.pb:hover{color:var(--ac);border-color:var(--ac)}
+.fp-bar-wrap{margin-top:4px;background:var(--bg);border:1px solid var(--border);border-radius:6px;height:8px;overflow:hidden}
+.fp-bar{height:100%;background:linear-gradient(90deg,var(--gr),var(--yl),var(--or),var(--rd));width:0%;transition:width .4s ease;border-radius:6px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{border-top:1px solid var(--border)}}
 </style>
 </head>
 <body>
 <header>
-  <a href="../../index.html">← Back to Index</a>
-  <h1>Bloom Filter</h1>
-  <span style="color:var(--muted);font-size:0.85rem">Probabilistic Membership</span>
+  <h1>🌸 <span>Bloom Filter</span> — Probabilistic Membership Testing</h1>
+  <a href="../../index.html">← All Visualizations</a>
 </header>
-
-<div class="main">
-  <div class="stats">
-    <div class="stat"><div class="stat-value" id="inserted-count" style="color:var(--hit)">0</div><div class="stat-label">Inserted Words</div></div>
-    <div class="stat"><div class="stat-value" id="bits-set" style="color:var(--accent)">0</div><div class="stat-label">Bits Set</div></div>
-    <div class="stat"><div class="stat-value" id="tests-count">0</div><div class="stat-label">Tests</div></div>
-    <div class="stat"><div class="stat-value" id="false-positives" style="color:var(--fp)">0</div><div class="stat-label">False Positives</div></div>
-    <div class="stat"><div class="stat-value" id="fpr-estimate" style="font-size:1rem;color:var(--muted)">0.00%</div><div class="stat-label">Estimated FPR</div></div>
-  </div>
-
-  <div class="controls">
-    <input id="word-input" type="text" placeholder="Enter a word, e.g. graph">
-    <button id="add-btn">Add Word</button>
-    <button id="test-btn" class="secondary">Test Membership</button>
-    <button id="random-btn" class="secondary">Try Random Test</button>
-    <button id="reset-btn" class="secondary">Reset</button>
-  </div>
-
-  <div class="layout">
-    <div class="panel">
-      <h2>Bit Array</h2>
-      <div class="bits" id="bits"></div>
-    </div>
-    <div class="panel">
-      <div class="hash-list" id="hash-list"></div>
-      <div class="result-card" style="margin-top:12px;">
-        <h3>Result</h3>
-        <div id="result-text" style="color:var(--muted);line-height:1.6;">Bloom filters can say "definitely not present" or "possibly present".</div>
+<div class="layout">
+  <div class="main">
+    <div class="irow">
+      <div class="ig" style="flex:3">
+        <label>Element</label>
+        <input type="text" id="inEl" placeholder="e.g. apple" maxlength="40" spellcheck="false">
       </div>
-      <div class="result-card" style="margin-top:12px;">
-        <h3>Recent Checks</h3>
-        <div class="history" id="history"></div>
+      <div class="ig" style="flex:0 0 auto">
+        <label>&nbsp;</label>
+        <button class="ins" onclick="doInsert()">+ Insert</button>
+      </div>
+      <div class="ig" style="flex:0 0 auto">
+        <label>&nbsp;</label>
+        <button class="qry" onclick="doQuery()">? Query</button>
       </div>
     </div>
+    <div>
+      <div class="slbl">Quick Fill</div>
+      <div class="presets">
+        <button class="pb" onclick="loadPreset(['apple','banana','cherry','date','elderberry'])">Fruits</button>
+        <button class="pb" onclick="loadPreset(['alice','bob','charlie','diana'])">Names</button>
+        <button class="pb" onclick="loadPreset(['cat','dog','fox','gnu','hen'])">Animals</button>
+        <button class="pb" onclick="loadPreset(['192.168.1.1','10.0.0.1','172.16.0.1'])">IPs</button>
+      </div>
+    </div>
+    <div class="ctrls">
+      <button onclick="resetFilter()">↺ Reset Filter</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
+        <label style="font-size:.72rem;color:var(--muted)">Bits (m)</label>
+        <select id="mSel" onchange="resetFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:7px;font-size:.82rem;cursor:pointer;outline:none">
+          <option value="32">32</option>
+          <option value="48">48</option>
+          <option value="64" selected>64</option>
+          <option value="96">96</option>
+        </select>
+        <label style="font-size:.72rem;color:var(--muted)">Hash fns (k)</label>
+        <select id="kSel" onchange="resetFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:7px;font-size:.82rem;cursor:pointer;outline:none">
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+    </div>
+    <div class="sbar">
+      <span class="badge rdy" id="badge">Ready</span>
+      <span class="smsg" id="smsg">Insert elements or query membership. Enter = Insert, Tab = Query.</span>
+    </div>
+    <div class="bit-section">
+      <div class="slbl">Bit Array (<span id="mLbl">64</span> bits)</div>
+      <div class="bit-grid" id="bitGrid"></div>
+    </div>
+    <div class="bit-section">
+      <div class="slbl">Hash Function Trace</div>
+      <div class="hash-trace" id="hashTrace">
+        <div style="color:var(--muted);font-size:.78rem;padding:8px 0">Insert or query an element to see hash computations.</div>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Inserted</div><div class="v ac" id="sInserted">0</div></div>
+      <div class="stat-card"><div class="k">Bits Set</div><div class="v bl" id="sBitsSet">0</div></div>
+      <div class="stat-card"><div class="k">Queries</div><div class="v gr" id="sQueries">0</div></div>
+      <div class="stat-card"><div class="k">False Positives</div><div class="v or" id="sFP">0</div></div>
+    </div>
+    <div class="bit-section" style="padding:12px 16px">
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-bottom:4px">
+        <span>Fill ratio: <b id="fillRatio" style="color:var(--text)">0.0%</b></span>
+        <span>Theoretical FP rate: <b id="fpRate" style="color:var(--or)">0.0%</b></span>
+      </div>
+      <div class="fp-bar-wrap"><div class="fp-bar" id="fpBar"></div></div>
+    </div>
+    <div>
+      <div class="slbl">Inserted Elements</div>
+      <div class="item-list" id="itemList"><span style="color:var(--muted);font-size:.76rem">None yet…</span></div>
+    </div>
   </div>
 
-  <div class="explain">
-    <h2>How It Works</h2>
-    <p>A Bloom filter uses multiple hash functions to map a word to several bits. Insertion sets those bits to 1. Membership testing checks the same positions: if any bit is 0, the word is definitely absent; if all are 1, the word may be present.</p>
-    <ul>
-      <li>True positive: the word was inserted and all tested bits are 1.</li>
-      <li>True negative: at least one tested bit is 0, so the word is definitely absent.</li>
-      <li>False positive: all tested bits are 1, but the word was never inserted.</li>
-    </ul>
+  <div class="sidebar">
+    <div class="ibox">
+      <h3>🧠 How It Works</h3>
+      <p>A Bloom filter is a <b style="color:var(--text)">space-efficient probabilistic set</b>. It uses a bit array of <code>m</code> bits and <code>k</code> independent hash functions.</p>
+      <p><b style="color:var(--gr)">Insert:</b> Hash the element with each of the <code>k</code> functions; set those <code>k</code> bit positions to 1.</p>
+      <p><b style="color:var(--bl)">Query:</b> Hash with all <code>k</code> functions. If <em>all</em> those positions are 1 → "possibly in set". If any is 0 → "definitely NOT in set".</p>
+      <p><b style="color:var(--or)">False positives</b> are possible — all k bits may already be set by prior inserts. <b style="color:var(--rd)">False negatives are impossible.</b></p>
+    </div>
+    <div class="ibox">
+      <h3>⚡ Complexity</h3>
+      <div class="cxr"><span class="l">Insert</span><span class="r">O(k)</span></div>
+      <div class="cxr"><span class="l">Query</span><span class="r">O(k)</span></div>
+      <div class="cxr"><span class="l">Space</span><span class="r">O(m) bits</span></div>
+      <div class="cxr"><span class="l">FP rate (theory)</span><span class="r">(1−e^−kn/m)^k</span></div>
+      <p style="margin-top:8px;font-size:.72rem">No deletions in a standard Bloom filter — clearing a bit could break membership for other elements. Counting Bloom filters solve this at higher cost.</p>
+    </div>
+    <div class="ibox">
+      <h3>🎨 Legend</h3>
+      <p><span style="color:var(--ac)">■</span> Bit = 1 (set)</p>
+      <p><span style="color:var(--muted)">■</span> Bit = 0 (clear)</p>
+      <p><span style="color:var(--ac)">●</span> H₁ hash position (purple)</p>
+      <p><span style="color:var(--bl)">●</span> H₂ hash position (blue)</p>
+      <p><span style="color:var(--gr)">●</span> H₃ hash position (green)</p>
+      <p><span style="color:var(--yl)">●</span> H₄ hash position (yellow)</p>
+      <p><span style="color:var(--or)">■</span> False positive — all bits set, not inserted</p>
+    </div>
+    <div class="ibox">
+      <h3>🌍 Real-world Uses</h3>
+      <p>• <b style="color:var(--text)">Chrome Safe Browsing</b> — malicious URL pre-filter</p>
+      <p>• <b style="color:var(--text)">Databases</b> — skip disk reads for missing keys (Cassandra, RocksDB, LevelDB)</p>
+      <p>• <b style="color:var(--text)">CDN caches</b> — avoid backend hits for definitely-absent content</p>
+      <p>• <b style="color:var(--text)">Distributed systems</b> — weak membership in gossip protocols</p>
+    </div>
+    <div>
+      <div class="slbl">Operation Log</div>
+      <div class="lbox" id="lbox"></div>
+    </div>
   </div>
 </div>
 
 <script>
-const BIT_COUNT = 32;
-const HASHES = [
-  { name: 'h1', color: 'hash1', border: '#58a6ff' },
-  { name: 'h2', color: 'hash2', border: '#f59e0b' },
-  { name: 'h3', color: 'hash3', border: '#d2a8ff' }
-];
+const $=id=>document.getElementById(id);
 
-const bitsEl = document.getElementById('bits');
-const hashListEl = document.getElementById('hash-list');
-const historyEl = document.getElementById('history');
-const resultTextEl = document.getElementById('result-text');
-const wordInput = document.getElementById('word-input');
-const addBtn = document.getElementById('add-btn');
-const testBtn = document.getElementById('test-btn');
-const randomBtn = document.getElementById('random-btn');
-const resetBtn = document.getElementById('reset-btn');
-const insertedCountEl = document.getElementById('inserted-count');
-const bitsSetEl = document.getElementById('bits-set');
-const testsCountEl = document.getElementById('tests-count');
-const falsePositivesEl = document.getElementById('false-positives');
-const fprEstimateEl = document.getElementById('fpr-estimate');
+let m=64, k=3;
+let bits=[];
+let insertedSet=new Set();
+let stats={inserted:0, queries:0, fp:0};
 
-let bits = Array(BIT_COUNT).fill(0);
-let insertedWords = new Set();
-let tests = 0;
-let falsePositives = 0;
-let history = [];
-let animating = false;
-let activeHashes = [];
-
-function normalize(word) {
-  return word.trim().toLowerCase();
-}
-
-function hashWord(word, seed) {
-  let hash = seed;
-  for (let i = 0; i < word.length; i += 1) {
-    hash = (hash * 33 + word.charCodeAt(i) * (i + 1)) % 2147483647;
+// k independent hash functions via different seeds (murmur-inspired mix)
+function hash(str, seed, m) {
+  let h = seed ^ 0xdeadbeef;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 0x9e3779b9);
+    h = (h << 13) | (h >>> 19);
+    h = Math.imul(h, 0x6b573cb5) ^ (h >>> 16);
   }
-  return hash % BIT_COUNT;
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return Math.abs(h) % m;
 }
 
-function positionsFor(word) {
-  return [
-    hashWord(word, 17),
-    hashWord(word, 31 + word.length),
-    hashWord(word.split('').reverse().join(''), 53)
-  ];
+const SEEDS=[0x12345678,0xabcdef01,0x87654321,0xfeedface];
+const HASH_COLORS=['hash0','hash1','hash2','hash3'];
+const DOT_COLORS=['h0','h1','h2','h3'];
+const HASH_NAMES=['H₁','H₂','H₃','H₄'];
+
+function getHashes(el){
+  return Array.from({length:k},(_,i)=>hash(el,SEEDS[i],m));
 }
 
-function renderBits() {
-  bitsEl.innerHTML = bits.map((bit, index) => {
-    const activeIndex = activeHashes.findIndex((entry) => entry.position === index);
-    const activeClass = activeIndex >= 0 ? `active ${HASHES[activeIndex].color}` : '';
-    return `
-      <div class="bit ${bit ? 'set' : ''} ${activeClass}">
-        <strong>${bit}</strong>
-        <small>#${index}</small>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderHashes(word, positions) {
-  hashListEl.innerHTML = HASHES.map((hash, index) => `
-    <div class="hash-card" style="border-color:${hash.border}">
-      <h3>${hash.name}</h3>
-      <div class="hash-row">
-        <span>${word ? `"${word}"` : 'Waiting for input'}</span>
-        <span class="hash-value" style="color:${hash.border}">${positions[index] ?? '-'}</span>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderStats() {
-  insertedCountEl.textContent = insertedWords.size;
-  bitsSetEl.textContent = bits.filter(Boolean).length;
-  testsCountEl.textContent = tests;
-  falsePositivesEl.textContent = falsePositives;
-  const estimate = insertedWords.size === 0
-    ? 0
-    : ((1 - Math.exp((-HASHES.length * insertedWords.size) / BIT_COUNT)) ** HASHES.length) * 100;
-  fprEstimateEl.textContent = `${estimate.toFixed(2)}%`;
-}
-
-function renderHistory() {
-  historyEl.innerHTML = history.map((item) => `
-    <div class="history-item">
-      <span class="pill" style="background:${item.color};color:#061018">${item.label}</span>
-      <strong>${item.word}</strong> -> ${item.detail}
-    </div>
-  `).join('');
-}
-
-function renderAll(word = '', positions = []) {
-  renderBits();
-  renderHashes(word, positions);
-  renderStats();
-  renderHistory();
-}
-
-function setButtonsDisabled(disabled) {
-  addBtn.disabled = disabled;
-  testBtn.disabled = disabled;
-  randomBtn.disabled = disabled;
-  resetBtn.disabled = disabled;
-  wordInput.disabled = disabled;
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function animateHashes(word) {
-  const positions = positionsFor(word);
-  activeHashes = [];
-  renderAll(word, positions);
-  for (let i = 0; i < positions.length; i += 1) {
-    activeHashes = [{ position: positions[i] }];
-    renderAll(word, positions);
-    await sleep(280);
+function buildGrid(){
+  const grid=$('bitGrid');
+  grid.innerHTML='';
+  for(let i=0;i<m;i++){
+    const cell=document.createElement('div');
+    cell.className='bit-cell'+(bits[i]?' on':'');
+    cell.id='bit'+i;
+    cell.textContent=bits[i]?'1':'0';
+    const idx=document.createElement('span');
+    idx.className='idx';
+    idx.textContent=i;
+    cell.appendChild(idx);
+    grid.appendChild(cell);
   }
-  activeHashes = positions.map((position) => ({ position }));
-  renderAll(word, positions);
-  await sleep(220);
-  activeHashes = [];
-  renderAll(word, positions);
-  return positions;
 }
 
-function pushHistory(word, label, detail, color) {
-  history.unshift({ word, label, detail, color });
-  history = history.slice(0, 6);
-  renderHistory();
+function refreshCell(i){
+  const cell=$('bit'+i);
+  if(!cell)return;
+  cell.className='bit-cell'+(bits[i]?' on':'');
+  cell.textContent=bits[i]?'1':'0';
+  const idx=document.createElement('span');
+  idx.className='idx';
+  idx.textContent=i;
+  cell.appendChild(idx);
 }
 
-async function handleAdd(word) {
-  if (!word || animating) return;
-  animating = true;
-  setButtonsDisabled(true);
-  const positions = await animateHashes(word);
-  positions.forEach((position) => {
-    bits[position] = 1;
+function highlightCells(positions,highlight){
+  clearHighlights();
+  positions.forEach((pos,i)=>{
+    const cell=$('bit'+pos);
+    if(!cell)return;
+    cell.className='bit-cell'+(bits[pos]?' on':'')+' '+HASH_COLORS[i];
+    if(highlight)cell.classList.add('set-anim');
+    cell.textContent=bits[pos]?'1':'0';
+    const idx=document.createElement('span');
+    idx.className='idx';
+    idx.textContent=pos;
+    cell.appendChild(idx);
   });
-  insertedWords.add(word);
-  resultTextEl.innerHTML = `Added <strong>${word}</strong>. All hashed positions are set to 1.`;
-  pushHistory(word, 'Added', positions.join(', '), '#58a6ff');
-  animating = false;
-  setButtonsDisabled(false);
-  renderAll(word, positions);
 }
 
-async function handleTest(word) {
-  if (!word || animating) return;
-  animating = true;
-  setButtonsDisabled(true);
-  const positions = await animateHashes(word);
-  const allSet = positions.every((position) => bits[position] === 1);
-  const actual = insertedWords.has(word);
-  tests += 1;
+function clearHighlights(){
+  for(let i=0;i<m;i++)refreshCell(i);
+}
 
-  if (allSet && actual) {
-    resultTextEl.innerHTML = `<strong style="color:var(--hit)">True positive:</strong> "${word}" was inserted earlier, so the Bloom filter correctly says possibly present.`;
-    pushHistory(word, 'True+', 'possibly present and actually inserted', '#3fb950');
-  } else if (!allSet) {
-    resultTextEl.innerHTML = `<strong style="color:var(--miss)">True negative:</strong> at least one hashed bit is 0, so "${word}" is definitely not present.`;
-    pushHistory(word, 'True-', 'definitely not present', '#8b949e');
+function renderHashTrace(el,positions,mode){
+  const trace=$('hashTrace');
+  trace.innerHTML='';
+  positions.forEach((pos,i)=>{
+    const row=document.createElement('div');
+    row.className='hash-row';
+    if(mode==='insert'){
+      row.classList.add('active'+i);
+    } else {
+      row.classList.add(bits[pos]?'qmatch':'qnomatch');
+    }
+    const dot=document.createElement('span');
+    dot.className='hash-dot '+DOT_COLORS[i];
+    const lbl=document.createElement('span');
+    lbl.className='hash-label';
+    lbl.textContent=HASH_NAMES[i]+'("'+el+'")';
+    const val=document.createElement('span');
+    val.className='hash-val';
+    val.textContent='→ '+pos;
+    const badge=document.createElement('span');
+    badge.className='hash-bit '+(bits[pos]?'one':'zero');
+    badge.textContent='bit['+pos+'] = '+(bits[pos]?'1':'0');
+    row.appendChild(dot);
+    row.appendChild(lbl);
+    row.appendChild(val);
+    row.appendChild(badge);
+    trace.appendChild(row);
+  });
+}
+
+function doInsert(){
+  const el=$('inEl').value.trim();
+  if(!el){setBadge('rdy','Ready','Enter an element to insert.');return;}
+  const positions=getHashes(el);
+  const isNew=!insertedSet.has(el);
+  // Set bits first, then highlight
+  positions.forEach(p=>{bits[p]=1;});
+  highlightCells(positions,true);
+  insertedSet.add(el);
+  if(isNew){
+    stats.inserted++;
+    $('sInserted').textContent=stats.inserted;
+    addItemTag(el);
+  }
+  updateBitsCount();
+  updateFPRate();
+  renderHashTrace(el,positions,'insert');
+  const msg=isNew
+    ?`Inserted "${el}" → set bits [${positions.join(', ')}]`
+    :`"${el}" already inserted — bits [${positions.join(', ')}] already set`;
+  setBadge('ins','Insert',msg);
+  addLog(msg,'ins');
+  $('inEl').value='';
+}
+
+function doQuery(){
+  const el=$('inEl').value.trim();
+  if(!el){setBadge('rdy','Ready','Enter an element to query.');return;}
+  const positions=getHashes(el);
+  const allSet=positions.every(p=>bits[p]===1);
+  const reallyIn=insertedSet.has(el);
+  highlightCells(positions,false);
+  renderHashTrace(el,positions,'query');
+  stats.queries++;
+  $('sQueries').textContent=stats.queries;
+  let badgeClass,badgeText,msg,logClass;
+  if(!allSet){
+    const zeroBit=positions.find(p=>!bits[p]);
+    badgeClass='miss';badgeText='Not Found';logClass='miss';
+    msg=`"${el}" → DEFINITELY NOT in set (bit[${zeroBit}] = 0)`;
+  } else if(reallyIn){
+    badgeClass='hit';badgeText='Found';logClass='hit';
+    msg=`"${el}" → PROBABLY IN SET ✓ (true positive — was inserted)`;
   } else {
-    falsePositives += 1;
-    resultTextEl.innerHTML = `<strong style="color:var(--fp)">False positive:</strong> all bits are 1, but "${word}" was never inserted.`;
-    pushHistory(word, 'False+', 'possibly present but actually absent', '#ff7b72');
+    badgeClass='fp';badgeText='False Positive';logClass='fp';
+    stats.fp++;
+    $('sFP').textContent=stats.fp;
+    msg=`"${el}" → PROBABLY IN SET ⚠ (FALSE POSITIVE — never inserted!)`;
   }
-
-  animating = false;
-  setButtonsDisabled(false);
-  renderAll(word, positions);
+  setBadge(badgeClass,badgeText,msg);
+  addLog(msg,logClass);
+  $('inEl').value='';
 }
 
-function randomWord() {
-  const syllables = ['al', 'be', 'con', 'data', 'flux', 'graph', 'heap', 'io', 'mesh', 'node', 'query', 'sort', 'tree'];
-  return Array.from({ length: 2 + Math.floor(Math.random() * 2) }, () => syllables[Math.floor(Math.random() * syllables.length)]).join('');
+function setBadge(cls,text,msg){
+  const b=$('badge');
+  b.className='badge '+cls;
+  b.textContent=text;
+  $('smsg').textContent=msg;
 }
 
-addBtn.addEventListener('click', () => handleAdd(normalize(wordInput.value)));
-testBtn.addEventListener('click', () => handleTest(normalize(wordInput.value)));
-randomBtn.addEventListener('click', () => {
-  const word = randomWord();
-  wordInput.value = word;
-  handleTest(word);
-});
-resetBtn.addEventListener('click', () => {
-  bits = Array(BIT_COUNT).fill(0);
-  insertedWords = new Set(['graph', 'heap', 'queue']);
-  insertedWords.forEach((word) => positionsFor(word).forEach((position) => {
-    bits[position] = 1;
-  }));
-  tests = 0;
-  falsePositives = 0;
-  history = [];
-  activeHashes = [];
-  resultTextEl.textContent = 'Bloom filters can say "definitely not present" or "possibly present".';
-  renderAll();
-});
-wordInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    handleAdd(normalize(wordInput.value));
-  }
+function addLog(msg,cls){
+  const box=$('lbox');
+  const e=document.createElement('div');
+  e.className='le '+(cls||'');
+  e.textContent=msg;
+  box.prepend(e);
+}
+
+function addItemTag(el){
+  const list=$('itemList');
+  const placeholder=list.querySelector('span');
+  if(placeholder)list.removeChild(placeholder);
+  const tag=document.createElement('span');
+  tag.className='item-tag';
+  tag.textContent=el;
+  list.appendChild(tag);
+}
+
+function updateBitsCount(){
+  const count=bits.filter(Boolean).length;
+  $('sBitsSet').textContent=count;
+  const ratio=(count/m*100).toFixed(1);
+  $('fillRatio').textContent=ratio+'%';
+  $('fpBar').style.width=ratio+'%';
+}
+
+function updateFPRate(){
+  const n=stats.inserted;
+  const rate=Math.pow(1-Math.exp(-k*n/m),k);
+  $('fpRate').textContent=(rate*100).toFixed(2)+'%';
+}
+
+function loadPreset(items){
+  resetFilter();
+  items.forEach(el=>{
+    insertedSet.add(el);
+    getHashes(el).forEach(p=>{bits[p]=1;});
+    stats.inserted++;
+    addItemTag(el);
+  });
+  buildGrid();
+  updateBitsCount();
+  updateFPRate();
+  $('sInserted').textContent=stats.inserted;
+  setBadge('done','Loaded',`Loaded ${items.length} elements: ${items.join(', ')}`);
+  addLog('Loaded preset: ['+items.join(', ')+']','');
+}
+
+function resetFilter(){
+  m=parseInt($('mSel').value);
+  k=parseInt($('kSel').value);
+  bits=new Array(m).fill(0);
+  insertedSet=new Set();
+  stats={inserted:0,queries:0,fp:0};
+  $('sInserted').textContent='0';
+  $('sBitsSet').textContent='0';
+  $('sQueries').textContent='0';
+  $('sFP').textContent='0';
+  $('fillRatio').textContent='0.0%';
+  $('fpRate').textContent='0.0%';
+  $('fpBar').style.width='0%';
+  $('mLbl').textContent=m;
+  $('lbox').innerHTML='';
+  $('itemList').innerHTML='<span style="color:var(--muted);font-size:.76rem">None yet\u2026</span>';
+  $('hashTrace').innerHTML='<div style="color:var(--muted);font-size:.78rem;padding:8px 0">Insert or query an element to see hash computations.</div>';
+  setBadge('rdy','Ready','Insert elements or query membership. Enter = Insert, Tab = Query.');
+  buildGrid();
+}
+
+$('inEl').addEventListener('keydown',e=>{
+  if(e.key==='Enter')doInsert();
+  if(e.key==='Tab'){e.preventDefault();doQuery();}
 });
 
-resetBtn.click();
+resetFilter();
 </script>
 </body>
 </html>

@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- bloom-filter — Bloom Filter (probabilistic membership, k hash functions, false-positive rate visualization) ✅ 2026-03-29
 - lcs — Longest Common Subsequence (DP table fill + traceback, LCS highlight in both strings) ✅ 2026-03-29
 - levenshtein-distance — Levenshtein Distance (edit distance DP table fill with alignment trace) ✅ 2026-03-29
 - cycle-detection — Floyd's Cycle Detection (tortoise & hare, 3-phase: detect + μ + λ) ✅ 2026-03-29
