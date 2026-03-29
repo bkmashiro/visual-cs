@@ -4,58 +4,877 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skip List — visual-cs</title>
-<link rel="stylesheet" href="style.css">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --panel: #111720;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --green: #7ee787;
+  --warn: #f78166;
+  --gold: #e3b341;
+  --violet: #a371f7;
+  --red: #ff7b72;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+header .title-group { display: flex; flex-direction: column; gap: 2px; }
+header h1 { font-size: 1.05rem; font-weight: 700; }
+header .subtitle { font-size: 0.72rem; color: var(--muted); }
+.toolbar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toolbar-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field-group label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+}
+input[type=number], select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  outline: none;
+}
+input[type=number] { width: 90px; }
+input[type=number]:focus, select:focus { border-color: var(--accent); }
+.btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1.4;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #0d1117; }
+.btn-primary:hover:not(:disabled) { background: #79c0ff; }
+.btn-danger { background: var(--warn); color: #0d1117; }
+.btn-danger:hover:not(:disabled) { background: #ff9284; }
+.btn-gold { background: var(--gold); color: #0d1117; }
+.btn-gold:hover:not(:disabled) { background: #f0c653; }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+.speed-wrap { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.speed-wrap label { font-size: 0.72rem; color: var(--muted); }
+input[type=range] { width: 90px; accent-color: var(--accent); cursor: pointer; }
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.canvas-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 20px;
+  gap: 10px;
+  min-width: 0;
+}
+#canvas {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  flex: 1;
+  min-height: 0;
+  display: block;
+  width: 100%;
+}
+.status-bar {
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.side-panel {
+  width: 280px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  overflow: hidden;
+}
+.side-sec {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 14px;
+  flex-shrink: 0;
+}
+.side-sec h3 {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.stat-card .val { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+.stat-card .lbl { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; }
+.coin-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  min-height: 28px;
+  align-items: center;
+}
+.coin {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.62rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid;
+  transition: background 0.2s;
+  cursor: default;
+}
+.coin.heads { background: var(--gold); border-color: #b8922a; color: #0d1117; }
+.coin.tails { background: var(--surface); border-color: var(--border); color: var(--muted); }
+@keyframes coinFlip {
+  0%   { transform: scaleX(1); }
+  50%  { transform: scaleX(0.05); opacity: 0.5; }
+  100% { transform: scaleX(1); }
+}
+.coin.flip { animation: coinFlip 0.35s ease; }
+.level-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: var(--violet);
+  color: #0d1117;
+}
+.complexity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+.complexity-table th {
+  color: var(--muted);
+  text-align: left;
+  padding: 3px 5px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.complexity-table td { padding: 3px 5px; }
+.avg { color: var(--green); font-weight: 600; }
+.worst { color: var(--gold); font-weight: 600; }
+.legend-rows { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; color: var(--muted); }
+.legend-row { display: flex; align-items: center; gap: 7px; }
+.swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+.log-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 14px;
+  font-size: 0.74rem;
+  line-height: 1.65;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+.log-scroll::-webkit-scrollbar { width: 4px; }
+.log-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.le { margin-bottom: 1px; }
+.le.info { color: var(--muted); }
+.le.hl   { color: var(--accent); font-weight: 600; }
+.le.ok   { color: var(--green); }
+.le.step { color: var(--violet); }
+.le.warn { color: var(--gold); }
+.le.err  { color: var(--red); }
+</style>
 </head>
 <body>
+
 <header>
-  <a href="../../index.html">← Back to Index</a>
-  <h1>⏭️ Skip List</h1>
-  <span style="color:var(--muted);font-size:0.85rem">Data Structure · Probabilistic</span>
+  <a href="../../index.html">← visual-cs</a>
+  <div class="title-group">
+    <h1>Skip List</h1>
+    <div class="subtitle">Probabilistic multi-level linked list — O(log n) avg search / insert / delete</div>
+  </div>
 </header>
 
-<div class="main">
-  <div class="stats">
-    <div class="stat"><div class="stat-value" id="node-count">0</div><div class="stat-label">Nodes</div></div>
-    <div class="stat"><div class="stat-value" id="level-count">1</div><div class="stat-label">Levels</div></div>
-    <div class="stat"><div class="stat-value" id="comparisons">0</div><div class="stat-label">Comparisons</div></div>
-    <div class="stat"><div class="stat-value" id="status" style="font-size:1rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
-  </div>
-
-  <div class="controls">
-    <input type="number" id="value-input" placeholder="Value" min="1" max="999">
-    <button id="insert-btn">Insert</button>
-    <button id="search-btn" class="secondary">Search</button>
-    <button id="random-btn" class="secondary">Random +5</button>
-    <button id="clear-btn" class="secondary">Clear</button>
-    <div class="range-group">
-      <label for="speed-slider">Speed</label>
-      <input id="speed-slider" type="range" min="50" max="800" value="300">
-      <span id="speed-value">300 ms</span>
+<div class="toolbar">
+  <div class="toolbar-row">
+    <div class="field-group">
+      <label>Value</label>
+      <input type="number" id="val-input" value="42" min="0" max="999">
     </div>
-  </div>
+    <button class="btn btn-primary" id="btn-insert" onclick="doInsert()">Insert</button>
+    <button class="btn btn-gold"    id="btn-search" onclick="doSearch()">Search</button>
+    <button class="btn btn-danger"  id="btn-delete" onclick="doDelete()">Delete</button>
 
-  <div class="canvas-wrap">
-    <canvas id="canvas" width="1200" height="500"></canvas>
-  </div>
+    <div class="field-group" style="margin-left:8px">
+      <label>Preset</label>
+      <select id="preset">
+        <option value="">— choose —</option>
+        <option value="small">Small [5,12,18,25,33,47]</option>
+        <option value="medium">Medium 10 values</option>
+        <option value="large">Random 20 values</option>
+      </select>
+    </div>
+    <button class="btn btn-ghost" id="btn-load" onclick="loadPreset()">Load</button>
+    <button class="btn btn-ghost" id="btn-reset" onclick="resetAll()">Reset</button>
 
-  <div class="legend">
-    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Regular node</div>
-    <div class="legend-item"><div class="swatch" style="background:#f2cc60"></div>Search path</div>
-    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Found / Inserted</div>
-    <div class="legend-item"><div class="swatch" style="background:#ff6b6b"></div>New level (coin flip)</div>
-  </div>
-
-  <div class="explain">
-    <h2>How it works</h2>
-    <p>A skip list is a layered linked list where each level acts as an "express lane" that skips over many elements, enabling O(log n) average search, insert, and delete operations.</p>
-    <ul>
-      <li>Each inserted element is promoted to higher levels based on random coin flips (p = 0.5).</li>
-      <li>Search starts at the top level and moves right or drops down — the yellow path shows this traversal.</li>
-      <li>The HEAD sentinel on the left spans all levels, linking to the first element at each level.</li>
-    </ul>
+    <div class="speed-wrap">
+      <label>Speed</label>
+      <input type="range" id="speed" min="1" max="5" value="3">
+      <span id="speed-lbl" style="font-size:0.72rem;color:var(--muted);width:24px">×3</span>
+    </div>
   </div>
 </div>
 
-<script src="main.js"></script>
+<div class="main-layout">
+  <div class="canvas-panel">
+    <canvas id="canvas"></canvas>
+    <div class="status-bar" id="status">Ready — insert values to build the skip list.</div>
+  </div>
+  <div class="side-panel">
+    <div class="side-sec">
+      <h3>Statistics</h3>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="val" id="st-n">0</div><div class="lbl">Nodes</div></div>
+        <div class="stat-card"><div class="val" id="st-lvl">0</div><div class="lbl">Max Level</div></div>
+        <div class="stat-card"><div class="val" id="st-ops">0</div><div class="lbl">Operations</div></div>
+        <div class="stat-card"><div class="val" id="st-cmp">0</div><div class="lbl">Comparisons</div></div>
+      </div>
+    </div>
+    <div class="side-sec">
+      <h3>Probabilistic Level (last insert)</h3>
+      <div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px">Flip coins until Tails — Heads = promote level (p=0.5)</div>
+      <div class="coin-row" id="coins"></div>
+      <div style="margin-top:7px;font-size:0.72rem;color:var(--muted)">
+        Assigned level: <span class="level-badge" id="assigned-lvl">—</span>
+      </div>
+    </div>
+    <div class="side-sec">
+      <h3>Complexity</h3>
+      <table class="complexity-table">
+        <thead><tr><th>Operation</th><th>Avg</th><th>Worst</th></tr></thead>
+        <tbody>
+          <tr><td>Search</td><td class="avg">O(log n)</td><td class="worst">O(n)</td></tr>
+          <tr><td>Insert</td><td class="avg">O(log n)</td><td class="worst">O(n)</td></tr>
+          <tr><td>Delete</td><td class="avg">O(log n)</td><td class="worst">O(n)</td></tr>
+          <tr><td>Space</td><td class="avg">O(n log n)</td><td class="worst">O(n log n)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="side-sec">
+      <h3>Legend</h3>
+      <div class="legend-rows">
+        <div class="legend-row"><div class="swatch" style="background:var(--accent)"></div>Normal node</div>
+        <div class="legend-row"><div class="swatch" style="background:var(--gold)"></div>Traversal path</div>
+        <div class="legend-row"><div class="swatch" style="background:var(--green)"></div>Found / Inserted</div>
+        <div class="legend-row"><div class="swatch" style="background:var(--red)"></div>Deleted node</div>
+        <div class="legend-row"><div class="swatch" style="background:var(--muted);border-radius:50%"></div>Sentinel (HEAD/TAIL)</div>
+      </div>
+    </div>
+    <div class="side-sec" style="padding-bottom:6px">
+      <h3>Log</h3>
+    </div>
+    <div class="log-scroll" id="log"></div>
+  </div>
+</div>
+
+<script>
+// ─── Skip List ──────────────────────────────────────────────────────────────
+const MAX_LEVEL = 8;
+const PROB = 0.5;
+
+class SLNode {
+  constructor(key, level) {
+    this.key = key;
+    this.level = level;
+    this.fwd = new Array(level + 1).fill(null);
+  }
+}
+
+class SkipList {
+  constructor() {
+    this.head = new SLNode(-Infinity, MAX_LEVEL);
+    this.tail = new SLNode(Infinity, MAX_LEVEL);
+    for (let i = 0; i <= MAX_LEVEL; i++) this.head.fwd[i] = this.tail;
+    this.maxLvl = 0;
+    this.size = 0;
+  }
+
+  _randLevel() {
+    let lvl = 0;
+    const flips = [];
+    while (lvl < MAX_LEVEL && Math.random() < PROB) { lvl++; flips.push(true); }
+    flips.push(false);
+    return { level: lvl, flips };
+  }
+
+  insert(key) {
+    const update = new Array(MAX_LEVEL + 1).fill(null);
+    const path = [];
+    let cur = this.head;
+    for (let i = this.maxLvl; i >= 0; i--) {
+      while (cur.fwd[i] !== this.tail && cur.fwd[i].key < key) {
+        path.push({ node: cur, level: i, move: true });
+        cur = cur.fwd[i];
+      }
+      path.push({ node: cur, level: i, move: false });
+      update[i] = cur;
+    }
+    if (cur.fwd[0] !== this.tail && cur.fwd[0].key === key)
+      return { ok: false, path, node: null, flips: [], assignedLevel: 0 };
+
+    const { level: nl, flips } = this._randLevel();
+    if (nl > this.maxLvl) {
+      for (let i = this.maxLvl + 1; i <= nl; i++) update[i] = this.head;
+      this.maxLvl = nl;
+    }
+    const n = new SLNode(key, nl);
+    for (let i = 0; i <= nl; i++) { n.fwd[i] = update[i].fwd[i]; update[i].fwd[i] = n; }
+    this.size++;
+    return { ok: true, path, node: n, flips, assignedLevel: nl };
+  }
+
+  search(key) {
+    const path = [];
+    let cur = this.head;
+    for (let i = this.maxLvl; i >= 0; i--) {
+      while (cur.fwd[i] !== this.tail && cur.fwd[i].key < key) {
+        path.push({ node: cur, level: i, move: true });
+        cur = cur.fwd[i];
+      }
+      path.push({ node: cur, level: i, move: false });
+    }
+    const found = cur.fwd[0] !== this.tail && cur.fwd[0].key === key;
+    return { found, foundNode: found ? cur.fwd[0] : null, path };
+  }
+
+  delete(key) {
+    const update = new Array(MAX_LEVEL + 1).fill(null);
+    const path = [];
+    let cur = this.head;
+    for (let i = this.maxLvl; i >= 0; i--) {
+      while (cur.fwd[i] !== this.tail && cur.fwd[i].key < key) {
+        path.push({ node: cur, level: i, move: true });
+        cur = cur.fwd[i];
+      }
+      path.push({ node: cur, level: i, move: false });
+      update[i] = cur;
+    }
+    cur = cur.fwd[0];
+    if (cur === this.tail || cur.key !== key) return { ok: false, path, delNode: null };
+    const delNode = cur;
+    for (let i = 0; i <= this.maxLvl; i++) {
+      if (update[i].fwd[i] !== cur) break;
+      update[i].fwd[i] = cur.fwd[i];
+    }
+    while (this.maxLvl > 0 && this.head.fwd[this.maxLvl] === this.tail) this.maxLvl--;
+    this.size--;
+    return { ok: true, path, delNode };
+  }
+
+  nodes() {
+    const arr = [];
+    let c = this.head.fwd[0];
+    while (c !== this.tail) { arr.push(c); c = c.fwd[0]; }
+    return arr;
+  }
+}
+
+// ─── Renderer ───────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const sl = new SkipList();
+
+// Animation state
+let hlPath = [];      // [{node, level, color}]
+let hlNodes = {};     // key -> fillColor
+let extraKey = null;
+let extraMode = null; // 'new'|'del'
+let busy = false;
+
+const C = {
+  bg:      '#0d1117',
+  surface: '#161b22',
+  border:  '#30363d',
+  text:    '#e6edf3',
+  muted:   '#8b949e',
+  accent:  '#58a6ff',
+  green:   '#7ee787',
+  gold:    '#e3b341',
+  violet:  '#a371f7',
+  red:     '#ff7b72',
+};
+
+function layout() {
+  const nodes = sl.nodes();
+  const n = nodes.length;
+  const W = canvas.width, H = canvas.height;
+  const NW = 46, NH = 28;
+  const levels = sl.maxLvl + 1;
+  const usableW = W - 80;
+  const hGap = Math.min(60, Math.max(32, usableW / Math.max(n + 2, 3)));
+  const usableH = H - 50;
+  const vGap = Math.min(56, Math.max(30, usableH / Math.max(levels + 1, 2)));
+
+  const xOf = {};
+  xOf['__head__'] = 28;
+  nodes.forEach((nd, i) => { xOf[nd.key] = 28 + (i + 1) * hGap; });
+  xOf['__tail__'] = 28 + (n + 1) * hGap;
+
+  const yOf = {}; // level -> y (level 0 at bottom)
+  for (let i = 0; i <= sl.maxLvl; i++) yOf[i] = H - 32 - i * vGap;
+
+  return { nodes, xOf, yOf, NW, NH };
+}
+
+function render() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  if (sl.size === 0) {
+    ctx.fillStyle = C.muted;
+    ctx.font = '14px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Insert values to build the skip list', W / 2, H / 2);
+    return;
+  }
+
+  const { nodes, xOf, yOf, NW, NH } = layout();
+
+  // Level labels
+  for (let i = 0; i <= sl.maxLvl; i++) {
+    ctx.fillStyle = C.muted;
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`L${i}`, 22, yOf[i] + NH / 2);
+  }
+
+  // Build pathSet for arrow highlighting
+  const pathMap = {}; // "key_level" -> color
+  hlPath.forEach(p => {
+    const k = p.node === sl.head ? '__head__' : String(p.node.key);
+    pathMap[`${k}_${p.level}`] = p.color;
+  });
+
+  // Draw arrows
+  const allNodes = [sl.head, ...nodes];
+  for (let lvl = 0; lvl <= sl.maxLvl; lvl++) {
+    const y = yOf[lvl] + NH / 2;
+    let cur = sl.head;
+    while (cur) {
+      const fromKey = cur === sl.head ? '__head__' : cur.key;
+      const fx = xOf[fromKey];
+      if (fx === undefined) break;
+      const nxt = cur.fwd[lvl];
+      if (!nxt) break;
+      const toKey = nxt === sl.tail ? '__tail__' : nxt.key;
+      const tx = xOf[toKey];
+      if (tx === undefined) break;
+
+      const pk = `${fromKey}_${lvl}`;
+      const color = pathMap[pk] || C.border;
+      const isHighlighted = !!pathMap[pk];
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isHighlighted ? 2 : 1.5;
+      if (!isHighlighted) ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(fx + NW / 2, y);
+      ctx.lineTo(tx - 8, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // arrowhead
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(tx - 8, y - 5);
+      ctx.lineTo(tx, y);
+      ctx.lineTo(tx - 8, y + 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      cur = nxt === sl.tail ? null : nxt;
+    }
+  }
+
+  // Draw nodes
+  function drawNode(key, x, y, fill, stroke, label) {
+    ctx.save();
+    if (fill !== C.surface && fill !== C.bg) {
+      ctx.shadowColor = fill;
+      ctx.shadowBlur = 10;
+    }
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(x, y, NW, NH, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    const dark = fill === C.bg || fill === C.surface;
+    ctx.fillStyle = dark ? C.text : '#0d1117';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x + NW / 2, y + NH / 2);
+    ctx.restore();
+  }
+
+  // Sentinels at all levels
+  for (let i = 0; i <= sl.maxLvl; i++) {
+    drawNode('__head__', xOf['__head__'], yOf[i], C.surface, C.muted, 'H');
+    if (xOf['__tail__'] !== undefined)
+      drawNode('__tail__', xOf['__tail__'], yOf[i], C.surface, C.muted, 'T');
+  }
+
+  // Data nodes
+  nodes.forEach(nd => {
+    const x = xOf[nd.key];
+    if (x === undefined) return;
+    for (let i = 0; i <= nd.level && i <= sl.maxLvl; i++) {
+      const y = yOf[i];
+      // Vertical connector
+      if (i < nd.level && i + 1 <= sl.maxLvl) {
+        ctx.save();
+        ctx.strokeStyle = C.border;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(x + NW / 2, y);
+        ctx.lineTo(x + NW / 2, yOf[i + 1] + NH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+      let fill = C.surface;
+      let stroke = C.accent;
+      if (hlNodes[nd.key]) { fill = hlNodes[nd.key]; stroke = hlNodes[nd.key]; }
+      else if (extraMode === 'new' && extraKey === nd.key) { fill = C.green; stroke = C.green; }
+      else if (extraMode === 'del' && extraKey === nd.key) { fill = C.red; stroke = C.red; }
+      drawNode(nd.key, x, y, fill, stroke, String(nd.key));
+    }
+    // height label
+    const y0 = yOf[0];
+    ctx.fillStyle = C.muted;
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`h=${nd.level}`, x + NW / 2, y0 + NH + 3);
+  });
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function getDelay() { return Math.max(30, 480 / parseInt(document.getElementById('speed').value)); }
+
+function log(msg, cls = 'info') {
+  const box = document.getElementById('log');
+  const d = document.createElement('div');
+  d.className = `le ${cls}`;
+  d.textContent = msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+function setStatus(html) { document.getElementById('status').innerHTML = html; }
+
+function updateStats(cmpDelta) {
+  document.getElementById('st-n').textContent = sl.size;
+  document.getElementById('st-lvl').textContent = sl.maxLvl;
+  document.getElementById('st-ops').textContent = +document.getElementById('st-ops').textContent + 1;
+  document.getElementById('st-cmp').textContent = +document.getElementById('st-cmp').textContent + cmpDelta;
+}
+
+function showCoins(flips, assignedLevel) {
+  const row = document.getElementById('coins');
+  row.innerHTML = '';
+  flips.forEach(h => {
+    const c = document.createElement('div');
+    c.className = `coin ${h ? 'heads' : 'tails'} flip`;
+    c.textContent = h ? 'H' : 'T';
+    c.title = h ? 'Heads → promote!' : 'Tails → stop';
+    row.appendChild(c);
+  });
+  document.getElementById('assigned-lvl').textContent = `L${assignedLevel}`;
+}
+
+function setBusy(b) {
+  busy = b;
+  ['btn-insert','btn-search','btn-delete','btn-load','btn-reset'].forEach(id => {
+    document.getElementById(id).disabled = b;
+  });
+}
+
+async function animatePath(path) {
+  const delay = getDelay();
+  let cmp = 0;
+  hlPath = [];
+  hlNodes = {};
+  for (const step of path) {
+    const nodeLabel = step.node === sl.head ? 'HEAD' : String(step.node.key);
+    const color = step.move ? C.gold : C.violet;
+    hlPath.push({ node: step.node, level: step.level, color });
+    if (step.move) {
+      if (step.node !== sl.head) hlNodes[step.node.key] = C.gold;
+      cmp++;
+    }
+    render();
+    log(`  L${step.level}: at ${nodeLabel} → ${step.move ? 'move right' : 'drop down'}`, step.move ? 'step' : 'info');
+    await sleep(delay);
+  }
+  return cmp;
+}
+
+// ─── Operations ──────────────────────────────────────────────────────────────
+async function doInsert() {
+  if (busy) return;
+  const v = parseInt(document.getElementById('val-input').value);
+  if (isNaN(v)) return;
+  setBusy(true);
+  extraKey = null; extraMode = null;
+
+  log(`▶ Insert(${v})`, 'hl');
+  const res = sl.insert(v);
+
+  if (!res.ok) {
+    setStatus(`Value <span style="color:var(--gold)">${v}</span> already exists — skipped.`);
+    log(`  ${v} already in list`, 'warn');
+    setBusy(false);
+    render();
+    return;
+  }
+
+  showCoins(res.flips, res.assignedLevel);
+  log(`  Coin flips: ${res.flips.map(f => f ? 'H' : 'T').join(' ')} → Level ${res.assignedLevel}`, 'step');
+  setStatus(`Inserting <span style="color:var(--accent)">${v}</span> at level L${res.assignedLevel}…`);
+
+  const cmp = await animatePath(res.path);
+
+  hlPath = []; hlNodes = {};
+  extraKey = v; extraMode = 'new';
+  render();
+  log(`  ✓ Inserted ${v} (level=${res.assignedLevel})`, 'ok');
+  setStatus(`Inserted <span style="color:var(--green)">${v}</span> — level L${res.assignedLevel}`);
+  updateStats(cmp);
+
+  await sleep(getDelay() * 2.5);
+  extraKey = null; extraMode = null;
+  render();
+  setBusy(false);
+}
+
+async function doSearch() {
+  if (busy) return;
+  const v = parseInt(document.getElementById('val-input').value);
+  if (isNaN(v)) return;
+  setBusy(true);
+  extraKey = null; extraMode = null;
+
+  log(`▶ Search(${v})`, 'hl');
+  setStatus(`Searching for <span style="color:var(--accent)">${v}</span>…`);
+  const res = sl.search(v);
+  const cmp = await animatePath(res.path);
+
+  hlPath = []; hlNodes = {};
+  if (res.found) {
+    hlNodes[v] = C.green;
+    render();
+    log(`  ✓ Found ${v} — ${cmp} comparisons`, 'ok');
+    setStatus(`Found <span style="color:var(--green)">${v}</span> — ${cmp} comparisons`);
+  } else {
+    render();
+    log(`  ✗ ${v} not found — ${cmp} comparisons`, 'err');
+    setStatus(`<span style="color:var(--red)">${v} not found</span> — ${cmp} comparisons`);
+  }
+  updateStats(cmp);
+
+  await sleep(getDelay() * 2);
+  hlNodes = {};
+  render();
+  setBusy(false);
+}
+
+async function doDelete() {
+  if (busy) return;
+  const v = parseInt(document.getElementById('val-input').value);
+  if (isNaN(v)) return;
+  setBusy(true);
+  extraKey = null; extraMode = null;
+
+  log(`▶ Delete(${v})`, 'hl');
+  setStatus(`Deleting <span style="color:var(--accent)">${v}</span>…`);
+  const res = sl.delete(v);
+  const cmp = await animatePath(res.path);
+
+  hlPath = []; hlNodes = {};
+  if (res.ok) {
+    // Flash deleted node (it's removed from structure now, so re-add temporarily for visual)
+    // We just render the new state directly
+    render();
+    log(`  ✓ Deleted ${v}`, 'ok');
+    setStatus(`Deleted <span style="color:var(--green)">${v}</span>`);
+  } else {
+    render();
+    log(`  ✗ ${v} not found`, 'err');
+    setStatus(`<span style="color:var(--red)">${v} not found</span>`);
+  }
+  updateStats(cmp);
+
+  await sleep(getDelay());
+  render();
+  setBusy(false);
+}
+
+function resetAll() {
+  if (busy) return;
+  // rebuild in-place
+  sl.head = new SLNode(-Infinity, MAX_LEVEL);
+  sl.tail = new SLNode(Infinity, MAX_LEVEL);
+  for (let i = 0; i <= MAX_LEVEL; i++) sl.head.fwd[i] = sl.tail;
+  sl.maxLvl = 0;
+  sl.size = 0;
+  hlPath = []; hlNodes = {}; extraKey = null; extraMode = null;
+  document.getElementById('st-n').textContent = '0';
+  document.getElementById('st-lvl').textContent = '0';
+  document.getElementById('st-ops').textContent = '0';
+  document.getElementById('st-cmp').textContent = '0';
+  document.getElementById('coins').innerHTML = '';
+  document.getElementById('assigned-lvl').textContent = '—';
+  document.getElementById('log').innerHTML = '';
+  setStatus('Reset — insert values to build the skip list.');
+  render();
+}
+
+function loadPreset() {
+  if (busy) return;
+  const sel = document.getElementById('preset').value;
+  if (!sel) return;
+  resetAll();
+  let vals;
+  if (sel === 'small') vals = [5, 12, 18, 25, 33, 47];
+  else if (sel === 'medium') vals = [3, 7, 11, 19, 24, 30, 38, 42, 55, 61];
+  else {
+    const s = new Set();
+    while (s.size < 20) s.add(Math.floor(Math.random() * 200) + 1);
+    vals = [...s].sort((a, b) => a - b);
+  }
+  vals.forEach(v => {
+    const r = sl.insert(v);
+    if (r.ok) log(`  Insert(${v}) → L${r.assignedLevel}`, 'info');
+  });
+  document.getElementById('st-n').textContent = sl.size;
+  document.getElementById('st-lvl').textContent = sl.maxLvl;
+  document.getElementById('st-ops').textContent = vals.length;
+  setStatus(`Loaded preset <span style="color:var(--accent)">${sel}</span> — ${vals.length} nodes`);
+  render();
+}
+
+// ─── Speed label ─────────────────────────────────────────────────────────────
+document.getElementById('speed').addEventListener('input', function () {
+  document.getElementById('speed-lbl').textContent = `×${this.value}`;
+});
+
+// ─── Keyboard ────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (document.activeElement.tagName === 'INPUT' && document.activeElement.type === 'number') {
+    if (e.key === 'Enter') { e.preventDefault(); doInsert(); }
+    return;
+  }
+  if (e.key === 'i' || e.key === 'I') doInsert();
+  if (e.key === 's' || e.key === 'S') doSearch();
+  if (e.key === 'd' || e.key === 'D') doDelete();
+});
+
+// ─── Resize ───────────────────────────────────────────────────────────────────
+function resize() {
+  const panel = canvas.parentElement;
+  const rect = panel.getBoundingClientRect();
+  const statusH = document.getElementById('status').offsetHeight + 10 + 16 + 10;
+  canvas.width = Math.max(400, rect.width - 40);
+  canvas.height = Math.max(200, rect.height - statusH - 40);
+  render();
+}
+new ResizeObserver(resize).observe(canvas.parentElement);
+window.addEventListener('resize', resize);
+setTimeout(resize, 60);
+</script>
 </body>
 </html>
