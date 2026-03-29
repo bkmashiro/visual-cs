@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Splay Tree - visual-cs</title>
+<style>
+:root{
+  --bg:#061017;
+  --surface:#0d1824;
+  --surface-2:#122334;
+  --panel:#0a1420;
+  --border:#21364b;
+  --text:#e5f0ff;
+  --muted:#8ea7c2;
+  --cyan:#67e8f9;
+  --blue:#60a5fa;
+  --teal:#2dd4bf;
+  --green:#4ade80;
+  --amber:#fbbf24;
+  --orange:#fb923c;
+  --red:#fb7185;
+  --violet:#a78bfa;
+  --shadow:0 28px 70px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left,rgba(96,165,250,.16),transparent 24%),
+    radial-gradient(circle at top right,rgba(45,212,191,.12),transparent 28%),
+    linear-gradient(180deg,#07111b,#03070c 62%);
+}
+a{color:inherit}
+header{
+  position:sticky;top:0;z-index:20;
+  backdrop-filter:blur(16px);
+  background:rgba(3,7,12,.72);
+  border-bottom:1px solid rgba(33,54,75,.76);
+}
+.hdr{
+  max-width:1400px;margin:0 auto;padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+}
+.brand h1{font-size:1.06rem;letter-spacing:.08em;text-transform:uppercase}
+.brand h1 span{color:var(--cyan)}
+.brand p{margin-top:4px;color:var(--muted);font-size:.84rem}
+.back{
+  text-decoration:none;padding:10px 15px;border-radius:999px;
+  border:1px solid var(--border);color:var(--muted);font-size:.82rem;
+  transition:.18s ease;
+}
+.back:hover{border-color:var(--cyan);color:var(--text);transform:translateY(-1px)}
+.shell{
+  max-width:1400px;margin:0 auto;padding:26px 24px 42px;
+  display:grid;grid-template-columns:minmax(0,1.45fr) 360px;gap:22px;
+}
+.panel{
+  background:linear-gradient(180deg,rgba(13,24,36,.96),rgba(7,14,23,.96));
+  border:1px solid rgba(33,54,75,.9);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+}
+.main{padding:24px;display:flex;flex-direction:column;gap:18px}
+.hero{
+  padding:22px;border-radius:22px;
+  border:1px solid rgba(103,232,249,.14);
+  background:linear-gradient(135deg,rgba(96,165,250,.16),rgba(45,212,191,.08) 38%,rgba(167,139,250,.12));
+  display:grid;grid-template-columns:1.1fr .9fr;gap:18px;
+}
+.hero h2{font-size:2rem;line-height:1.02;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.62;font-size:.93rem;max-width:60ch}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.metric{
+  border-radius:18px;padding:14px;
+  background:rgba(7,14,23,.72);
+  border:1px solid rgba(103,232,249,.1);
+}
+.mlabel{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px}
+.mval{font-size:1.36rem;font-weight:800}
+.mhint{margin-top:6px;font-size:.78rem;color:var(--muted);line-height:1.45}
+.toolbar,.viz,.note,.logbox,.sidepanel{
+  padding:18px;border-radius:20px;background:rgba(8,15,24,.92);
+  border:1px solid rgba(33,54,75,.78);
+}
+.toolbar{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:120px}
+.field label{
+  font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;
+}
+input[type=number],input[type=range],select{
+  accent-color:var(--cyan);
+}
+input[type=number],select{
+  width:100%;padding:10px 14px;border-radius:12px;
+  background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+  outline:none;font:inherit;
+}
+input[type=number]:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(103,232,249,.12)}
+.btn{
+  padding:10px 16px;border-radius:12px;border:none;cursor:pointer;font-weight:800;
+  transition:.18s ease;font-size:.87rem;white-space:nowrap;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:var(--cyan);color:#07111f}
+.btn-secondary{background:rgba(33,54,75,.48);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:rgba(251,113,133,.16);color:var(--red);border:1px solid rgba(251,113,133,.3)}
+.btn-play{background:var(--green);color:#04110a}
+.btn-ghost{background:rgba(103,232,249,.08);color:var(--cyan);border:1px solid rgba(103,232,249,.2)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.preset-row{display:flex;flex-wrap:wrap;gap:8px}
+.preset{
+  padding:6px 12px;border-radius:999px;border:1px solid var(--border);
+  background:rgba(33,54,75,.28);color:var(--muted);font-size:.77rem;font-weight:700;cursor:pointer;
+}
+.preset:hover{color:var(--text);border-color:var(--blue)}
+.viz{overflow:hidden}
+.viz-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;
+}
+.viz-title{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;font-weight:800}
+.canvas-wrap{
+  position:relative;border-radius:18px;overflow:hidden;
+  background:
+    radial-gradient(circle at top,rgba(96,165,250,.12),transparent 24%),
+    linear-gradient(180deg,#07111b,#040910 70%);
+  border:1px solid rgba(33,54,75,.72);
+}
+canvas{display:block;width:100%;height:600px}
+.canvas-overlay{
+  position:absolute;left:16px;top:16px;display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.pill{
+  width:max-content;max-width:320px;padding:8px 11px;border-radius:999px;
+  background:rgba(3,7,12,.74);border:1px solid rgba(33,54,75,.82);font-size:.8rem;color:var(--muted);
+}
+.pill strong{color:var(--text)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.legend-item{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:.76rem}
+.swatch{width:12px;height:12px;border-radius:4px}
+.split{display:grid;grid-template-columns:1.08fr .92fr;gap:16px}
+.timeline{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto}
+.step{
+  padding:10px 12px;border-radius:12px;background:rgba(13,24,36,.72);
+  border:1px solid rgba(33,54,75,.56);font-size:.82rem;line-height:1.45;color:var(--muted);
+}
+.step.active{border-color:rgba(103,232,249,.42);box-shadow:0 0 0 1px rgba(103,232,249,.18) inset;color:var(--text)}
+.step strong{color:var(--text)}
+.note{font-size:.86rem;color:var(--muted);line-height:1.68}
+.note strong,.note code{color:var(--text)}
+.note code{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:.8rem;
+}
+.side{padding:20px;display:flex;flex-direction:column;gap:16px}
+.sidepanel h3{font-size:.9rem;margin-bottom:12px}
+.sidepanel p{color:var(--muted);font-size:.84rem;line-height:1.62}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{
+  padding:11px 12px;border-radius:14px;background:rgba(13,24,36,.68);
+  border:1px solid var(--border);
+}
+.stat .sv{font-size:1.26rem;font-weight:800}
+.stat .sl{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:3px}
+.logbox{max-height:240px;overflow:auto;padding:12px 14px}
+.log-entry{
+  padding:8px 0;border-bottom:1px solid rgba(33,54,75,.42);
+  font-size:.8rem;line-height:1.5;color:var(--muted);
+}
+.log-entry:last-child{border-bottom:none}
+.log-entry strong{color:var(--text)}
+.path{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  padding:5px 9px;border-radius:999px;font-size:.75rem;font-weight:700;
+  border:1px solid var(--border);background:rgba(33,54,75,.22);color:var(--muted);
+}
+.chip.visit{color:var(--amber);border-color:rgba(251,191,36,.32);background:rgba(251,191,36,.08)}
+.chip.focus{color:var(--cyan);border-color:rgba(103,232,249,.32);background:rgba(103,232,249,.08)}
+.chip.root{color:var(--green);border-color:rgba(74,222,128,.32);background:rgba(74,222,128,.08)}
+.speed-wrap{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.82rem}
+@media(max-width:980px){
+  .shell{grid-template-columns:1fr}
+  .hero,.split{grid-template-columns:1fr}
+  canvas{height:480px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div class="brand">
+      <h1>visual<span>-cs</span></h1>
+      <p>Splay Tree - self-adjusting binary search tree</p>
+    </div>
+    <a class="back" href="../../index.html">&#8592; All visualizations</a>
+  </div>
+</header>
+
+<div class="shell">
+  <div class="panel main">
+    <div class="hero">
+      <div>
+        <h2>Splay Tree<br>Rotation Studio</h2>
+        <p>Insert, search, and delete integer keys. Every access splays the touched node toward the root with <strong>zig</strong>, <strong>zig-zig</strong>, or <strong>zig-zag</strong> rotations, making recently used values cheaper to reach next time.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="mlabel">Root</div>
+          <div class="mval" id="m-root">Empty</div>
+          <div class="mhint">current root after the latest splay</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Nodes</div>
+          <div class="mval" id="m-count" style="color:var(--green)">0</div>
+          <div class="mhint">keys currently stored</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Height</div>
+          <div class="mval" id="m-height" style="color:var(--blue)">0</div>
+          <div class="mhint">longest root-to-leaf path</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Rotations</div>
+          <div class="mval" id="m-rot" style="color:var(--amber)">0</div>
+          <div class="mhint">performed during the latest operation</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="row">
+        <div class="field" style="max-width:200px">
+          <label>Integer Key</label>
+          <input type="number" id="key-input" placeholder="e.g. 42" onkeydown="if(event.key==='Enter')insertValue()">
+        </div>
+        <button class="btn btn-primary" onclick="insertValue()">Insert</button>
+        <button class="btn btn-ghost" onclick="searchValue()">Search</button>
+        <button class="btn btn-danger" onclick="deleteValue()">Delete</button>
+        <button class="btn btn-secondary" onclick="clearTree()">Clear</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-play" id="play-btn" onclick="playFrames()">Play</button>
+        <button class="btn btn-secondary" id="pause-btn" onclick="pauseFrames()" disabled>Pause</button>
+        <button class="btn btn-secondary" onclick="stepFrame()">Step</button>
+        <button class="btn btn-secondary" onclick="resetPlayback()">Replay</button>
+        <button class="btn btn-secondary" onclick="randomInsert()">Random Insert</button>
+        <div class="speed-wrap">
+          <span>Speed <strong id="speed-label">700ms</strong></span>
+          <input type="range" id="speed" min="180" max="1600" step="20" value="700">
+        </div>
+      </div>
+      <div>
+        <div class="viz-title" style="margin-bottom:8px">Preset Sequences</div>
+        <div class="preset-row">
+          <button class="preset" onclick="loadPreset('zig')">Zig focus</button>
+          <button class="preset" onclick="loadPreset('zigzig')">Zig-zig</button>
+          <button class="preset" onclick="loadPreset('zigzag')">Zig-zag</button>
+          <button class="preset" onclick="loadPreset('working')">Working-set demo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-head">
+        <div class="viz-title">Tree Canvas</div>
+        <div style="font-size:.82rem;color:var(--muted)">Frame <strong id="frame-indicator" style="color:var(--text)">0 / 0</strong></div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="tree-canvas" width="980" height="600"></canvas>
+        <div class="canvas-overlay">
+          <div class="pill"><strong>Blue</strong> active node, <strong>amber</strong> access path, <strong>violet</strong> rotating trio</div>
+          <div class="pill" id="status-pill">Ready for the next access.</div>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:#60a5fa"></span>accessed / inserted / found node</div>
+        <div class="legend-item"><span class="swatch" style="background:#fbbf24"></span>search path or successor path</div>
+        <div class="legend-item"><span class="swatch" style="background:#a78bfa"></span>zig / zig-zig / zig-zag rotation focus</div>
+        <div class="legend-item"><span class="swatch" style="background:#4ade80"></span>current root</div>
+        <div class="legend-item"><span class="swatch" style="background:#fb7185"></span>removed node snapshot</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="note">
+        <strong>How splaying works.</strong> A splay tree is a regular BST plus a rule: after every successful insert/search/delete, the touched node is moved to the root. Single rotation <code>zig</code> happens when the parent is the root. Two-step <code>zig-zig</code> rotates parent then node in the same direction. <code>zig-zag</code> rotates node twice in opposite directions.
+        <br><br>
+        This keeps hot keys near the top without storing explicit balance metadata. Worst-case single operation time is still <code>O(n)</code>, but the amortized bound for search, insert, and delete is <code>O(log n)</code>.
+      </div>
+      <div class="note">
+        <strong>Deletion strategy.</strong> When deleting key <code>x</code>, the visualization first splays <code>x</code> to the root. Then it joins the remaining left and right subtrees by splaying the maximum node of the left subtree to the top and attaching the old right subtree as its right child.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel side">
+    <div class="sidepanel">
+      <h3>Operation Stats</h3>
+      <div class="stat-grid">
+        <div class="stat"><div class="sv" id="s-op">Ready</div><div class="sl">Last Op</div></div>
+        <div class="stat"><div class="sv" id="s-target">-</div><div class="sl">Target</div></div>
+        <div class="stat"><div class="sv" id="s-steps">0</div><div class="sl">Frames</div></div>
+        <div class="stat"><div class="sv" id="s-access">0</div><div class="sl">Visited</div></div>
+      </div>
+    </div>
+
+    <div class="sidepanel">
+      <h3>Access Path</h3>
+      <div class="path" id="path-list"></div>
+    </div>
+
+    <div class="sidepanel">
+      <h3>Timeline</h3>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+    <div class="sidepanel">
+      <h3>Recent Log</h3>
+      <div class="logbox" id="logbox"></div>
+    </div>
+
+    <div class="sidepanel">
+      <h3>Why Use Splay Trees?</h3>
+      <p>They are simple to implement, adapt to skewed workloads, and satisfy useful bounds like the working-set and static-finger properties. This makes them attractive when recent accesses strongly predict future accesses.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+class Node{
+  constructor(id,key){
+    this.id=id;
+    this.key=key;
+    this.left=null;
+    this.right=null;
+    this.parent=null;
+  }
+}
+
+let root=null;
+let nextId=1;
+let frames=[];
+let currentFrame=0;
+let playTimer=null;
+let logs=[];
+let latestPath=[];
+let speed=700;
+let opSummary={type:"Ready",target:"-",frames:0,visited:0,rotations:0};
+
+const canvas=document.getElementById("tree-canvas");
+const ctx=canvas.getContext("2d");
+
+function setStatus(text){
+  document.getElementById("status-pill").textContent=text;
+}
+
+function parseKey(){
+  const raw=document.getElementById("key-input").value.trim();
+  if(raw==="") return null;
+  const num=Number(raw);
+  return Number.isInteger(num)?num:null;
+}
+
+function cloneTree(node){
+  if(!node) return null;
+  return {
+    id:node.id,
+    key:node.key,
+    left:cloneTree(node.left),
+    right:cloneTree(node.right)
+  };
+}
+
+function computeHeight(node){
+  if(!node) return 0;
+  return 1+Math.max(computeHeight(node.left),computeHeight(node.right));
+}
+
+function countNodes(node){
+  if(!node) return 0;
+  return 1+countNodes(node.left)+countNodes(node.right);
+}
+
+function recordFrame(note,meta={}){
+  frames.push({
+    tree:cloneTree(root),
+    note,
+    op:meta.op || opSummary.type,
+    target:meta.target ?? opSummary.target,
+    focus:new Set(meta.focus || []),
+    path:new Set(meta.path || []),
+    rootId:root?root.id:null,
+    removed:new Set(meta.removed || []),
+    rotation:meta.rotation || "",
+    visitCount:meta.visitCount ?? latestPath.length,
+    rotationCount:meta.rotationCount ?? opSummary.rotations
+  });
+}
+
+function attachLeft(parent,child){
+  parent.left=child;
+  if(child) child.parent=parent;
+}
+
+function attachRight(parent,child){
+  parent.right=child;
+  if(child) child.parent=parent;
+}
+
+function rotateLeft(x){
+  const y=x.right;
+  if(!y) return;
+  x.right=y.left;
+  if(y.left) y.left.parent=x;
+  y.parent=x.parent;
+  if(!x.parent) root=y;
+  else if(x===x.parent.left) x.parent.left=y;
+  else x.parent.right=y;
+  y.left=x;
+  x.parent=y;
+}
+
+function rotateRight(x){
+  const y=x.left;
+  if(!y) return;
+  x.left=y.right;
+  if(y.right) y.right.parent=x;
+  y.parent=x.parent;
+  if(!x.parent) root=y;
+  else if(x===x.parent.left) x.parent.left=y;
+  else x.parent.right=y;
+  y.right=x;
+  x.parent=y;
+}
+
+function splay(x,label){
+  if(!x) return;
+  while(x.parent){
+    const p=x.parent;
+    const g=p.parent;
+    if(!g){
+      opSummary.rotations+=1;
+      if(x===p.left){
+        rotateRight(p);
+        recordFrame(label + " - zig right", {focus:[x.id,p.id], path:latestPath, rotation:"zig", rotationCount:opSummary.rotations});
+      }else{
+        rotateLeft(p);
+        recordFrame(label + " - zig left", {focus:[x.id,p.id], path:latestPath, rotation:"zig", rotationCount:opSummary.rotations});
+      }
+    }else if(x===p.left && p===g.left){
+      opSummary.rotations+=2;
+      rotateRight(g);
+      recordFrame(label + " - zig-zig step 1", {focus:[x.id,p.id,g.id], path:latestPath, rotation:"zig-zig", rotationCount:opSummary.rotations});
+      rotateRight(p);
+      recordFrame(label + " - zig-zig step 2", {focus:[x.id,p.id], path:latestPath, rotation:"zig-zig", rotationCount:opSummary.rotations});
+    }else if(x===p.right && p===g.right){
+      opSummary.rotations+=2;
+      rotateLeft(g);
+      recordFrame(label + " - zig-zig step 1", {focus:[x.id,p.id,g.id], path:latestPath, rotation:"zig-zig", rotationCount:opSummary.rotations});
+      rotateLeft(p);
+      recordFrame(label + " - zig-zig step 2", {focus:[x.id,p.id], path:latestPath, rotation:"zig-zig", rotationCount:opSummary.rotations});
+    }else if(x===p.right && p===g.left){
+      opSummary.rotations+=2;
+      rotateLeft(p);
+      recordFrame(label + " - zig-zag step 1", {focus:[x.id,p.id,g.id], path:latestPath, rotation:"zig-zag", rotationCount:opSummary.rotations});
+      rotateRight(g);
+      recordFrame(label + " - zig-zag step 2", {focus:[x.id,g.id], path:latestPath, rotation:"zig-zag", rotationCount:opSummary.rotations});
+    }else{
+      opSummary.rotations+=2;
+      rotateRight(p);
+      recordFrame(label + " - zig-zag step 1", {focus:[x.id,p.id,g.id], path:latestPath, rotation:"zig-zag", rotationCount:opSummary.rotations});
+      rotateLeft(g);
+      recordFrame(label + " - zig-zag step 2", {focus:[x.id,g.id], path:latestPath, rotation:"zig-zag", rotationCount:opSummary.rotations});
+    }
+  }
+}
+
+function findNode(key){
+  let cur=root;
+  let last=null;
+  latestPath=[];
+  while(cur){
+    latestPath.push(cur.id);
+    recordFrame("Visit " + cur.key, {focus:[cur.id], path:latestPath, visitCount:latestPath.length});
+    last=cur;
+    if(key===cur.key) return {node:cur,last};
+    cur=key<cur.key?cur.left:cur.right;
+  }
+  return {node:null,last};
+}
+
+function beginOp(type,target){
+  pauseFrames();
+  frames=[];
+  currentFrame=0;
+  latestPath=[];
+  opSummary={type,target:String(target),frames:0,visited:0,rotations:0};
+}
+
+function finishOp(logText){
+  if(!frames.length) recordFrame("No structural change.");
+  opSummary.frames=frames.length;
+  opSummary.visited=latestPath.length;
+  logs.unshift(logText);
+  logs=logs.slice(0,10);
+  currentFrame=0;
+  renderUI();
+}
+
+function insertValue(keyOverride){
+  const key=keyOverride ?? parseKey();
+  if(key===null){
+    setStatus("Enter an integer key.");
+    return;
+  }
+  beginOp("Insert",key);
+  if(!root){
+    root=new Node(nextId++,key);
+    latestPath=[root.id];
+    recordFrame("Create root " + key, {focus:[root.id], path:latestPath});
+    finishOp("Insert " + key + " - created root");
+    return;
+  }
+  let cur=root;
+  let parent=null;
+  while(cur){
+    latestPath.push(cur.id);
+    recordFrame("Descend through " + cur.key, {focus:[cur.id], path:latestPath});
+    parent=cur;
+    if(key===cur.key){
+      splay(cur,"Duplicate key " + key);
+      recordFrame("Key already exists. Splayed existing node to root.", {focus:[cur.id], path:latestPath});
+      finishOp("Insert " + key + " - duplicate, splayed existing node");
+      return;
+    }
+    cur=key<cur.key?cur.left:cur.right;
+  }
+  const node=new Node(nextId++,key);
+  node.parent=parent;
+  if(key<parent.key) parent.left=node;
+  else parent.right=node;
+  latestPath.push(node.id);
+  recordFrame("Insert " + key + " as a leaf", {focus:[node.id], path:latestPath});
+  splay(node,"Splay inserted " + key);
+  recordFrame("Inserted key became the root.", {focus:[node.id], path:latestPath});
+  finishOp("Insert " + key + " - " + opSummary.rotations + " rotation(s)");
+}
+
+function searchValue(keyOverride){
+  const key=keyOverride ?? parseKey();
+  if(key===null){
+    setStatus("Enter an integer key.");
+    return;
+  }
+  beginOp("Search",key);
+  if(!root){
+    recordFrame("Tree is empty.");
+    finishOp("Search " + key + " - empty tree");
+    return;
+  }
+  const {node,last}=findNode(key);
+  if(node){
+    splay(node,"Splay found " + key);
+    recordFrame("Search hit. Found key moved to the root.", {focus:[node.id], path:latestPath});
+    finishOp("Search " + key + " - found");
+  }else{
+    if(last){
+      splay(last,"Miss splay near " + key);
+      recordFrame("Search miss. Last accessed node moved to the root.", {focus:[last.id], path:latestPath});
+    }else{
+      recordFrame("Search miss.");
+    }
+    finishOp("Search " + key + " - miss");
+  }
+}
+
+function maximum(node){
+  let cur=node;
+  while(cur && cur.right){
+    latestPath.push(cur.right.id);
+    cur=cur.right;
+    recordFrame("Walk right to maximum " + cur.key, {focus:[cur.id], path:latestPath});
+  }
+  return cur;
+}
+
+function deleteValue(keyOverride){
+  const key=keyOverride ?? parseKey();
+  if(key===null){
+    setStatus("Enter an integer key.");
+    return;
+  }
+  beginOp("Delete",key);
+  if(!root){
+    recordFrame("Tree is empty.");
+    finishOp("Delete " + key + " - empty tree");
+    return;
+  }
+  const {node,last}=findNode(key);
+  if(!node){
+    if(last){
+      splay(last,"Delete miss near " + key);
+      recordFrame("Key not found. Last accessed node moved to the root.", {focus:[last.id], path:latestPath});
+    }
+    finishOp("Delete " + key + " - key missing");
+    return;
+  }
+  splay(node,"Splay target " + key);
+  recordFrame("Target moved to root. Ready to remove.", {focus:[node.id], path:latestPath});
+
+  const removedId=node.id;
+  const left=root.left;
+  const right=root.right;
+  if(left) left.parent=null;
+  if(right) right.parent=null;
+  root.left=null;
+  root.right=null;
+
+  if(!left){
+    root=right;
+    recordFrame("Removed root; promoted right subtree.", {removed:[removedId], focus:root?[root.id]:[], path:latestPath});
+  }else{
+    root=left;
+    latestPath=[root.id];
+    const maxLeft=maximum(root);
+    splay(maxLeft,"Join left subtree");
+    attachRight(root,right);
+    recordFrame("Joined left max with old right subtree.", {focus:[root.id], path:latestPath, removed:[removedId]});
+  }
+  recordFrame("Deletion complete.", {focus:root?[root.id]:[], removed:[removedId], path:latestPath});
+  finishOp("Delete " + key + " - removed");
+}
+
+function clearTree(){
+  pauseFrames();
+  root=null;
+  frames=[{tree:null,note:"Tree cleared.",op:"Clear",target:"-",focus:new Set(),path:new Set(),rootId:null,removed:new Set(),rotation:"",visitCount:0,rotationCount:0}];
+  currentFrame=0;
+  latestPath=[];
+  opSummary={type:"Clear",target:"-",frames:1,visited:0,rotations:0};
+  logs.unshift("Clear tree");
+  logs=logs.slice(0,10);
+  renderUI();
+}
+
+function randomInsert(){
+  const key=Math.floor(Math.random()*90)+10;
+  document.getElementById("key-input").value=String(key);
+  insertValue(key);
+}
+
+function loadPreset(name){
+  clearTree();
+  const presets={
+    zig:[30,20],
+    zigzig:[60,40,20],
+    zigzag:[60,20,40],
+    working:[50,20,80,10,30,70,90,30,30,70,20]
+  };
+  const seq=presets[name] || [];
+  for(const key of seq){
+    if(root && key===root.key && name==="working"){
+      searchValue(key);
+    }else if(name==="working" && countNodes(root)>=7 && (key===30 || key===70 || key===20)){
+      searchValue(key);
+    }else{
+      insertValue(key);
+    }
+  }
+}
+
+function computeLayout(tree){
+  const positions=new Map();
+  let order=0;
+  function walk(node,depth){
+    if(!node) return;
+    walk(node.left,depth+1);
+    const x=(order+1)*90;
+    const y=70+depth*92;
+    positions.set(node.id,{x,y,key:node.key,left:node.left?node.left.id:null,right:node.right?node.right.id:null});
+    order++;
+    walk(node.right,depth+1);
+  }
+  walk(tree,0);
+  return positions;
+}
+
+function drawFrame(){
+  const frame=frames[currentFrame] || {tree:null,note:"Ready",focus:new Set(),path:new Set(),removed:new Set(),rootId:null};
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const positions=computeLayout(frame.tree);
+  if(!positions.size){
+    ctx.fillStyle="rgba(142,167,194,.78)";
+    ctx.font="600 24px Inter, sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText("Empty tree",canvas.width/2,canvas.height/2-8);
+    ctx.font="16px Inter, sans-serif";
+    ctx.fillText("Insert a key or load a preset sequence.",canvas.width/2,canvas.height/2+24);
+    return;
+  }
+  const xs=[...positions.values()].map(p=>p.x);
+  const minX=Math.min(...xs);
+  const maxX=Math.max(...xs);
+  const span=Math.max(1,maxX-minX);
+  const leftPad=70;
+  const usable=Math.max(220,canvas.width-leftPad*2);
+  const scale=Math.min(1.25,usable/span);
+  const shift=canvas.width/2-((minX+maxX)/2)*scale;
+
+  function p(id){
+    const pos=positions.get(id);
+    return {x:pos.x*scale+shift,y:pos.y};
+  }
+
+  ctx.lineWidth=3;
+  ctx.lineCap="round";
+  positions.forEach((pos,id)=>{
+    const from=p(id);
+    if(pos.left){
+      const to=p(pos.left);
+      ctx.strokeStyle=frame.path.has(pos.left)?"rgba(251,191,36,.78)":"rgba(33,54,75,.95)";
+      ctx.beginPath();
+      ctx.moveTo(from.x,from.y+18);
+      ctx.lineTo(to.x,to.y-18);
+      ctx.stroke();
+    }
+    if(pos.right){
+      const to=p(pos.right);
+      ctx.strokeStyle=frame.path.has(pos.right)?"rgba(251,191,36,.78)":"rgba(33,54,75,.95)";
+      ctx.beginPath();
+      ctx.moveTo(from.x,from.y+18);
+      ctx.lineTo(to.x,to.y-18);
+      ctx.stroke();
+    }
+  });
+
+  positions.forEach((pos,id)=>{
+    const {x,y}=p(id);
+    let fill="rgba(18,35,52,.98)";
+    let stroke="rgba(96,165,250,.3)";
+    if(frame.rootId===id){fill="rgba(74,222,128,.18)";stroke="rgba(74,222,128,.9)";}
+    if(frame.path.has(id)){fill="rgba(251,191,36,.14)";stroke="rgba(251,191,36,.84)";}
+    if(frame.focus.has(id)){fill="rgba(96,165,250,.22)";stroke="rgba(103,232,249,.98)";}
+    if(frame.rotation && frame.focus.has(id)){fill="rgba(167,139,250,.18)";stroke="rgba(167,139,250,.96)";}
+    if(frame.removed.has(id)){fill="rgba(251,113,133,.16)";stroke="rgba(251,113,133,.9)";}
+
+    ctx.fillStyle=fill;
+    ctx.strokeStyle=stroke;
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.arc(x,y,24,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle="#e5f0ff";
+    ctx.font="700 16px Inter, sans-serif";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.fillText(String(pos.key),x,y);
+  });
+}
+
+function renderUI(){
+  const frame=frames[currentFrame] || {note:"Ready",op:"Ready",target:"-",visitCount:0,rotationCount:0,path:new Set()};
+  document.getElementById("m-root").textContent=root?String(root.key):"Empty";
+  document.getElementById("m-count").textContent=String(countNodes(root));
+  document.getElementById("m-height").textContent=String(computeHeight(root));
+  document.getElementById("m-rot").textContent=String(opSummary.rotations);
+  document.getElementById("s-op").textContent=opSummary.type;
+  document.getElementById("s-target").textContent=opSummary.target;
+  document.getElementById("s-steps").textContent=String(opSummary.frames);
+  document.getElementById("s-access").textContent=String(opSummary.visited);
+  document.getElementById("frame-indicator").textContent=(frames.length?currentFrame+1:0)+" / "+frames.length;
+  setStatus(frame.note || "Ready for the next access.");
+
+  const timeline=document.getElementById("timeline");
+  timeline.innerHTML=frames.map((item,idx)=>`<button class="step ${idx===currentFrame?"active":""}" onclick="jumpToFrame(${idx})"><strong>${idx+1}.</strong> ${escapeHtml(item.note)}</button>`).join("");
+
+  const pathList=document.getElementById("path-list");
+  const nodes=[...frame.path];
+  pathList.innerHTML=nodes.length
+    ? nodes.map((id,idx)=>{
+      const key=findKeyById(frame.tree,id) ?? "?";
+      let cls="chip visit";
+      if(frame.focus.has(id)) cls="chip focus";
+      else if(frame.rootId===id) cls="chip root";
+      return `<span class="${cls}">${idx+1}. ${key}</span>`;
+    }).join("")
+    : `<span class="chip">No active path</span>`;
+
+  const logbox=document.getElementById("logbox");
+  logbox.innerHTML=logs.map(item=>`<div class="log-entry"><strong>${escapeHtml(item.split(" - ")[0])}</strong>${item.includes(" - ") ? " - " + escapeHtml(item.split(" - ").slice(1).join(" - ")) : ""}</div>`).join("");
+  drawFrame();
+}
+
+function findKeyById(tree,id){
+  if(!tree) return null;
+  if(tree.id===id) return tree.key;
+  return findKeyById(tree.left,id) ?? findKeyById(tree.right,id);
+}
+
+function jumpToFrame(idx){
+  currentFrame=idx;
+  renderUI();
+}
+
+function playFrames(){
+  if(!frames.length || playTimer) return;
+  if(currentFrame>=frames.length-1) currentFrame=0;
+  document.getElementById("play-btn").disabled=true;
+  document.getElementById("pause-btn").disabled=false;
+  playTimer=setInterval(()=>{
+    if(currentFrame<frames.length-1){
+      currentFrame++;
+      renderUI();
+    }else{
+      pauseFrames();
+    }
+  },speed);
+}
+
+function pauseFrames(){
+  if(playTimer){
+    clearInterval(playTimer);
+    playTimer=null;
+  }
+  document.getElementById("play-btn").disabled=false;
+  document.getElementById("pause-btn").disabled=true;
+}
+
+function stepFrame(){
+  pauseFrames();
+  if(!frames.length) return;
+  currentFrame=Math.min(frames.length-1,currentFrame+1);
+  renderUI();
+}
+
+function resetPlayback(render=true){
+  pauseFrames();
+  currentFrame=0;
+  if(render) renderUI();
+}
+
+function escapeHtml(text){
+  return String(text)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+
+document.getElementById("speed").addEventListener("input",e=>{
+  speed=Number(e.target.value);
+  document.getElementById("speed-label").textContent=speed + "ms";
+  if(playTimer){
+    pauseFrames();
+    playFrames();
+  }
+});
+
+frames=[{tree:null,note:"Ready for the next access.",op:"Ready",target:"-",focus:new Set(),path:new Set(),rootId:null,removed:new Set(),rotation:"",visitCount:0,rotationCount:0}];
+renderUI();
+</script>
+</body>
+</html>
