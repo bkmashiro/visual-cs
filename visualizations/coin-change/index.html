@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coin Change — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --accent:#58a6ff;--accent0:rgba(88,166,255,.15);
+  --good:#3fb950;--good0:rgba(63,185,80,.15);
+  --warn:#f78166;--warn0:rgba(247,129,102,.15);
+  --gold:#e3b341;--gold0:rgba(227,179,65,.15);
+  --violet:#a371f7;--violet0:rgba(163,113,247,.15);
+  --cyan:#67e8f9;--cyan0:rgba(103,232,249,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--accent)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:1fr 300px;flex:1;min-height:0}
+@media(max-width:700px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+
+/* Inputs */
+.irow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.ig{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.ig label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.ig input{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:.95rem;font-family:'Cascadia Code','Fira Code',monospace;outline:none;transition:border-color .2s;width:100%}
+.ig input:focus{border-color:var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.pb{font-size:.7rem;padding:3px 9px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-weight:500;transition:all .15s}
+.pb:hover{color:var(--accent);border-color:var(--accent)}
+
+/* Controls */
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.pr{background:var(--accent);border-color:var(--accent);color:#0d1117}
+button.pr:hover{opacity:.85}
+button:disabled{opacity:.35;cursor:default;pointer-events:none}
+.speed-wrap{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted)}
+input[type=range]{width:90px;accent-color:var(--accent)}
+
+/* Section labels */
+.sec-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;margin-bottom:6px}
+
+/* Coins row */
+.coins-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.coin{
+  width:40px;height:40px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:700;
+  border:2px solid var(--border);
+  background:var(--s2);
+  color:var(--gold);
+  transition:all .25s;
+  font-family:monospace;
+  flex-shrink:0;
+}
+.coin.active{background:var(--gold0);border-color:var(--gold);box-shadow:0 0 10px rgba(227,179,65,.3)}
+.coin.used{background:var(--good0);border-color:var(--good);color:var(--good);box-shadow:0 0 8px rgba(63,185,80,.25)}
+
+/* DP table */
+.table-wrap{overflow-x:auto;padding-bottom:4px}
+.dp-table{border-collapse:separate;border-spacing:2px;font-size:.8rem;font-family:monospace}
+.dp-table th{color:var(--muted);font-weight:600;padding:5px 7px;text-align:center;font-size:.7rem}
+.dp-table .amount-header{color:var(--accent);font-weight:700;font-size:.72rem}
+.dp-table .coin-header{color:var(--gold);font-weight:700;text-align:right;padding-right:10px;white-space:nowrap;font-size:.72rem}
+.dp-table td{
+  width:44px;min-width:44px;height:38px;
+  text-align:center;
+  border-radius:5px;
+  border:1.5px solid var(--border);
+  background:var(--s2);
+  color:var(--text);
+  font-weight:600;
+  transition:background .2s, border-color .2s, color .2s;
+  vertical-align:middle;
+  cursor:default;
+}
+.dp-table td.unset{color:var(--muted)}
+.dp-table td.inf{color:var(--border)}
+.dp-table td.current{background:var(--warn0);border-color:var(--warn);color:var(--warn)}
+.dp-table td.candidate{background:var(--cyan0);border-color:var(--cyan);color:var(--cyan)}
+.dp-table td.improved{background:var(--accent0);border-color:var(--accent);color:var(--accent)}
+.dp-table td.settled{background:var(--s2);border-color:var(--border);color:var(--text)}
+.dp-table td.traceback{background:var(--good0);border-color:var(--good);color:var(--good)}
+.dp-table td.answer{background:var(--good0);border-color:var(--good);color:var(--good);font-size:1rem}
+
+/* Stats */
+.stats-bar{display:flex;gap:12px;flex-wrap:wrap}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:.78rem;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:70px}
+.stat-label{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-weight:700;font-size:1rem;font-variant-numeric:tabular-nums}
+.stat-value.accent{color:var(--accent)}
+.stat-value.good{color:var(--good)}
+.stat-value.gold{color:var(--gold)}
+.stat-value.warn{color:var(--warn)}
+
+/* Result banner */
+.result-banner{
+  border-radius:8px;padding:12px 16px;
+  font-size:.9rem;display:none;
+  line-height:1.6;
+}
+.result-banner.success{background:var(--good0);border:1px solid var(--good)}
+.result-banner.failure{background:var(--warn0);border:1px solid var(--warn)}
+.result-banner strong{color:var(--good)}
+.result-banner.failure strong{color:var(--warn)}
+.result-banner code{font-family:monospace;background:var(--s2);padding:2px 6px;border-radius:4px;color:var(--gold);font-size:.88rem}
+
+/* Sidebar */
+.sb-section{display:flex;flex-direction:column;gap:8px}
+.sb-section h3{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700}
+
+/* Log */
+.log{display:flex;flex-direction:column;gap:3px;max-height:260px;overflow-y:auto}
+.log-entry{font-size:.75rem;padding:5px 8px;border-radius:5px;background:var(--s2);border-left:3px solid var(--border);line-height:1.4;font-family:monospace;color:var(--muted)}
+.log-entry.ev-compare{border-color:var(--cyan);color:var(--text)}
+.log-entry.ev-improve{border-color:var(--accent);color:var(--accent)}
+.log-entry.ev-skip{border-color:var(--border);color:var(--muted)}
+.log-entry.ev-done{border-color:var(--good);color:var(--good)}
+.log-entry.ev-trace{border-color:var(--good);color:var(--good)}
+
+/* Legend */
+.legend{display:flex;flex-direction:column;gap:5px}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--muted)}
+.leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;border:1.5px solid}
+
+/* Traceback coins display */
+.trace-coins{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
+.trace-coin{
+  padding:3px 10px;border-radius:20px;
+  background:var(--good0);border:1px solid var(--good);
+  font-size:.78rem;color:var(--good);font-weight:700;font-family:monospace;
+}
+
+/* Explain */
+.explain{font-size:.8rem;color:var(--muted);line-height:1.6;background:var(--s2);border-radius:8px;padding:12px 14px;border:1px solid var(--border)}
+.explain strong{color:var(--text)}
+.explain code{font-family:monospace;background:var(--surface);padding:1px 5px;border-radius:3px;color:var(--accent);font-size:.8rem}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>visual-cs / <span>Coin Change</span></h1>
+  <a href="../../index.html">← Back</a>
+</header>
+
+<div class="layout">
+<div class="main">
+
+  <!-- Input row -->
+  <div class="irow">
+    <div class="ig" style="flex:2;min-width:200px">
+      <label>Coins (comma-separated)</label>
+      <input id="coinsInput" type="text" value="1, 5, 6, 9">
+      <div class="presets">
+        <button class="pb" onclick="setPreset('1,5,6,9',11)">Classic</button>
+        <button class="pb" onclick="setPreset('1,2,5',11)">Greedy-friendly</button>
+        <button class="pb" onclick="setPreset('2',3)">Impossible</button>
+        <button class="pb" onclick="setPreset('1,5,10,25',30)">US Coins</button>
+        <button class="pb" onclick="setPreset('3,5,7',14)">No 1</button>
+      </div>
+    </div>
+    <div class="ig" style="max-width:120px">
+      <label>Amount</label>
+      <input id="amountInput" type="number" value="11" min="1" max="50">
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="ctrls">
+    <button class="pr" id="btnPlay" onclick="play()">▶ Play</button>
+    <button id="btnPause" onclick="pause()" disabled>⏸ Pause</button>
+    <button id="btnStep" onclick="step()">⏭ Step</button>
+    <button onclick="reset()">↺ Reset</button>
+    <div class="speed-wrap">
+      Speed <input type="range" id="speedSlider" min="1" max="10" value="5"> <span id="speedLabel">5</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-label">Amount</div><div class="stat-value accent" id="statAmount">11</div></div>
+    <div class="stat"><div class="stat-label">Coin Used</div><div class="stat-value gold" id="statCoin">—</div></div>
+    <div class="stat"><div class="stat-label">Updates</div><div class="stat-value" id="statUpdates">0</div></div>
+    <div class="stat"><div class="stat-label">Phase</div><div class="stat-value" id="statPhase">—</div></div>
+    <div class="stat"><div class="stat-label">Min Coins</div><div class="stat-value good" id="statAnswer">—</div></div>
+  </div>
+
+  <!-- Coins display -->
+  <div>
+    <div class="sec-label">Coins</div>
+    <div class="coins-row" id="coinsRow"></div>
+  </div>
+
+  <!-- DP Table -->
+  <div>
+    <div class="sec-label">DP Table — dp[amount]</div>
+    <div class="table-wrap">
+      <table class="dp-table" id="dpTable"></table>
+    </div>
+  </div>
+
+  <!-- Result banner -->
+  <div class="result-banner" id="resultBanner"></div>
+
+</div><!-- .main -->
+
+<div class="sidebar">
+
+  <!-- Legend -->
+  <div class="sb-section">
+    <h3>Legend</h3>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--s2);border-color:var(--border)"></div>Not yet computed</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--warn0);border-color:var(--warn)"></div>Current cell being filled</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--cyan0);border-color:var(--cyan)"></div>Candidate value (dp[a-c]+1)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--accent0);border-color:var(--accent)"></div>Cell improved (new minimum)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--good0);border-color:var(--good)"></div>Traceback path</div>
+    </div>
+  </div>
+
+  <!-- Traceback result -->
+  <div class="sb-section" id="traceSection" style="display:none">
+    <h3>Coins Used</h3>
+    <div class="trace-coins" id="traceCoins"></div>
+  </div>
+
+  <!-- Step log -->
+  <div class="sb-section">
+    <h3>Step Log</h3>
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- Explanation -->
+  <div class="sb-section">
+    <h3>How It Works</h3>
+    <div class="explain">
+      <strong>Recurrence:</strong><br>
+      <code>dp[0] = 0</code><br>
+      <code>dp[a] = min(dp[a-c]+1)</code> for each coin <code>c ≤ a</code><br><br>
+      Fill amounts <strong>1 → target</strong>. For each amount, try every coin that fits and keep the minimum count. If no coin reaches it, <code>dp[a] = ∞</code>.<br><br>
+      <strong>Traceback:</strong> from target, repeatedly follow <code>a → a - chosen_coin</code> until 0.<br><br>
+      <strong>Complexity:</strong> O(amount × coins) time, O(amount) space.
+    </div>
+  </div>
+
+</div><!-- .sidebar -->
+</div><!-- .layout -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const INF = 1e9;
+let coins = [];
+let amount = 0;
+let dp = [];
+let from = [];   // traceback: from[a] = coin used to reach a
+let steps = [];  // precomputed animation steps
+let stepIdx = 0;
+let playing = false;
+let timer = null;
+let updates = 0;
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const coinsInput   = document.getElementById('coinsInput');
+const amountInput  = document.getElementById('amountInput');
+const btnPlay      = document.getElementById('btnPlay');
+const btnPause     = document.getElementById('btnPause');
+const btnStep      = document.getElementById('btnStep');
+const speedSlider  = document.getElementById('speedSlider');
+const speedLabel   = document.getElementById('speedLabel');
+const coinsRow     = document.getElementById('coinsRow');
+const dpTable      = document.getElementById('dpTable');
+const resultBanner = document.getElementById('resultBanner');
+const logEl        = document.getElementById('log');
+const statAmount   = document.getElementById('statAmount');
+const statCoin     = document.getElementById('statCoin');
+const statUpdates  = document.getElementById('statUpdates');
+const statPhase    = document.getElementById('statPhase');
+const statAnswer   = document.getElementById('statAnswer');
+const traceSection = document.getElementById('traceSection');
+const traceCoins   = document.getElementById('traceCoins');
+
+speedSlider.addEventListener('input', () => {
+  speedLabel.textContent = speedSlider.value;
+});
+
+// ── Preset ─────────────────────────────────────────────────────────────────
+function setPreset(c, a) {
+  coinsInput.value = c;
+  amountInput.value = a;
+  reset();
+}
+
+// ── Parse inputs ────────────────────────────────────────────────────────────
+function parseCoins() {
+  return coinsInput.value.split(',')
+    .map(s => parseInt(s.trim()))
+    .filter(n => Number.isFinite(n) && n > 0)
+    .sort((a,b) => a - b)
+    .filter((v,i,a) => a.indexOf(v) === i); // unique
+}
+
+// ── Build animation steps ───────────────────────────────────────────────────
+function buildSteps(coins, amount) {
+  const dp = new Array(amount + 1).fill(INF);
+  dp[0] = 0;
+  const from = new Array(amount + 1).fill(-1);
+  const steps = [];
+
+  // Init step
+  steps.push({ type: 'init', dp: [...dp], from: [...from] });
+
+  for (let a = 1; a <= amount; a++) {
+    steps.push({ type: 'start_amount', a, dp: [...dp], from: [...from] });
+
+    for (let ci = 0; ci < coins.length; ci++) {
+      const c = coins[ci];
+      if (c > a) {
+        steps.push({ type: 'skip', a, c, ci, dp: [...dp], from: [...from], reason: `${c} > ${a}` });
+        continue;
+      }
+      const prev = dp[a - c];
+      const candidate = prev === INF ? INF : prev + 1;
+      if (candidate < dp[a]) {
+        dp[a] = candidate;
+        from[a] = c;
+        steps.push({ type: 'improve', a, c, ci, candidate, dp: [...dp], from: [...from] });
+      } else {
+        steps.push({ type: 'compare', a, c, ci, candidate, dp: [...dp], from: [...from] });
+      }
+    }
+
+    steps.push({ type: 'settled', a, dp: [...dp], from: [...from] });
+  }
+
+  // Traceback
+  const tracePath = [];
+  if (dp[amount] < INF) {
+    let cur = amount;
+    while (cur > 0) {
+      const coin = from[cur];
+      tracePath.push({ amount: cur, coin });
+      cur -= coin;
+    }
+    steps.push({ type: 'traceback_start', tracePath, dp: [...dp], from: [...from] });
+    for (const t of tracePath) {
+      steps.push({ type: 'traceback_step', amount: t.amount, coin: t.coin, tracePath, dp: [...dp], from: [...from] });
+    }
+    steps.push({ type: 'done_success', tracePath, dp: [...dp], from: [...from] });
+  } else {
+    steps.push({ type: 'done_impossible', dp: [...dp], from: [...from] });
+  }
+
+  return { steps, dpFinal: dp, fromFinal: from };
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+function reset() {
+  pause();
+  stepIdx = 0;
+  updates = 0;
+  coins = parseCoins();
+  amount = Math.max(1, Math.min(50, parseInt(amountInput.value) || 11));
+  amountInput.value = amount;
+
+  const built = buildSteps(coins, amount);
+  steps = built.steps;
+  dp = new Array(amount + 1).fill(INF);
+  dp[0] = 0;
+  from = new Array(amount + 1).fill(-1);
+
+  // Hide result
+  resultBanner.style.display = 'none';
+  traceSection.style.display = 'none';
+  traceCoins.innerHTML = '';
+  logEl.innerHTML = '';
+
+  // Stats
+  statAmount.textContent = amount;
+  statCoin.textContent = '—';
+  statUpdates.textContent = '0';
+  statPhase.textContent = 'Ready';
+  statAnswer.textContent = '—';
+
+  renderCoins([]);
+  renderTable(dp, -1, -1, [], []);
+
+  btnPlay.disabled = false;
+  btnStep.disabled = false;
+  btnPause.disabled = true;
+}
+
+// ── Render coins row ────────────────────────────────────────────────────────
+function renderCoins(activeIndices) {
+  coinsRow.innerHTML = '';
+  coins.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'coin' + (activeIndices.includes(i) ? ' active' : '');
+    el.textContent = c;
+    coinsRow.appendChild(el);
+  });
+}
+
+function renderCoinsUsed(usedSet) {
+  coinsRow.innerHTML = '';
+  coins.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'coin' + (usedSet.has(i) ? ' used' : '');
+    el.textContent = c;
+    coinsRow.appendChild(el);
+  });
+}
+
+// ── Render DP table ────────────────────────────────────────────────────────
+// Single 1D row table
+function renderTable(dpArr, currentA, activeCI, improvedCells, traceCells) {
+  dpTable.innerHTML = '';
+
+  // Header row: amount indices
+  const hRow = document.createElement('tr');
+  const corner = document.createElement('th');
+  corner.textContent = 'dp[a]';
+  hRow.appendChild(corner);
+  for (let a = 0; a <= amount; a++) {
+    const th = document.createElement('th');
+    th.className = 'amount-header';
+    th.textContent = a;
+    hRow.appendChild(th);
+  }
+  dpTable.appendChild(hRow);
+
+  // Data row
+  const dRow = document.createElement('tr');
+  const rowLabel = document.createElement('th');
+  rowLabel.className = 'coin-header';
+  rowLabel.textContent = 'min coins';
+  dRow.appendChild(rowLabel);
+
+  for (let a = 0; a <= amount; a++) {
+    const td = document.createElement('td');
+    const val = dpArr[a];
+    if (val === INF) {
+      td.textContent = '∞';
+      td.className = 'inf';
+    } else {
+      td.textContent = val;
+    }
+
+    if (traceCells.includes(a)) {
+      td.className = 'traceback';
+    } else if (improvedCells.includes(a)) {
+      td.className = 'improved';
+    } else if (a === currentA) {
+      td.className = 'current';
+    }
+
+    dRow.appendChild(td);
+  }
+  dpTable.appendChild(dRow);
+
+  // Candidate row (shown only during fill phase)
+  if (currentA >= 0) {
+    const cRow = document.createElement('tr');
+    const cLabel = document.createElement('th');
+    cLabel.className = 'coin-header';
+    cLabel.style.color = 'var(--cyan)';
+    cLabel.textContent = 'candidate';
+    cRow.appendChild(cLabel);
+
+    for (let a = 0; a <= amount; a++) {
+      const td = document.createElement('td');
+      if (a === currentA && activeCI >= 0) {
+        const c = coins[activeCI];
+        if (c <= a) {
+          const prev = dpArr[a - c];
+          const cand = prev === INF ? INF : prev + 1;
+          td.textContent = cand === INF ? '∞' : cand;
+          td.className = 'candidate';
+        } else {
+          td.textContent = '';
+        }
+      }
+      cRow.appendChild(td);
+    }
+    dpTable.appendChild(cRow);
+  }
+}
+
+// ── Log ────────────────────────────────────────────────────────────────────
+function addLog(text, cls) {
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + (cls || '');
+  el.textContent = text;
+  logEl.prepend(el);
+  // keep last 60
+  while (logEl.children.length > 60) logEl.removeChild(logEl.lastChild);
+}
+
+// ── Apply step ─────────────────────────────────────────────────────────────
+function applyStep(s) {
+  switch (s.type) {
+    case 'init':
+      statPhase.textContent = 'Init';
+      renderCoins([]);
+      renderTable(s.dp, -1, -1, [], []);
+      addLog('dp[0] = 0, dp[1..n] = ∞', 'ev-done');
+      break;
+
+    case 'start_amount':
+      statAmount.textContent = s.a;
+      statCoin.textContent = '—';
+      statPhase.textContent = `Fill a=${s.a}`;
+      renderCoins([]);
+      renderTable(s.dp, s.a, -1, [], []);
+      addLog(`▶ Fill dp[${s.a}]`, 'ev-compare');
+      break;
+
+    case 'skip':
+      statCoin.textContent = s.c;
+      renderCoins([s.ci]);
+      renderTable(s.dp, s.a, s.ci, [], []);
+      addLog(`  skip coin ${s.c}: ${s.reason}`, 'ev-skip');
+      break;
+
+    case 'compare': {
+      statCoin.textContent = s.c;
+      renderCoins([s.ci]);
+      renderTable(s.dp, s.a, s.ci, [], []);
+      const prev = s.dp[s.a - s.c];
+      const prevStr = prev === INF ? '∞' : prev;
+      const candStr = s.candidate === INF ? '∞' : s.candidate;
+      const cur = s.dp[s.a];
+      const curStr = cur === INF ? '∞' : cur;
+      addLog(`  coin ${s.c}: dp[${s.a-s.c}]+1=${candStr} ≥ dp[${s.a}]=${curStr}, no update`, 'ev-skip');
+      break;
+    }
+
+    case 'improve': {
+      updates++;
+      statUpdates.textContent = updates;
+      statCoin.textContent = s.c;
+      renderCoins([s.ci]);
+      renderTable(s.dp, s.a, s.ci, [s.a], []);
+      addLog(`  coin ${s.c}: dp[${s.a-s.c}]+1=${s.candidate} < prev → dp[${s.a}]=${s.candidate} ✓`, 'ev-improve');
+      break;
+    }
+
+    case 'settled':
+      statPhase.textContent = `Settled a=${s.a}`;
+      renderCoins([]);
+      renderTable(s.dp, -1, -1, [], []);
+      break;
+
+    case 'traceback_start': {
+      statPhase.textContent = 'Traceback';
+      const ans = s.dp[amount];
+      statAnswer.textContent = ans === INF ? '∞' : ans;
+      addLog(`Traceback from ${amount}`, 'ev-trace');
+      renderTable(s.dp, -1, -1, [], []);
+      break;
+    }
+
+    case 'traceback_step': {
+      const soFar = s.tracePath.filter(t => t.amount >= s.amount).map(t => t.amount);
+      renderTable(s.dp, -1, -1, [], soFar);
+      addLog(`  ${s.amount} → ${s.amount - s.coin} (used coin ${s.coin})`, 'ev-trace');
+      break;
+    }
+
+    case 'done_success': {
+      statPhase.textContent = 'Done';
+      const ans = s.dp[amount];
+      statAnswer.textContent = ans;
+      const traceAmounts = s.tracePath.map(t => t.amount);
+      renderTable(s.dp, -1, -1, [], traceAmounts);
+
+      // Show coins used
+      const coinsUsed = s.tracePath.map(t => t.coin);
+      traceCoins.innerHTML = coinsUsed.map(c => `<div class="trace-coin">${c}</div>`).join('') +
+        `<div style="font-size:.75rem;color:var(--muted);margin-left:4px">= ${amount}</div>`;
+      traceSection.style.display = 'flex';
+
+      // Highlight which coin denominations were used
+      const usedDenomSet = new Set(coinsUsed.map(c => coins.indexOf(c)));
+      renderCoinsUsed(usedDenomSet);
+
+      resultBanner.className = 'result-banner success';
+      resultBanner.innerHTML = `<strong>Minimum coins: ${ans}</strong> to make amount <code>${amount}</code> using coins [${coinsUsed.join(', ')}]`;
+      resultBanner.style.display = 'block';
+
+      addLog(`✓ Done: ${ans} coins`, 'ev-done');
+      endAnimation();
+      break;
+    }
+
+    case 'done_impossible':
+      statPhase.textContent = 'Impossible';
+      statAnswer.textContent = '∞';
+      renderTable(s.dp, -1, -1, [], []);
+      resultBanner.className = 'result-banner failure';
+      resultBanner.innerHTML = `<strong>Impossible</strong> — cannot make amount <code>${amount}</code> with coins [${coins.join(', ')}]`;
+      resultBanner.style.display = 'block';
+      addLog(`✗ Impossible to make ${amount}`, 'ev-done');
+      endAnimation();
+      break;
+  }
+}
+
+function endAnimation() {
+  playing = false;
+  clearTimeout(timer);
+  btnPlay.disabled = true;
+  btnStep.disabled = true;
+  btnPause.disabled = true;
+}
+
+// ── Playback ──────────────────────────────────────────────────────────────
+function getDelay() {
+  const v = parseInt(speedSlider.value);
+  // speed 1 = 1000ms, speed 10 = 50ms
+  return Math.round(1000 - (v - 1) * (950 / 9));
+}
+
+function play() {
+  if (stepIdx >= steps.length) return;
+  playing = true;
+  btnPlay.disabled = true;
+  btnPause.disabled = false;
+  btnStep.disabled = true;
+  tick();
+}
+
+function tick() {
+  if (!playing) return;
+  if (stepIdx >= steps.length) { endAnimation(); return; }
+  applyStep(steps[stepIdx++]);
+  timer = setTimeout(tick, getDelay());
+}
+
+function pause() {
+  playing = false;
+  clearTimeout(timer);
+  if (stepIdx < steps.length) {
+    btnPlay.disabled = false;
+    btnStep.disabled = false;
+  }
+  btnPause.disabled = true;
+}
+
+function step() {
+  if (stepIdx >= steps.length) return;
+  applyStep(steps[stepIdx++]);
+  if (stepIdx >= steps.length) {
+    btnPlay.disabled = true;
+    btnStep.disabled = true;
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+reset();
+</script>
+</body>
+</html>
