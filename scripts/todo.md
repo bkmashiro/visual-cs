@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- fibonacci-heap — Fibonacci Heap (lazy consolidation, decrease-key cascading cuts, amortized O(1) insert) ✅ 2026-03-29
 - ford-fulkerson — Ford-Fulkerson Max Flow (augmenting paths, residual graph, BFS/DFS) ✅ 2026-03-29
 - b-tree — B-Tree（多分岐木、DBインデックス）✅ 2026-03-29
 - lz77 — LZ77 Compression (sliding window, back-reference tokens) ✅ 2026-03-29

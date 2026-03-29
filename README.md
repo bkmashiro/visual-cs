@@ -48,6 +48,7 @@
 | [Huffman Coding](./visualizations/huffman-coding/) | String | Optimal prefix-free coding with frequency counts, greedy tree construction, and code-table generation |
 | [Splay Tree](./visualizations/splay-tree/) | Data Structure | Self-adjusting BST with zig / zig-zig / zig-zag access replay |
 | [Treap](./visualizations/treap/) | Data Structure | Randomized BST + heap priorities with insert bubble-up and delete sink-down rotations |
+| [Fibonacci Heap](./visualizations/fibonacci-heap/) | Data Structure | Lazy priority queue with amortized O(1) insert/decrease-key; watch consolidation and cascading cuts |
 
 ---
 

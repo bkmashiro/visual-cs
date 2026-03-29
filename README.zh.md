@@ -48,6 +48,7 @@
 | [Huffman 编码](./visualizations/huffman-coding/) | 字符串 | 最优前缀编码，展示字符频率统计、贪心树构建与编码表生成 |
 | [伸展树](./visualizations/splay-tree/) | 数据结构 | 自调整 BST，逐步回放 zig / zig-zig / zig-zag 访问旋转 |
 | [Treap](./visualizations/treap/) | 数据结构 | 随机化 BST + 堆优先级，通过插入上浮与删除下沉旋转维持平衡 |
+| [斐波那契堆](./visualizations/fibonacci-heap/) | 数据结构 | 惰性优先队列，插入/decrease-key 均摊 O(1)；可视化整合过程与级联剪切传播 |
 
 ---
 

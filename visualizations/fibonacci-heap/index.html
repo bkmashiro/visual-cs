@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fibonacci Heap — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --gold: #e3b341;
+    --green: #3fb950;
+    --red: #f78166;
+    --purple: #d2a8ff;
+    --orange: #ffa657;
+    --pink: #f778ba;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 1.2rem; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+  header a { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+  header a:hover { color: var(--text); }
+  .main { display: flex; flex: 1; gap: 0; }
+  .sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; flex-shrink: 0; }
+  .sidebar h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
+  .btn-group { display: flex; flex-direction: column; gap: 6px; }
+  .btn { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface2); color: var(--text); font-size: 0.85rem; cursor: pointer; transition: all 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; font-weight: 600; }
+  .btn.primary:hover { opacity: 0.85; }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: var(--red); color: #0d1117; }
+  .input-row { display: flex; gap: 6px; }
+  .input-row input { flex: 1; padding: 7px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
+  .input-row input:focus { outline: none; border-color: var(--accent); }
+  .input-row .btn { flex-shrink: 0; }
+  .stats { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .stats .row { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 3px 0; }
+  .stats .row span:first-child { color: var(--muted); }
+  .stats .row span:last-child { font-weight: 600; font-family: monospace; }
+  .log { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.78rem; font-family: monospace; height: 160px; overflow-y: auto; flex-shrink: 0; }
+  .log-entry { padding: 2px 0; border-bottom: 1px solid #1e242c; }
+  .log-entry.op { color: var(--gold); }
+  .log-entry.info { color: var(--muted); }
+  .log-entry.result { color: var(--green); }
+  .canvas-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #mainCanvas { display: block; background: var(--bg); flex: 1; }
+  .legend { background: var(--surface); border-top: 1px solid var(--border); padding: 10px 24px; display: flex; gap: 20px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--muted); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .explainer { background: var(--surface); border-top: 1px solid var(--border); padding: 16px 32px; font-size: 0.82rem; color: var(--muted); line-height: 1.6; max-height: 120px; overflow-y: auto; }
+  .explainer strong { color: var(--text); }
+  .explainer code { background: var(--surface2); padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; color: var(--orange); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Fibonacci Heap <span>— visual-cs</span></h1>
+    <div style="color:var(--muted);font-size:0.8rem;margin-top:2px;">Lazy consolidation · Cascading cut · Amortized O(1) insert &amp; decrease-key</div>
+  </div>
+  <a href="../../index.html">← All visualizations</a>
+</header>
+<div class="main">
+  <div class="sidebar">
+    <div>
+      <h2>Insert</h2>
+      <div class="input-row">
+        <input type="number" id="insertVal" placeholder="value" min="0" max="999" value="42">
+        <button class="btn primary" onclick="doInsert()">Insert</button>
+      </div>
+    </div>
+    <div>
+      <h2>Operations</h2>
+      <div class="btn-group">
+        <button class="btn" onclick="doExtractMin()">⬇ Extract-Min</button>
+        <button class="btn" onclick="doDecreaseKey()">↓ Decrease-Key (selected)</button>
+        <button class="btn" onclick="doDelete()">✕ Delete (selected)</button>
+      </div>
+      <div class="input-row" style="margin-top:6px;">
+        <input type="number" id="newKeyVal" placeholder="new key" min="-999" max="999" value="0">
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:4px;">Click a node to select it, then decrease-key or delete.</div>
+    </div>
+    <div>
+      <h2>Presets</h2>
+      <div class="btn-group">
+        <button class="btn" onclick="loadPreset()">Load Example (8 nodes)</button>
+        <button class="btn" onclick="doStressTest()">Stress Insert (20 nodes)</button>
+        <button class="btn danger" onclick="doReset()">Reset</button>
+      </div>
+    </div>
+    <div class="stats" id="statsBox">
+      <h2 style="margin-bottom:8px;">Stats</h2>
+      <div class="row"><span>Size</span><span id="st-size">0</span></div>
+      <div class="row"><span>Trees</span><span id="st-trees">0</span></div>
+      <div class="row"><span>Min Key</span><span id="st-min">—</span></div>
+      <div class="row"><span>Max Degree</span><span id="st-degree">0</span></div>
+      <div class="row"><span>Marked Nodes</span><span id="st-marked">0</span></div>
+      <div class="row"><span>Operations</span><span id="st-ops">0</span></div>
+    </div>
+    <div>
+      <h2 style="margin-bottom:6px;">Operation Log</h2>
+      <div class="log" id="logBox"></div>
+    </div>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="mainCanvas"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#58a6ff;"></div> Regular node</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e3b341;border:2px solid #e3b341;"></div> Min pointer</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f778ba;"></div> Marked (will cascade on next decrease-key)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f78166;border:2px solid #f78166;"></div> Selected</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3fb950;"></div> Newly inserted / just extracted</div>
+    </div>
+  </div>
+</div>
+<div class="explainer">
+  <strong>Fibonacci Heap</strong> is a lazy priority queue with amortized <code>O(1)</code> insert, find-min, decrease-key, union; and <code>O(log n)</code> amortized extract-min.
+  It powers the optimal <code>O(E + V log V)</code> Dijkstra.
+  <strong>Insert</strong> adds a new single-node tree to the root list — no restructuring.
+  <strong>Extract-Min</strong> removes the min, merges its children into the root list, then <em>consolidates</em> the heap so no two root-list trees have the same degree (link by degree).
+  <strong>Decrease-Key</strong> cuts the node from its parent if the heap-order is violated, adds it to the root list, and propagates <em>cascading cuts</em> up the ancestry of marked nodes.
+  <strong>Mark</strong> tracks whether a node has lost a child since it was last made a root — second loss triggers a cascading cut.
+</div>
+
+<script>
+// ─── Fibonacci Heap Implementation ─────────────────────────────────────────
+
+let nodeIdCounter = 0;
+
+class FibNode {
+  constructor(key) {
+    this.id = nodeIdCounter++;
+    this.key = key;
+    this.degree = 0;
+    this.marked = false;
+    this.parent = null;
+    this.child = null;   // any child (doubly-linked circular list)
+    this.left = this;
+    this.right = this;
+    // layout
+    this.x = 0;
+    this.y = 0;
+    this.tx = 0; // target x
+    this.ty = 0; // target y
+    this.alpha = 1;
+    this.highlight = null; // 'new'|'min'|'marked'|'selected'
+    this.highlightTimer = 0;
+  }
+}
+
+class FibonacciHeap {
+  constructor() {
+    this.min = null;
+    this.size = 0;
+    this.ops = 0;
+  }
+
+  _addToRootList(node) {
+    node.parent = null;
+    if (!this.min) {
+      node.left = node;
+      node.right = node;
+      this.min = node;
+    } else {
+      // insert after min
+      node.right = this.min.right;
+      node.left = this.min;
+      this.min.right.left = node;
+      this.min.right = node;
+      if (node.key < this.min.key) this.min = node;
+    }
+  }
+
+  insert(key) {
+    const n = new FibNode(key);
+    this._addToRootList(n);
+    this.size++;
+    this.ops++;
+    n.highlight = 'new';
+    n.highlightTimer = 90;
+    return n;
+  }
+
+  findMin() { return this.min; }
+
+  extractMin() {
+    const z = this.min;
+    if (!z) return null;
+    this.ops++;
+    // add all children of z to root list
+    if (z.child) {
+      let c = z.child;
+      const children = [];
+      do { children.push(c); c = c.right; } while (c !== z.child);
+      for (const ch of children) {
+        ch.parent = null;
+        ch.left = ch;
+        ch.right = ch;
+        // merge into root
+        ch.right = z.right;
+        ch.left = z;
+        z.right.left = ch;
+        z.right = ch;
+      }
+    }
+    // remove z from root list
+    z.left.right = z.right;
+    z.right.left = z.left;
+    if (z === z.right) {
+      this.min = null;
+    } else {
+      this.min = z.right;
+      this._consolidate();
+    }
+    this.size--;
+    z.highlight = 'result';
+    z.highlightTimer = 120;
+    return z;
+  }
+
+  _consolidate() {
+    const maxDeg = Math.ceil(Math.log2(this.size + 1)) + 2;
+    const A = new Array(maxDeg + 4).fill(null);
+    // collect all roots
+    const roots = [];
+    if (this.min) {
+      let r = this.min;
+      do { roots.push(r); r = r.right; } while (r !== this.min);
+    }
+    for (let w of roots) {
+      let x = w;
+      let d = x.degree;
+      while (A[d] && A[d] !== x) {
+        let y = A[d];
+        if (x.key > y.key) { let tmp = x; x = y; y = tmp; }
+        this._link(y, x);
+        A[d] = null;
+        d++;
+      }
+      A[d] = x;
+    }
+    // rebuild root list from A
+    this.min = null;
+    for (const node of A) {
+      if (!node) continue;
+      node.left = node; node.right = node;
+      if (!this.min) {
+        this.min = node;
+      } else {
+        node.right = this.min.right;
+        node.left = this.min;
+        this.min.right.left = node;
+        this.min.right = node;
+        if (node.key < this.min.key) this.min = node;
+      }
+    }
+  }
+
+  _link(y, x) {
+    // remove y from root list (already isolated by _consolidate loop)
+    y.left = y; y.right = y;
+    y.parent = x;
+    y.marked = false;
+    if (!x.child) {
+      x.child = y;
+      y.left = y; y.right = y;
+    } else {
+      y.right = x.child.right;
+      y.left = x.child;
+      x.child.right.left = y;
+      x.child.right = y;
+    }
+    x.degree++;
+  }
+
+  decreaseKey(node, newKey) {
+    if (newKey > node.key) return false;
+    this.ops++;
+    node.key = newKey;
+    const p = node.parent;
+    if (p && node.key < p.key) {
+      this._cut(node, p);
+      this._cascadingCut(p);
+    }
+    if (node.key < this.min.key) this.min = node;
+    node.highlight = 'new';
+    node.highlightTimer = 90;
+    return true;
+  }
+
+  _cut(node, parent) {
+    // remove node from parent's child list
+    if (node.right === node) {
+      parent.child = null;
+    } else {
+      node.left.right = node.right;
+      node.right.left = node.left;
+      if (parent.child === node) parent.child = node.right;
+    }
+    parent.degree--;
+    node.marked = false;
+    node.parent = null;
+    node.left = node; node.right = node;
+    // add to root list
+    node.right = this.min.right;
+    node.left = this.min;
+    this.min.right.left = node;
+    this.min.right = node;
+  }
+
+  _cascadingCut(node) {
+    const p = node.parent;
+    if (p) {
+      if (!node.marked) {
+        node.marked = true;
+      } else {
+        this._cut(node, p);
+        this._cascadingCut(p);
+      }
+    }
+  }
+
+  delete(node) {
+    this.decreaseKey(node, -Infinity);
+    this.extractMin();
+  }
+
+  getRoots() {
+    if (!this.min) return [];
+    const roots = [];
+    let r = this.min;
+    do { roots.push(r); r = r.right; } while (r !== this.min);
+    return roots;
+  }
+
+  getStats() {
+    const roots = this.getRoots();
+    let maxDeg = 0;
+    let marked = 0;
+    const countTree = (n) => {
+      if (!n) return;
+      if (n.degree > maxDeg) maxDeg = n.degree;
+      if (n.marked) marked++;
+      if (n.child) {
+        let c = n.child;
+        do { countTree(c); c = c.right; } while (c !== n.child);
+      }
+    };
+    for (const r of roots) countTree(r);
+    return { trees: roots.length, maxDeg, marked, size: this.size };
+  }
+}
+
+// ─── State ─────────────────────────────────────────────────────────────────
+
+const heap = new FibonacciHeap();
+let selectedNode = null;
+let allNodes = []; // flat list for rendering
+let animFrame = 0;
+const NODE_R = 22;
+const LEVEL_H = 72;
+const H_GAP = 14;
+
+// ─── Layout ────────────────────────────────────────────────────────────────
+
+function subtreeWidth(node) {
+  if (!node) return 0;
+  if (!node.child) return NODE_R * 2 + H_GAP;
+  let w = 0;
+  let c = node.child;
+  do { w += subtreeWidth(c); c = c.right; } while (c !== node.child);
+  return Math.max(NODE_R * 2 + H_GAP, w);
+}
+
+function layoutTree(node, cx, cy) {
+  node.tx = cx;
+  node.ty = cy;
+  if (!node.child) return;
+  // gather children
+  const children = [];
+  let c = node.child;
+  do { children.push(c); c = c.right; } while (c !== node.child);
+  const totalW = children.reduce((s, ch) => s + subtreeWidth(ch), 0);
+  let x = cx - totalW / 2;
+  for (const ch of children) {
+    const sw = subtreeWidth(ch);
+    layoutTree(ch, x + sw / 2, cy + LEVEL_H);
+    x += sw;
+  }
+}
+
+function collectNodes(node, result) {
+  if (!node) return;
+  result.push(node);
+  if (node.child) {
+    let c = node.child;
+    do { collectNodes(c, result); c = c.right; } while (c !== node.child);
+  }
+}
+
+function relayout() {
+  const canvas = document.getElementById('mainCanvas');
+  const W = canvas.width;
+  const roots = heap.getRoots();
+  allNodes = [];
+  for (const r of roots) collectNodes(r, allNodes);
+
+  if (roots.length === 0) return;
+  // compute total width
+  const totalW = roots.reduce((s, r) => s + subtreeWidth(r), 0);
+  const startX = (W - totalW) / 2 + NODE_R;
+  let x = startX;
+  const baseY = 80;
+  for (const r of roots) {
+    const sw = subtreeWidth(r);
+    layoutTree(r, x + sw / 2 - NODE_R, baseY);
+    x += sw;
+  }
+}
+
+// ─── Canvas Rendering ──────────────────────────────────────────────────────
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  relayout();
+}
+
+function nodeColor(n) {
+  if (n === selectedNode) return '#f78166';
+  if (n.highlight === 'new') return '#3fb950';
+  if (n.highlight === 'result') return '#3fb950';
+  if (n === heap.min) return '#e3b341';
+  if (n.marked) return '#f778ba';
+  return '#58a6ff';
+}
+
+function drawArrow(x1, y1, x2, y2, color) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len < 1) return;
+  const ux = dx / len, uy = dy / len;
+  const sx = x1 + ux * NODE_R;
+  const sy = y1 + uy * NODE_R;
+  const ex = x2 - ux * NODE_R;
+  const ey = y2 - uy * NODE_R;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(ex, ey);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // arrowhead
+  const angle = Math.atan2(ey - sy, ex - sx);
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - 8 * Math.cos(angle - 0.4), ey - 8 * Math.sin(angle - 0.4));
+  ctx.lineTo(ex - 8 * Math.cos(angle + 0.4), ey - 8 * Math.sin(angle + 0.4));
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function render() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // animated bg grid
+  ctx.save();
+  ctx.strokeStyle = '#1a2030';
+  ctx.lineWidth = 0.5;
+  const gs = 40;
+  for (let x = 0; x < W; x += gs) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += gs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.restore();
+
+  if (allNodes.length === 0) {
+    ctx.fillStyle = '#30363d';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Heap is empty — insert some nodes to get started', W / 2, H / 2);
+    return;
+  }
+
+  // smooth animation
+  for (const n of allNodes) {
+    n.x = lerp(n.x || n.tx, n.tx, 0.18);
+    n.y = lerp(n.y || n.ty, n.ty, 0.18);
+    if (n.highlightTimer > 0) n.highlightTimer--;
+    else if (n.highlight === 'new' || n.highlight === 'result') n.highlight = null;
+  }
+
+  // draw edges (parent→child)
+  for (const n of allNodes) {
+    if (!n.child) continue;
+    let c = n.child;
+    do {
+      drawArrow(n.x, n.y, c.x, c.y, '#30363d');
+      c = c.right;
+    } while (c !== n.child);
+  }
+
+  // draw sibling links for root list (dashed)
+  const roots = heap.getRoots();
+  if (roots.length > 1) {
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#2a3a4a';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < roots.length; i++) {
+      const a = roots[i], b = roots[(i + 1) % roots.length];
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y - NODE_R - 4);
+      ctx.lineTo(b.x, b.y - NODE_R - 4);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // draw nodes
+  for (const n of allNodes) {
+    const color = nodeColor(n);
+    // glow for min
+    if (n === heap.min) {
+      ctx.save();
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = '#e3b341';
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, NODE_R + 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(227,179,65,0.12)';
+      ctx.fill();
+      ctx.restore();
+    }
+    // node circle
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, NODE_R, 0, Math.PI * 2);
+    ctx.fillStyle = color + '22';
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = n === heap.min ? 2.5 : 1.8;
+    ctx.stroke();
+
+    // mark indicator
+    if (n.marked) {
+      ctx.beginPath();
+      ctx.arc(n.x + NODE_R - 6, n.y - NODE_R + 6, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#f778ba';
+      ctx.fill();
+    }
+
+    // degree badge
+    if (n.degree > 0) {
+      ctx.beginPath();
+      ctx.arc(n.x - NODE_R + 6, n.y + NODE_R - 6, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#30363d';
+      ctx.fill();
+      ctx.fillStyle = '#8b949e';
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(n.degree, n.x - NODE_R + 6, n.y + NODE_R - 6);
+    }
+
+    // key label
+    ctx.fillStyle = color;
+    ctx.font = `bold ${n.key === -Infinity ? 9 : 13}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(n.key === -Infinity ? '-∞' : n.key, n.x, n.y);
+
+    // MIN badge
+    if (n === heap.min) {
+      ctx.fillStyle = '#e3b341';
+      ctx.font = 'bold 8px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('MIN', n.x, n.y + NODE_R + 10);
+    }
+  }
+
+  updateStats();
+  animFrame = requestAnimationFrame(render);
+}
+
+// ─── Stats ─────────────────────────────────────────────────────────────────
+
+function updateStats() {
+  const s = heap.getStats();
+  document.getElementById('st-size').textContent = s.size;
+  document.getElementById('st-trees').textContent = s.trees;
+  document.getElementById('st-min').textContent = heap.min ? heap.min.key : '—';
+  document.getElementById('st-degree').textContent = s.maxDeg;
+  document.getElementById('st-marked').textContent = s.marked;
+  document.getElementById('st-ops').textContent = heap.ops;
+}
+
+// ─── Log ───────────────────────────────────────────────────────────────────
+
+function log(msg, cls = 'op') {
+  const box = document.getElementById('logBox');
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + cls;
+  el.textContent = msg;
+  box.prepend(el);
+  while (box.children.length > 60) box.removeChild(box.lastChild);
+}
+
+// ─── Operations ────────────────────────────────────────────────────────────
+
+function doInsert() {
+  const inp = document.getElementById('insertVal');
+  let v = parseInt(inp.value);
+  if (isNaN(v)) v = Math.floor(Math.random() * 100);
+  heap.insert(v);
+  relayout();
+  log(`insert(${v})`, 'op');
+  inp.value = Math.floor(Math.random() * 100);
+}
+
+function doExtractMin() {
+  if (!heap.min) { log('heap is empty', 'info'); return; }
+  const minKey = heap.min.key;
+  heap.extractMin();
+  selectedNode = null;
+  relayout();
+  log(`extract-min → removed ${minKey}`, 'result');
+}
+
+function doDecreaseKey() {
+  if (!selectedNode) { log('select a node first (click it)', 'info'); return; }
+  const v = parseInt(document.getElementById('newKeyVal').value);
+  if (isNaN(v)) { log('enter a valid new key', 'info'); return; }
+  if (v >= selectedNode.key) { log(`new key ${v} must be < current key ${selectedNode.key}`, 'info'); return; }
+  const old = selectedNode.key;
+  heap.decreaseKey(selectedNode, v);
+  relayout();
+  log(`decrease-key: ${old} → ${v}`, 'op');
+}
+
+function doDelete() {
+  if (!selectedNode) { log('select a node first (click it)', 'info'); return; }
+  const key = selectedNode.key;
+  heap.delete(selectedNode);
+  selectedNode = null;
+  relayout();
+  log(`delete(${key})`, 'op');
+}
+
+function doReset() {
+  heap.min = null;
+  heap.size = 0;
+  heap.ops = 0;
+  nodeIdCounter = 0;
+  selectedNode = null;
+  allNodes = [];
+  log('heap reset', 'info');
+}
+
+function loadPreset() {
+  doReset();
+  const vals = [10, 3, 17, 24, 26, 46, 30, 21];
+  for (const v of vals) heap.insert(v);
+  selectedNode = null;
+  relayout();
+  log('loaded preset (8 nodes)', 'info');
+  log('try: extract-min, then decrease-key', 'info');
+}
+
+function doStressTest() {
+  for (let i = 0; i < 20; i++) {
+    heap.insert(Math.floor(Math.random() * 200));
+  }
+  relayout();
+  log('inserted 20 random nodes', 'op');
+}
+
+// ─── Mouse interaction ──────────────────────────────────────────────────────
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  let hit = null;
+  for (const n of allNodes) {
+    const dx = n.x - mx, dy = n.y - my;
+    if (dx * dx + dy * dy < NODE_R * NODE_R) { hit = n; break; }
+  }
+  if (hit) {
+    selectedNode = (selectedNode === hit) ? null : hit;
+    if (selectedNode) log(`selected node key=${selectedNode.key} degree=${selectedNode.degree} marked=${selectedNode.marked}`, 'info');
+  } else {
+    selectedNode = null;
+  }
+});
+
+// ─── Init ───────────────────────────────────────────────────────────────────
+
+window.addEventListener('resize', resize);
+resize();
+
+// init node positions
+for (const n of allNodes) { n.x = n.tx; n.y = n.ty; }
+
+render();
+
+// enter on insert input
+document.getElementById('insertVal').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doInsert();
+});
+</script>
+</body>
+</html>
