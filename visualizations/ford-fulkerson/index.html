@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ford-Fulkerson Max Flow — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #111720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #7ee787;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+    --red: #ff7b72;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: rgba(22,27,34,0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  header a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+  header h1 { font-size: 1.3rem; }
+  .main { max-width: 1320px; margin: 0 auto; padding: 28px 22px 40px; }
+  .toolbar, .stats, .panel, .explain {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 16px; margin-bottom: 16px; }
+  select, input[type=range] { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; }
+  input[type=range] { accent-color: var(--accent); }
+  button { border: none; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; font: inherit; background: var(--accent); color: #08111b; }
+  button.sec { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider-group { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 12px; padding: 14px 16px; margin-bottom: 16px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.25rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; }
+  .workspace { position: relative; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 560px; background: radial-gradient(circle at top, rgba(88,166,255,0.07), transparent 24%), #09111a; border-radius: 14px; }
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  .panel { padding: 16px; }
+  .panel h3 { font-size: 0.95rem; margin-bottom: 12px; }
+  .log-list { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow: auto; }
+  .log-item { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 0.84rem; color: var(--muted); }
+  .log-item.active { border-color: var(--accent); color: var(--text); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 16px; margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--muted); font-size: 0.82rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; margin-top: 8px; }
+  .explain code { background: var(--panel); padding: 1px 6px; border-radius: 4px; color: var(--text); font-size: 0.88em; }
+  @media (max-width: 1080px) {
+    .layout { grid-template-columns: 1fr; }
+    canvas { height: 420px; }
+    .stats { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🌊 Ford-Fulkerson Max Flow</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Augmenting Paths · Residual Graph · BFS/DFS</span>
+</header>
+
+<div class="main">
+  <div class="toolbar">
+    <label style="color:var(--muted);font-size:0.86rem">Graph</label>
+    <select id="graph-sel">
+      <option value="0">Classic 6-node</option>
+      <option value="1">Pipeline 8-node</option>
+      <option value="2">Simple 4-node</option>
+    </select>
+    <label style="color:var(--muted);font-size:0.86rem">Search</label>
+    <select id="method-sel">
+      <option value="bfs">BFS (Edmonds-Karp)</option>
+      <option value="dfs">DFS (Ford-Fulkerson)</option>
+    </select>
+    <button id="play-btn">&#9654; Play</button>
+    <button class="sec" id="pause-btn" disabled>&#9646;&#9646; Pause</button>
+    <button class="sec" id="step-btn">&#9197; Step</button>
+    <button class="sec" id="reset-btn">&#8635; Reset</button>
+    <div class="slider-group">
+      <label>Speed <span id="spd-lbl">700</span>ms</label>
+      <input id="spd-in" type="range" min="150" max="1800" step="50" value="700">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="s-flow">0</div><div class="stat-label">Max Flow</div></div>
+    <div class="stat"><div class="stat-value" id="s-iter">0</div><div class="stat-label">Augmentations</div></div>
+    <div class="stat"><div class="stat-value" id="s-bottle">—</div><div class="stat-label">Bottleneck</div></div>
+    <div class="stat"><div class="stat-value" id="s-path">—</div><div class="stat-label">Path Length</div></div>
+    <div class="stat"><div class="stat-value" id="s-status" style="font-size:0.88rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel workspace">
+      <canvas id="cv"></canvas>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>Augmentation Log</h3>
+        <div class="log-list" id="log-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Active path search</div>
+    <div class="legend-item"><div class="swatch" style="background:#7ee787"></div>Augmenting path found</div>
+    <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Bottleneck edge</div>
+    <div class="legend-item"><div class="swatch" style="background:#a371f7"></div>Full (saturated)</div>
+    <div class="legend-item"><div class="swatch" style="background:#ff7b72"></div>Reverse (residual)</div>
+    <div class="legend-item"><div class="swatch" style="background:#30363d"></div>Unused capacity</div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Ford-Fulkerson finds the maximum flow from source <strong>S</strong> to sink <strong>T</strong> by repeatedly discovering <em>augmenting paths</em> through a residual graph and pushing flow along them.</p>
+    <ul>
+      <li><strong>Residual graph</strong> — for every forward edge (u→v) with capacity <code>c</code> and current flow <code>f</code>, we maintain a forward residual edge with remaining capacity <code>c-f</code> and a backward edge with capacity <code>f</code> (allowing "undo").</li>
+      <li><strong>Augmenting path</strong> — any path from S to T in the residual graph. The flow pushed equals the minimum residual capacity along the path (<em>bottleneck</em>).</li>
+      <li><strong>BFS (Edmonds-Karp)</strong> always picks the <em>shortest</em> augmenting path, guaranteeing <code>O(VE²)</code> time.</li>
+      <li><strong>DFS (Ford-Fulkerson)</strong> picks an arbitrary path, which may be faster in practice but has worse worst-case complexity with irrational capacities.</li>
+      <li>The algorithm terminates when no augmenting path exists. By the <em>max-flow min-cut theorem</em>, the result equals the minimum cut capacity separating S from T.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ── canvas setup ─────────────────────────────────────────────────────────
+  var cv  = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+
+  function resizeCv() {
+    cv.width  = cv.parentElement.clientWidth;
+    cv.height = cv.offsetHeight;
+  }
+  resizeCv();
+  window.addEventListener('resize', function () { resizeCv(); drawFrame(); });
+
+  // ── palette ───────────────────────────────────────────────────────────────
+  var P = {
+    bg:'#09111a', surf:'#161b22', panel:'#111720', border:'#30363d',
+    text:'#e6edf3', muted:'#8b949e',
+    blue:'#58a6ff', green:'#7ee787', warn:'#f78166',
+    gold:'#e3b341', violet:'#a371f7', red:'#ff7b72',
+  };
+
+  // ── graph definitions ─────────────────────────────────────────────────────
+  // Each graph: { nodes: [{id, label}], edges: [{u, v, cap}] }
+  // Nodes positioned as fraction of canvas (set in relayout)
+
+  var GRAPHS = [
+    {
+      name: 'Classic 6-node',
+      nodes: [
+        {id:0, label:'S'}, {id:1, label:'A'}, {id:2, label:'B'},
+        {id:3, label:'C'}, {id:4, label:'D'}, {id:5, label:'T'},
+      ],
+      // relative positions [x, y] in 0..1
+      pos: [
+        [0.10, 0.50], [0.32, 0.20], [0.32, 0.78],
+        [0.62, 0.20], [0.62, 0.78], [0.90, 0.50],
+      ],
+      edges: [
+        {u:0,v:1,cap:10}, {u:0,v:2,cap:10},
+        {u:1,v:2,cap:2},  {u:1,v:3,cap:4},  {u:1,v:4,cap:8},
+        {u:2,v:4,cap:9},
+        {u:3,v:5,cap:10}, {u:4,v:3,cap:6},  {u:4,v:5,cap:10},
+      ]
+    },
+    {
+      name: 'Pipeline 8-node',
+      nodes: [
+        {id:0,label:'S'},{id:1,label:'A'},{id:2,label:'B'},{id:3,label:'C'},
+        {id:4,label:'D'},{id:5,label:'E'},{id:6,label:'F'},{id:7,label:'T'},
+      ],
+      pos: [
+        [0.06,0.50],[0.24,0.18],[0.24,0.50],[0.24,0.82],
+        [0.60,0.18],[0.60,0.50],[0.60,0.82],[0.94,0.50],
+      ],
+      edges: [
+        {u:0,v:1,cap:15},{u:0,v:2,cap:10},{u:0,v:3,cap:8},
+        {u:1,v:4,cap:12},{u:1,v:5,cap:5},
+        {u:2,v:4,cap:6}, {u:2,v:5,cap:9}, {u:2,v:6,cap:4},
+        {u:3,v:5,cap:7}, {u:3,v:6,cap:11},
+        {u:4,v:7,cap:14},{u:5,v:7,cap:13},{u:6,v:7,cap:10},
+        {u:4,v:5,cap:3}, {u:5,v:6,cap:5},
+      ]
+    },
+    {
+      name: 'Simple 4-node',
+      nodes: [
+        {id:0,label:'S'},{id:1,label:'A'},{id:2,label:'B'},{id:3,label:'T'},
+      ],
+      pos: [
+        [0.12,0.50],[0.38,0.22],[0.38,0.78],[0.88,0.50],
+      ],
+      edges: [
+        {u:0,v:1,cap:8},{u:0,v:2,cap:6},
+        {u:1,v:2,cap:4},{u:1,v:3,cap:7},
+        {u:2,v:3,cap:9},
+      ]
+    }
+  ];
+
+  // ── state ─────────────────────────────────────────────────────────────────
+  var graphIdx  = 0;
+  var method    = 'bfs';
+  var frames    = [];
+  var frameIdx  = 0;
+  var timer     = null;
+  var speed     = 700;
+  var augLog    = [];   // [{text, pathStr, flow, bottleneck}]
+
+  // ── Ford-Fulkerson / Edmonds-Karp engine ─────────────────────────────────
+  // We record keyframe snapshots for playback.
+
+  function buildResidual(edges, N) {
+    // adj[u] = [{to, cap, flow, rev_idx, orig_cap}]
+    var adj = [];
+    for (var i=0; i<N; i++) adj.push([]);
+    edges.forEach(function(e) {
+      var fu = adj[e.u].length, fv = adj[e.v].length;
+      adj[e.u].push({to:e.v, cap:e.cap, flow:0, orig_cap:e.cap, rev:fv,   is_fwd:true });
+      adj[e.v].push({to:e.u, cap:0,     flow:0, orig_cap:0,     rev:fu,   is_fwd:false});
+    });
+    return adj;
+  }
+
+  function bfsPath(adj, s, t, N) {
+    var parent = new Array(N).fill(-1);
+    var parentEdge = new Array(N).fill(-1);
+    var visited = new Array(N).fill(false);
+    var queue = [s]; visited[s] = true;
+    while (queue.length) {
+      var u = queue.shift();
+      for (var i=0; i<adj[u].length; i++) {
+        var e = adj[u][i];
+        var residual = e.cap - e.flow;
+        if (!visited[e.to] && residual > 0) {
+          visited[e.to] = true;
+          parent[e.to] = u;
+          parentEdge[e.to] = i;
+          if (e.to === t) return {parent:parent, parentEdge:parentEdge};
+          queue.push(e.to);
+        }
+      }
+    }
+    return null;
+  }
+
+  function dfsPath(adj, s, t, N) {
+    var parent = new Array(N).fill(-1);
+    var parentEdge = new Array(N).fill(-1);
+    var visited = new Array(N).fill(false);
+    function dfs(u) {
+      if (u === t) return true;
+      visited[u] = true;
+      for (var i=0; i<adj[u].length; i++) {
+        var e = adj[u][i];
+        var residual = e.cap - e.flow;
+        if (!visited[e.to] && residual > 0) {
+          parent[e.to] = u;
+          parentEdge[e.to] = i;
+          if (dfs(e.to)) return true;
+        }
+      }
+      return false;
+    }
+    if (dfs(s)) return {parent:parent, parentEdge:parentEdge};
+    return null;
+  }
+
+  function deepCopyAdj(adj) {
+    return adj.map(function(lst) {
+      return lst.map(function(e) { return {to:e.to,cap:e.cap,flow:e.flow,orig_cap:e.orig_cap,rev:e.rev,is_fwd:e.is_fwd}; });
+    });
+  }
+
+  function snapFrame(adj, gdata, totalFlow, augIter, status, pathNodes, pathEdges, bottleneck, phaseLabel) {
+    frames.push({
+      adj:        deepCopyAdj(adj),
+      gdata:      gdata,
+      totalFlow:  totalFlow,
+      augIter:    augIter,
+      status:     status    || '',
+      pathNodes:  pathNodes ? pathNodes.slice() : [],
+      pathEdges:  pathEdges ? pathEdges.slice() : [],  // [{u,ei}]
+      bottleneck: bottleneck != null ? bottleneck : -1,
+      phaseLabel: phaseLabel || '',
+      logIdx:     augLog.length - 1,
+    });
+  }
+
+  function computeFrames(gidx, meth) {
+    frames = []; frameIdx = 0; augLog = [];
+    var gdata   = GRAPHS[gidx];
+    var N       = gdata.nodes.length;
+    var S       = 0, T = N-1;
+    var adj     = buildResidual(gdata.edges, N);
+    var totalFlow = 0;
+    var augIter   = 0;
+
+    snapFrame(adj, gdata, 0, 0, 'Initial graph — ready to run', [], [], -1, 'init');
+
+    var searchFn = (meth === 'bfs') ? bfsPath : dfsPath;
+
+    for (;;) {
+      var result = searchFn(adj, S, T, N);
+      if (!result) break;
+
+      // Reconstruct path
+      var path = [], pathEdges = [];
+      var v = T;
+      while (v !== S) {
+        var u = result.parent[v];
+        var ei = result.parentEdge[v];
+        path.unshift(v);
+        pathEdges.unshift({u:u, ei:ei});
+        v = u;
+      }
+      path.unshift(S);
+
+      // Bottleneck
+      var bottle = Infinity;
+      pathEdges.forEach(function(pe) {
+        var e = adj[pe.u][pe.ei];
+        bottle = Math.min(bottle, e.cap - e.flow);
+      });
+
+      var pathLabel = path.map(function(nid){ return gdata.nodes[nid].label; }).join(' → ');
+      snapFrame(adj, gdata, totalFlow, augIter, (meth==='bfs'?'BFS':'DFS')+' found path: '+pathLabel, path, pathEdges, -1, 'found');
+
+      // Mark bottleneck
+      var bottleEdge = pathEdges.reduce(function(minPe, pe) {
+        var r = adj[pe.u][pe.ei].cap - adj[pe.u][pe.ei].flow;
+        var mr = adj[minPe.u][minPe.ei].cap - adj[minPe.u][minPe.ei].flow;
+        return r < mr ? pe : minPe;
+      }, pathEdges[0]);
+      snapFrame(adj, gdata, totalFlow, augIter, 'Bottleneck = '+bottle+' on edge '+
+        gdata.nodes[bottleEdge.u].label+' → '+gdata.nodes[adj[bottleEdge.u][bottleEdge.ei].to].label,
+        path, pathEdges, bottle, 'bottle');
+
+      // Augment
+      pathEdges.forEach(function(pe) {
+        var e = adj[pe.u][pe.ei];
+        e.flow += bottle;
+        adj[e.to][e.rev].flow -= bottle;
+      });
+      totalFlow += bottle;
+      augIter++;
+
+      augLog.push({
+        text: 'Augment #'+augIter+': '+pathLabel+' +'+bottle,
+        pathLabel: pathLabel,
+        bottle: bottle,
+        total: totalFlow,
+      });
+
+      snapFrame(adj, gdata, totalFlow, augIter, 'Augmented +'+bottle+' | Total flow: '+totalFlow, path, pathEdges, bottle, 'augmented');
+    }
+
+    snapFrame(adj, gdata, totalFlow, augIter, 'Done — Max Flow = '+totalFlow, [], [], -1, 'done');
+  }
+
+  // ── drawing ───────────────────────────────────────────────────────────────
+  function nodePos(gdata, i) {
+    var W = cv.width, H = cv.height;
+    var pad = 60;
+    var p = gdata.pos[i];
+    return { x: pad + p[0]*(W-2*pad), y: pad + p[1]*(H-2*pad) };
+  }
+
+  function drawArrow(x1,y1,x2,y2,color,lw,dashed,offset) {
+    // offset nodes by radius so arrow starts/ends at border
+    var r = offset || 0;
+    var dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy);
+    if (len<1) return;
+    var ux=dx/len, uy=dy/len;
+    var sx=x1+ux*r, sy=y1+uy*r, ex=x2-ux*r, ey=y2-uy*r;
+    ctx.save();
+    ctx.strokeStyle=color; ctx.lineWidth=lw||1.8;
+    if (dashed) ctx.setLineDash([5,5]);
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke();
+    ctx.setLineDash([]);
+    var sz=8, ang=Math.atan2(ey-sy,ex-sx);
+    ctx.fillStyle=color;
+    ctx.beginPath();
+    ctx.moveTo(ex,ey);
+    ctx.lineTo(ex-sz*Math.cos(ang-0.45), ey-sz*Math.sin(ang-0.45));
+    ctx.lineTo(ex-sz*Math.cos(ang+0.45), ey-sz*Math.sin(ang+0.45));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function edgesInPath(pathEdges, adj) {
+    // Return set of "u-ei" keys
+    var s={};
+    pathEdges.forEach(function(pe){ s[pe.u+'-'+pe.ei]=true; });
+    return s;
+  }
+
+  function drawFrame() {
+    var W=cv.width, H=cv.height;
+    ctx.fillStyle=P.bg; ctx.fillRect(0,0,W,H);
+
+    if (!frames.length) {
+      ctx.fillStyle=P.muted; ctx.font='15px -apple-system,sans-serif';
+      ctx.textAlign='center'; ctx.fillText('Press Reset to build graph', W/2, H/2);
+      ctx.textAlign='left'; return;
+    }
+
+    var fi   = Math.max(0, Math.min(frameIdx, frames.length-1));
+    var fr   = frames[fi];
+    var gd   = fr.gdata;
+    var adj  = fr.adj;
+    var N    = gd.nodes.length;
+    var NR   = 22;  // node radius
+
+    // Build path edge set
+    var pathSet = edgesInPath(fr.pathEdges, adj);
+    // Build original edge map for drawing forward edges only
+    // (adj contains both fwd and rev entries)
+
+    // draw forward edges
+    gd.edges.forEach(function(eorig, eidx) {
+      var u=eorig.u, v=eorig.v;
+      var pu=nodePos(gd,u), pv=nodePos(gd,v);
+
+      // Find the fwd edge in adj[u]
+      var fwdEi = -1;
+      for (var i=0;i<adj[u].length;i++) {
+        if (adj[u][i].to===v && adj[u][i].is_fwd) { fwdEi=i; break; }
+      }
+      if (fwdEi<0) return;
+      var e = adj[u][fwdEi];
+      var flow = e.flow, cap = e.cap;
+      var residual = cap - flow;
+
+      var inPath  = pathSet[u+'-'+fwdEi];
+      var isBottle = inPath && fr.bottleneck >= 0 && (residual === fr.bottleneck || (cap-flow)===fr.bottleneck);
+
+      // edge color
+      var edgeColor, lw;
+      if (fr.phaseLabel==='done') {
+        edgeColor = flow >= cap ? P.violet : (flow > 0 ? P.green : P.border);
+        lw = 2;
+      } else if (inPath && fr.phaseLabel==='bottle' && isBottle) {
+        edgeColor = P.gold; lw = 3.5;
+      } else if (inPath) {
+        edgeColor = (fr.phaseLabel==='augmented') ? P.green : P.blue;
+        lw = 3;
+      } else {
+        edgeColor = flow>=cap ? P.violet : (flow>0 ? 'rgba(88,166,255,0.35)' : P.border);
+        lw = flow>0 ? 2 : 1.5;
+      }
+
+      // curved offset for bidirectional edges (check if reverse also has flow)
+      var revEi = e.rev;
+      var revFlow = (adj[v] && adj[v][revEi]) ? adj[v][revEi].flow : 0;
+      var hasBoth = (revFlow > 0);
+
+      // slight perpendicular offset to separate fwd/rev
+      var dx=pv.x-pu.x, dy=pv.y-pu.y, len=Math.sqrt(dx*dx+dy*dy);
+      var ox = hasBoth ? -dy/len*6 : 0, oy = hasBoth ? dx/len*6 : 0;
+
+      drawArrow(pu.x+ox, pu.y+oy, pv.x+ox, pv.y+oy, edgeColor, lw, false, NR+2);
+
+      // draw reverse residual if flow > 0
+      if (flow > 0) {
+        var revColor = (fr.phaseLabel==='done') ? 'rgba(255,123,114,0.3)' : 'rgba(255,123,114,0.22)';
+        drawArrow(pv.x-ox, pv.y-oy, pu.x-ox, pu.y-oy, revColor, 1, true, NR+2);
+      }
+
+      // edge label: flow/cap
+      var mx=(pu.x+pv.x)/2 + (hasBoth?-dy/len*18:0) - dy/len*14;
+      var my=(pu.y+pv.y)/2 + (hasBoth? dx/len*18:0) + dx/len*14;
+      ctx.font='700 11px -apple-system,sans-serif';
+      var labelColor = inPath ? (isBottle&&fr.phaseLabel==='bottle'?P.gold:P.green) : (flow>0?P.blue:P.muted);
+      ctx.fillStyle='rgba(13,17,23,0.85)';
+      var lw2=flow>9?24:20;
+      ctx.fillRect(mx-lw2/2, my-8, lw2, 14);
+      ctx.fillStyle=labelColor;
+      ctx.textAlign='center'; ctx.fillText(flow+'/'+cap, mx, my+3); ctx.textAlign='left';
+    });
+
+    // draw nodes
+    gd.nodes.forEach(function(nd, i) {
+      var p = nodePos(gd, i);
+      var inPath = fr.pathNodes.indexOf(i) >= 0;
+      var isS = (i===0), isT = (i===N-1);
+
+      var fillColor = P.panel;
+      var strokeColor = P.border;
+      var glowColor = null;
+
+      if (fr.phaseLabel==='done') {
+        fillColor = isS ? 'rgba(88,166,255,0.2)' : isT ? 'rgba(126,231,135,0.2)' : P.panel;
+        strokeColor = isS ? P.blue : isT ? P.green : P.border;
+      } else if (inPath) {
+        if (fr.phaseLabel==='augmented') {
+          fillColor = 'rgba(126,231,135,0.18)'; strokeColor=P.green; glowColor=P.green;
+        } else {
+          fillColor = 'rgba(88,166,255,0.15)'; strokeColor=P.blue; glowColor=P.blue;
+        }
+      }
+
+      if (glowColor) {
+        ctx.save(); ctx.shadowColor=glowColor; ctx.shadowBlur=16;
+        ctx.beginPath(); ctx.arc(p.x,p.y,NR,0,2*Math.PI);
+        ctx.fillStyle='transparent'; ctx.fill(); ctx.restore();
+      }
+
+      ctx.beginPath(); ctx.arc(p.x,p.y,NR,0,2*Math.PI);
+      ctx.fillStyle=fillColor; ctx.fill();
+      ctx.strokeStyle=strokeColor; ctx.lineWidth=(isS||isT)?2.5:1.8; ctx.stroke();
+
+      ctx.font='700 13px -apple-system,sans-serif';
+      ctx.fillStyle=(inPath&&fr.phaseLabel!=='done') ? strokeColor : (isS?P.blue:isT?P.green:P.text);
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(nd.label, p.x, p.y);
+      ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+    });
+
+    // status bar
+    var sbY = H-24;
+    ctx.fillStyle='rgba(9,17,26,0.92)'; ctx.fillRect(0,sbY-6,W,34);
+    ctx.font='600 12px -apple-system,sans-serif';
+    var sc = fr.phaseLabel==='done' ? P.green :
+             fr.phaseLabel==='augmented' ? P.green :
+             fr.phaseLabel==='bottle' ? P.gold :
+             fr.phaseLabel==='found' ? P.blue : P.muted;
+    ctx.fillStyle=sc; ctx.textAlign='center'; ctx.fillText(fr.status, W/2, sbY+11); ctx.textAlign='left';
+    ctx.font='10px -apple-system,sans-serif'; ctx.fillStyle='rgba(139,148,158,0.4)';
+    ctx.textAlign='right'; ctx.fillText('frame '+(fi+1)+'/'+frames.length, W-12, sbY+11); ctx.textAlign='left';
+
+    updateDom(fr);
+  }
+
+  function updateDom(fr) {
+    fr = fr || frames[Math.max(0,Math.min(frameIdx,frames.length-1))] || {};
+    document.getElementById('s-flow').textContent   = fr.totalFlow != null ? fr.totalFlow : 0;
+    document.getElementById('s-iter').textContent   = fr.augIter   != null ? fr.augIter   : 0;
+    document.getElementById('s-bottle').textContent = (fr.bottleneck != null && fr.bottleneck >= 0) ? fr.bottleneck : '—';
+    document.getElementById('s-path').textContent   = fr.pathNodes && fr.pathNodes.length ? fr.pathNodes.length : '—';
+    var st = fr.status || 'Ready';
+    document.getElementById('s-status').textContent = st.length>22 ? st.substring(0,22)+'…' : st;
+
+    var ll = document.getElementById('log-list');
+    ll.innerHTML = augLog.map(function(op,i){
+      var cls = (fr.logIdx != null && i===fr.logIdx) ? 'log-item active' : 'log-item';
+      return '<div class="'+cls+'">'+op.text+'</div>';
+    }).join('');
+    var active = ll.querySelector('.active');
+    if (active) active.scrollIntoView({block:'nearest'});
+  }
+
+  // ── playback ──────────────────────────────────────────────────────────────
+  function play() {
+    if (!frames.length) return;
+    document.getElementById('play-btn').disabled=true;
+    document.getElementById('pause-btn').disabled=false;
+    timer = setInterval(function(){
+      if (frameIdx >= frames.length-1) { stopPlay(); return; }
+      frameIdx++; drawFrame();
+    }, speed);
+  }
+  function stopPlay() {
+    if (timer) { clearInterval(timer); timer=null; }
+    document.getElementById('play-btn').disabled=false;
+    document.getElementById('pause-btn').disabled=true;
+  }
+
+  // ── init & event handlers ─────────────────────────────────────────────────
+  function rebuild() {
+    stopPlay();
+    graphIdx = parseInt(document.getElementById('graph-sel').value, 10);
+    method   = document.getElementById('method-sel').value;
+    computeFrames(graphIdx, method);
+    frameIdx = 0;
+    drawFrame();
+  }
+
+  document.getElementById('graph-sel').addEventListener('change', rebuild);
+  document.getElementById('method-sel').addEventListener('change', rebuild);
+
+  document.getElementById('play-btn').addEventListener('click', function(){
+    if (frameIdx >= frames.length-1) frameIdx=0;
+    play();
+  });
+  document.getElementById('pause-btn').addEventListener('click', stopPlay);
+  document.getElementById('step-btn').addEventListener('click', function(){
+    stopPlay();
+    if (frameIdx < frames.length-1) { frameIdx++; drawFrame(); }
+  });
+  document.getElementById('reset-btn').addEventListener('click', function(){
+    stopPlay(); frameIdx=0; drawFrame();
+  });
+
+  document.getElementById('spd-in').addEventListener('input', function(){
+    speed = parseInt(this.value, 10);
+    document.getElementById('spd-lbl').textContent = speed;
+    if (timer) { stopPlay(); play(); }
+  });
+
+  // keyboard
+  document.addEventListener('keydown', function(e){
+    if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); if(frameIdx<frames.length-1){frameIdx++;drawFrame();} }
+    if (e.key==='ArrowLeft')  { e.preventDefault(); if(frameIdx>0){frameIdx--;drawFrame();} }
+    if (e.key==='r'||e.key==='R') { stopPlay(); frameIdx=0; drawFrame(); }
+    if (e.key==='p'||e.key==='P') { if(timer)stopPlay(); else{ if(frameIdx>=frames.length-1)frameIdx=0; play(); } }
+  });
+
+  // start
+  rebuild();
+})();
+</script>
+</body>
+</html>

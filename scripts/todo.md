@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- ford-fulkerson — Ford-Fulkerson Max Flow (augmenting paths, residual graph, BFS/DFS) ✅ 2026-03-29
 - b-tree — B-Tree（多分岐木、DBインデックス）✅ 2026-03-29
 - lz77 — LZ77 Compression (sliding window, back-reference tokens) ✅ 2026-03-29
 - red-black-tree — Red-Black Tree (insert/delete recolor and rotation replay) ✅ 2026-03-29
