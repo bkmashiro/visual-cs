@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aho-Corasick — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --panel: #111720;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --green: #7ee787;
+  --warn: #f78166;
+  --gold: #e3b341;
+  --violet: #a371f7;
+  --red: #ff7b72;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+header .title-group { display: flex; flex-direction: column; gap: 2px; }
+header h1 { font-size: 1.05rem; font-weight: 700; }
+header .subtitle { font-size: 0.72rem; color: var(--muted); }
+.toolbar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toolbar-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field-group label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.field-group input[type="text"] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 200px;
+}
+.field-group input[type="text"]:focus { border-color: var(--accent); }
+.patterns-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pattern-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pattern-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.pattern-item input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 110px;
+}
+.pattern-item input:focus { border-color: var(--accent); }
+.pattern-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.btn-icon {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0;
+}
+.btn-icon:hover { color: var(--warn); border-color: var(--warn); }
+.btn-add {
+  font-size: 0.7rem;
+  color: var(--accent);
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-add:hover { border-color: var(--accent); }
+.ctrls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+button.btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+button.btn:hover { border-color: var(--accent); color: var(--accent); }
+button.btn.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; }
+button.btn.primary:hover { background: #79b8ff; }
+button.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.speed-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.speed-group label { font-size: 0.7rem; color: var(--muted); }
+input[type="range"] { accent-color: var(--accent); width: 90px; cursor: pointer; }
+.stats-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 20px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.stat-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+.content {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  flex: 1;
+  min-height: 0;
+}
+.canvas-section {
+  padding: 16px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.canvas-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  flex: 1;
+  min-height: 420px;
+  position: relative;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.text-display {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.text-display-label {
+  font-size: 0.63rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.text-chars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.char-cell {
+  width: 30px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  position: relative;
+}
+.char-cell .char-idx {
+  font-size: 0.42rem;
+  color: var(--muted);
+  font-weight: 400;
+  position: absolute;
+  bottom: 2px;
+  font-family: sans-serif;
+}
+.char-cell.active {
+  background: rgba(88,166,255,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 8px rgba(88,166,255,0.25);
+}
+.char-cell.matched {
+  background: rgba(126,231,135,0.15);
+  border-color: var(--green);
+  color: var(--green);
+}
+.char-cell.scanned {
+  background: rgba(88,166,255,0.06);
+  border-color: rgba(88,166,255,0.3);
+  color: var(--muted);
+}
+.legend-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.swatch.line {
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+}
+.swatch.dashed {
+  width: 18px;
+  height: 0;
+  border-top: 2px dashed var(--violet);
+  background: none;
+}
+.sidebar {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.panel-title {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.log-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.log-box::-webkit-scrollbar { width: 3px; }
+.log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.log-entry {
+  font-size: 0.68rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  color: var(--muted);
+  line-height: 1.45;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+.log-entry.phase { color: var(--accent); font-weight: 700; border-top: 1px solid var(--border); margin-top: 2px; padding-top: 4px; }
+.log-entry.fail { color: var(--violet); }
+.log-entry.match { color: var(--green); font-weight: 700; }
+.log-entry.output { color: var(--gold); }
+.log-entry.info { color: var(--muted); }
+.matches-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+.match-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 24px;
+  margin-top: 4px;
+}
+.match-badge {
+  background: rgba(126,231,135,0.12);
+  border: 1px solid var(--green);
+  color: var(--green);
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: monospace;
+  animation: badge-pop 0.3s ease;
+}
+@keyframes badge-pop {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+.explain {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 20px 24px;
+}
+.explain h2 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.explain-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.explain-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+.explain-card h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.explain-card p {
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.explain-card code {
+  background: var(--surface);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+  color: var(--gold);
+  font-size: 0.72rem;
+}
+@media (max-width: 900px) {
+  .content { grid-template-columns: 1fr; }
+  .sidebar { border-top: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <div class="title-group">
+    <h1>🔍 Aho-Corasick</h1>
+    <span class="subtitle">Multi-Pattern String Matching · Trie + Failure Links</span>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-row">
+    <div class="field-group">
+      <label>Patterns</label>
+      <div class="patterns-wrapper">
+        <div class="pattern-list" id="patternList"></div>
+        <button class="btn-add" id="btnAddPattern">+ Add Pattern</button>
+      </div>
+    </div>
+    <div class="field-group" style="flex:1; min-width:200px;">
+      <label>Search Text</label>
+      <input type="text" id="textInput" value="ushers" maxlength="80" spellcheck="false">
+    </div>
+    <div class="field-group">
+      <label>&nbsp;</label>
+      <button class="btn primary" id="btnBuild">Build &amp; Search</button>
+    </div>
+  </div>
+  <div class="ctrls">
+    <button class="btn" id="btnPlay" disabled>▶ Play</button>
+    <button class="btn" id="btnPause" disabled>⏸ Pause</button>
+    <button class="btn" id="btnStep" disabled>⏭ Step</button>
+    <button class="btn" id="btnReset" disabled>↺ Reset</button>
+    <div class="speed-group">
+      <label>Speed</label>
+      <input type="range" id="speedSlider" min="1" max="10" value="6">
+      <span id="speedLabel" style="font-size:0.7rem;color:var(--muted);width:42px;text-align:right">600ms</span>
+    </div>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-value" id="statPatterns">0</div><div class="stat-label">Patterns</div></div>
+  <div class="stat"><div class="stat-value" id="statNodes">0</div><div class="stat-label">Trie Nodes</div></div>
+  <div class="stat"><div class="stat-value" id="statPos">—</div><div class="stat-label">Position</div></div>
+  <div class="stat"><div class="stat-value" id="statMatches">0</div><div class="stat-label">Matches</div></div>
+</div>
+
+<div class="content">
+  <div class="canvas-section">
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="text-display">
+      <div class="text-display-label">Search Text</div>
+      <div class="text-chars" id="textChars"></div>
+    </div>
+    <div class="legend-bar">
+      <div class="legend-item"><div class="swatch" style="background:var(--accent)"></div>Trie node</div>
+      <div class="legend-item"><div class="swatch" style="background:var(--green)"></div>Output (match) node</div>
+      <div class="legend-item"><div class="swatch" style="background:var(--gold)"></div>Active node</div>
+      <div class="legend-item"><div class="swatch line" style="background:var(--accent)"></div>Trie edge</div>
+      <div class="legend-item"><div class="swatch dashed"></div>Failure link</div>
+      <div class="legend-item"><div class="swatch line" style="background:var(--gold)"></div>Output link</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="matches-panel">
+      <div class="panel-title">Matches Found</div>
+      <div class="match-list" id="matchList"><span style="font-size:0.7rem;color:var(--muted)">None yet</span></div>
+    </div>
+    <div>
+      <div class="panel-title">Step Log</div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+</div>
+
+<div class="explain">
+  <h2>How Aho-Corasick Works</h2>
+  <div class="explain-grid">
+    <div class="explain-card">
+      <h3>1. Build the Trie</h3>
+      <p>Insert all patterns into a trie (prefix tree). Each node represents a prefix of one or more patterns. Nodes that terminate a pattern are marked as output nodes.</p>
+    </div>
+    <div class="explain-card">
+      <h3>2. Compute Failure Links</h3>
+      <p>Using BFS, compute a <code>fail</code> link for each node: the longest proper suffix of the node's string that is also a prefix in the trie. The root's children all fail to root.</p>
+    </div>
+    <div class="explain-card">
+      <h3>3. Compute Output Links</h3>
+      <p>Also via BFS, compute <code>output</code> links (dictionary links): if a node's fail target has output, we chain that output here. This lets us find all overlapping matches at a position in O(matches) time.</p>
+    </div>
+    <div class="explain-card">
+      <h3>4. Search</h3>
+      <p>Scan the text left-to-right. At each character, follow trie edges. If no edge exists, follow failure links until we find one (or reach root). Any time we're at or pass through an output node, report a match. Total time: <code>O(n + m + z)</code> where z = match count.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Pattern colors ───────────────────────────────────────────────────────────
+const PATTERN_COLORS = ['#58a6ff','#7ee787','#e3b341','#a371f7','#f78166','#79c0ff','#56d364'];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let patterns = ['he','she','his','hers'];
+let searchText = 'ushers';
+let ac = null;          // built automaton
+let steps = [];         // animation steps
+let stepIdx = 0;
+let playing = false;
+let playTimer = null;
+let matchCount = 0;
+let builtOnce = false;
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const canvas      = document.getElementById('canvas');
+const ctx         = canvas.getContext('2d');
+const logBox      = document.getElementById('logBox');
+const matchList   = document.getElementById('matchList');
+const textChars   = document.getElementById('textChars');
+const statPatterns = document.getElementById('statPatterns');
+const statNodes   = document.getElementById('statNodes');
+const statPos     = document.getElementById('statPos');
+const statMatches = document.getElementById('statMatches');
+const speedSlider = document.getElementById('speedSlider');
+const speedLabel  = document.getElementById('speedLabel');
+const btnPlay     = document.getElementById('btnPlay');
+const btnPause    = document.getElementById('btnPause');
+const btnStep     = document.getElementById('btnStep');
+const btnReset    = document.getElementById('btnReset');
+const btnBuild    = document.getElementById('btnBuild');
+
+// ─── Speed ────────────────────────────────────────────────────────────────────
+function getDelay() {
+  const v = parseInt(speedSlider.value);
+  // map 1..10 → 2000..100 ms
+  return Math.round(2000 - (v - 1) * (1900 / 9));
+}
+speedSlider.addEventListener('input', () => {
+  speedLabel.textContent = getDelay() + 'ms';
+});
+speedLabel.textContent = getDelay() + 'ms';
+
+// ─── Pattern list UI ─────────────────────────────────────────────────────────
+function renderPatternList() {
+  const list = document.getElementById('patternList');
+  list.innerHTML = '';
+  patterns.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'pattern-item';
+    const dot = document.createElement('div');
+    dot.className = 'pattern-dot';
+    dot.style.background = PATTERN_COLORS[i % PATTERN_COLORS.length];
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = p;
+    inp.maxLength = 20;
+    inp.spellcheck = false;
+    inp.style.borderColor = PATTERN_COLORS[i % PATTERN_COLORS.length] + '55';
+    inp.addEventListener('change', () => { patterns[i] = inp.value.trim(); });
+    inp.addEventListener('input', () => { patterns[i] = inp.value; });
+    const del = document.createElement('button');
+    del.className = 'btn-icon';
+    del.textContent = '×';
+    del.title = 'Remove';
+    del.addEventListener('click', () => {
+      patterns.splice(i, 1);
+      renderPatternList();
+    });
+    row.appendChild(dot);
+    row.appendChild(inp);
+    if (patterns.length > 1) row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('btnAddPattern').addEventListener('click', () => {
+  if (patterns.length < 7) {
+    patterns.push('');
+    renderPatternList();
+    // focus last input
+    const inputs = document.querySelectorAll('#patternList input');
+    inputs[inputs.length - 1].focus();
+  }
+});
+
+document.getElementById('textInput').addEventListener('change', e => {
+  searchText = e.target.value;
+});
+document.getElementById('textInput').addEventListener('input', e => {
+  searchText = e.target.value;
+});
+
+// ─── Aho-Corasick implementation ─────────────────────────────────────────────
+function buildAC(pats) {
+  // Nodes: { children: {}, fail: 0, output: [], outLink: -1, id, depth, char, parent }
+  const nodes = [{ children: {}, fail: 0, output: [], outLink: -1, id: 0, depth: 0, char: '', parent: -1 }];
+  const buildSteps = [];
+
+  // 1. Insert patterns
+  for (let pi = 0; pi < pats.length; pi++) {
+    const pat = pats[pi];
+    if (!pat) continue;
+    let cur = 0;
+    for (let ci = 0; ci < pat.length; ci++) {
+      const ch = pat[ci];
+      if (!(ch in nodes[cur].children)) {
+        const nid = nodes.length;
+        nodes.push({ children: {}, fail: 0, output: [], outLink: -1, id: nid, depth: nodes[cur].depth + 1, char: ch, parent: cur });
+        nodes[cur].children[ch] = nid;
+        buildSteps.push({ type: 'insert', node: nid, parent: cur, char: ch, pattern: pat, patIdx: pi });
+      }
+      cur = nodes[cur].children[ch];
+    }
+    nodes[cur].output.push(pi);
+    buildSteps.push({ type: 'mark_output', node: cur, patIdx: pi, pattern: pat });
+  }
+
+  // 2. BFS failure links
+  const queue = [];
+  for (const ch in nodes[0].children) {
+    const child = nodes[0].children[ch];
+    nodes[child].fail = 0;
+    queue.push(child);
+    buildSteps.push({ type: 'fail_link', node: child, fail: 0 });
+  }
+  let qi = 0;
+  while (qi < queue.length) {
+    const u = queue[qi++];
+    // compute outLink
+    const fOfU = nodes[u].fail;
+    if (nodes[fOfU].output.length > 0) {
+      nodes[u].outLink = fOfU;
+    } else {
+      nodes[u].outLink = nodes[fOfU].outLink;
+    }
+    for (const ch in nodes[u].children) {
+      const v = nodes[u].children[ch];
+      let f = nodes[u].fail;
+      while (f !== 0 && !(ch in nodes[f].children)) f = nodes[f].fail;
+      if (ch in nodes[f].children && nodes[f].children[ch] !== v) {
+        nodes[v].fail = nodes[f].children[ch];
+      } else {
+        nodes[v].fail = 0;
+      }
+      queue.push(v);
+      buildSteps.push({ type: 'fail_link', node: v, fail: nodes[v].fail });
+    }
+  }
+
+  return { nodes, buildSteps };
+}
+
+function acSearch(nodes, text) {
+  const searchSteps = [];
+  let cur = 0;
+  const matchedRanges = []; // {start, end, patIdx}
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    searchSteps.push({ type: 'char', pos: i, char: ch, node: cur });
+
+    // follow fail links until we find a transition or reach root
+    let failHops = [];
+    while (cur !== 0 && !(ch in nodes[cur].children)) {
+      const prev = cur;
+      cur = nodes[cur].fail;
+      failHops.push({ from: prev, to: cur });
+    }
+    if (failHops.length > 0) {
+      searchSteps.push({ type: 'follow_fail', pos: i, char: ch, hops: failHops, node: cur });
+    }
+
+    // follow edge if possible
+    if (ch in nodes[cur].children) {
+      cur = nodes[cur].children[ch];
+      searchSteps.push({ type: 'follow_edge', pos: i, char: ch, node: cur });
+    }
+    // else stay at root
+
+    // check output at this node + outLink chain
+    let checkNode = cur;
+    while (checkNode > 0) {
+      if (nodes[checkNode].output.length > 0) {
+        for (const pi of nodes[checkNode].output) {
+          // We need pattern length; we'll store it in nodes
+          searchSteps.push({ type: 'match', pos: i, node: checkNode, patIdx: pi, matchEnd: i });
+          matchedRanges.push({ end: i, node: checkNode, patIdx: pi });
+        }
+      }
+      if (nodes[checkNode].outLink !== -1) {
+        checkNode = nodes[checkNode].outLink;
+        searchSteps.push({ type: 'follow_outlink', pos: i, node: checkNode });
+      } else {
+        break;
+      }
+    }
+  }
+  return { searchSteps, matchedRanges };
+}
+
+// ─── Layout calculation ───────────────────────────────────────────────────────
+function layoutNodes(nodes) {
+  // Compute positions using BFS level layout
+  const W = canvas.offsetWidth || 700;
+  const H = canvas.offsetHeight || 420;
+  const RADIUS = 22;
+  const V_GAP = 68;
+
+  // Group by depth
+  const depths = {};
+  let maxDepth = 0;
+  for (const n of nodes) {
+    if (!depths[n.depth]) depths[n.depth] = [];
+    depths[n.depth].push(n.id);
+    if (n.depth > maxDepth) maxDepth = n.depth;
+  }
+
+  // For each level, compute x positions using subtree widths
+  const pos = new Array(nodes.length);
+
+  // Compute subtree leaf count for spacing
+  function subtreeWidth(id) {
+    const n = nodes[id];
+    const children = Object.values(n.children);
+    if (children.length === 0) return 1;
+    return children.reduce((s, c) => s + subtreeWidth(c), 0);
+  }
+
+  function assign(id, left, right) {
+    const n = nodes[id];
+    const x = (left + right) / 2;
+    const y = 30 + n.depth * V_GAP;
+    pos[id] = { x, y };
+    const children = Object.values(n.children);
+    if (children.length === 0) return;
+    const totalW = right - left;
+    const widths = children.map(c => subtreeWidth(c));
+    const totalLeaves = widths.reduce((a, b) => a + b, 0);
+    let cx = left;
+    for (let i = 0; i < children.length; i++) {
+      const cw = (widths[i] / totalLeaves) * totalW;
+      assign(children[i], cx, cx + cw);
+      cx += cw;
+    }
+  }
+
+  const margin = 40;
+  assign(0, margin, W - margin);
+
+  return { pos, RADIUS };
+}
+
+// ─── Canvas drawing ───────────────────────────────────────────────────────────
+let layout = null;
+let renderState = {
+  builtNodes: new Set(),    // node ids drawn so far
+  failLinks: [],            // {from, to} drawn
+  activeNode: -1,
+  highlightNodes: new Set(),// match highlights
+  followingFail: false,
+  followingEdge: null,      // {from, to}
+  matchedPositions: new Set(),
+  nodePatterns: {},         // nodeId -> [patIdx] for coloring
+};
+
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  if (ac) {
+    layout = layoutNodes(ac.nodes);
+    draw();
+  }
+}
+
+function draw() {
+  if (!ac || !layout) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+  const { nodes } = ac;
+  const { pos, RADIUS } = layout;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw failure links (curved dashed, violet)
+  ctx.save();
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = '#a371f7';
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.6;
+  for (const { from, to } of renderState.failLinks) {
+    if (!pos[from] || !pos[to] || from === to || to === 0) continue;
+    drawCurvedArrow(ctx, pos[from], pos[to], RADIUS, '#a371f7', false, 0.5);
+  }
+  // fail-to-root links (subtle)
+  for (const { from } of renderState.failLinks) {
+    const n = nodes[from];
+    if (n && n.fail === 0 && from !== 0 && pos[from] && pos[0]) {
+      // small arc to root
+      ctx.globalAlpha = 0.25;
+      drawCurvedArrow(ctx, pos[from], pos[0], RADIUS, '#a371f7', true, 0.3);
+      ctx.globalAlpha = 0.6;
+    }
+  }
+  ctx.restore();
+
+  // Draw output links (gold)
+  ctx.save();
+  ctx.setLineDash([3, 5]);
+  ctx.strokeStyle = '#e3b341';
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.5;
+  for (const nd of nodes) {
+    if (!renderState.builtNodes.has(nd.id)) continue;
+    if (nd.outLink !== -1 && pos[nd.id] && pos[nd.outLink]) {
+      drawCurvedArrow(ctx, pos[nd.id], pos[nd.outLink], RADIUS, '#e3b341', false, 0.6);
+    }
+  }
+  ctx.restore();
+
+  // Draw trie edges
+  for (const nd of nodes) {
+    if (!renderState.builtNodes.has(nd.id)) continue;
+    for (const [ch, child] of Object.entries(nd.children)) {
+      if (!renderState.builtNodes.has(child)) continue;
+      const p1 = pos[nd.id], p2 = pos[child];
+      if (!p1 || !p2) continue;
+      ctx.save();
+      ctx.strokeStyle = '#30363d';
+      ctx.lineWidth = 2;
+      // highlight edge if following
+      if (renderState.followingEdge &&
+          renderState.followingEdge.from === nd.id &&
+          renderState.followingEdge.to === child) {
+        ctx.strokeStyle = '#58a6ff';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#58a6ff';
+        ctx.shadowBlur = 8;
+      }
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+      ctx.restore();
+      // Edge label
+      const mx = (p1.x + p2.x) / 2;
+      const my = (p1.y + p2.y) / 2;
+      ctx.save();
+      ctx.font = 'bold 11px monospace';
+      ctx.fillStyle = '#8b949e';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // offset label slightly to the side
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.sqrt(dx*dx+dy*dy) || 1;
+      const ox = -dy/len * 9, oy = dx/len * 9;
+      ctx.fillText(ch, mx + ox, my + oy);
+      ctx.restore();
+    }
+  }
+
+  // Draw nodes
+  for (const nd of nodes) {
+    if (!renderState.builtNodes.has(nd.id)) continue;
+    const p = pos[nd.id];
+    if (!p) continue;
+
+    const isActive = renderState.activeNode === nd.id;
+    const isMatch = renderState.highlightNodes.has(nd.id);
+    const hasOutput = nd.output.length > 0;
+
+    ctx.save();
+
+    // Glow for active
+    if (isActive) {
+      ctx.shadowColor = '#e3b341';
+      ctx.shadowBlur = 18;
+    } else if (isMatch) {
+      ctx.shadowColor = '#7ee787';
+      ctx.shadowBlur = 14;
+    }
+
+    // Fill
+    let fillColor = '#1c2128';
+    if (isActive) fillColor = 'rgba(227,179,65,0.2)';
+    else if (isMatch) fillColor = 'rgba(126,231,135,0.15)';
+    else if (hasOutput) fillColor = 'rgba(88,166,255,0.08)';
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+
+    // Border
+    let strokeColor = '#30363d';
+    let lineW = 1.5;
+    if (isActive) { strokeColor = '#e3b341'; lineW = 2.5; }
+    else if (isMatch) { strokeColor = '#7ee787'; lineW = 2.5; }
+    else if (hasOutput) { strokeColor = '#58a6ff'; lineW = 2; }
+
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = lineW;
+    ctx.stroke();
+
+    // If output node, double ring
+    if (hasOutput && !isActive && !isMatch) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, RADIUS - 4, 0, Math.PI * 2);
+      ctx.strokeStyle = '#58a6ff44';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Pattern color dots for output nodes
+    if (hasOutput) {
+      const pats = nd.output;
+      const dotR = 3;
+      const startAngle = -Math.PI / 2;
+      pats.forEach((pi, i) => {
+        const angle = startAngle + (i - (pats.length - 1) / 2) * 0.45;
+        const dx2 = Math.cos(angle) * (RADIUS - 5);
+        const dy2 = Math.sin(angle) * (RADIUS - 5);
+        ctx.beginPath();
+        ctx.arc(p.x + dx2, p.y + dy2, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = PATTERN_COLORS[pi % PATTERN_COLORS.length];
+        ctx.fill();
+      });
+    }
+
+    // Node ID label
+    ctx.font = `${nd.id === 0 ? 'bold' : ''} 11px monospace`;
+    ctx.fillStyle = isActive ? '#e3b341' : isMatch ? '#7ee787' : '#e6edf3';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(nd.id === 0 ? 'root' : String(nd.id), p.x, p.y);
+
+    ctx.restore();
+  }
+}
+
+function drawCurvedArrow(ctx2, p1, p2, R, color, wide, alpha) {
+  ctx2.save();
+  ctx2.globalAlpha = alpha || 0.6;
+  ctx2.strokeStyle = color;
+  // control point
+  const mx = (p1.x + p2.x) / 2;
+  const my = (p1.y + p2.y) / 2;
+  const dx = p2.x - p1.x, dy = p2.y - p1.y;
+  const len = Math.sqrt(dx*dx+dy*dy) || 1;
+  const offset = wide ? 50 : 30;
+  const cx2 = mx - dy/len * offset;
+  const cy2 = my + dx/len * offset;
+
+  // Adjust start/end to be on circle edge
+  const angle1 = Math.atan2(cy2 - p1.y, cx2 - p1.x);
+  const angle2 = Math.atan2(p2.y - cy2, p2.x - cx2);
+  const sx = p1.x + Math.cos(angle1) * R;
+  const sy = p1.y + Math.sin(angle1) * R;
+  const ex = p2.x - Math.cos(angle2) * R;
+  const ey = p2.y - Math.sin(angle2) * R;
+
+  ctx2.beginPath();
+  ctx2.moveTo(sx, sy);
+  ctx2.quadraticCurveTo(cx2, cy2, ex, ey);
+  ctx2.stroke();
+
+  // Arrow head
+  const headLen = 7;
+  const headAngle = Math.atan2(ey - cy2, ex - cx2);
+  ctx2.setLineDash([]);
+  ctx2.beginPath();
+  ctx2.moveTo(ex, ey);
+  ctx2.lineTo(ex - headLen * Math.cos(headAngle - 0.4), ey - headLen * Math.sin(headAngle - 0.4));
+  ctx2.moveTo(ex, ey);
+  ctx2.lineTo(ex - headLen * Math.cos(headAngle + 0.4), ey - headLen * Math.sin(headAngle + 0.4));
+  ctx2.stroke();
+  ctx2.restore();
+}
+
+// ─── Text display ─────────────────────────────────────────────────────────────
+function renderTextChars(text, activePos, matchedPositions) {
+  textChars.innerHTML = '';
+  for (let i = 0; i < text.length; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'char-cell';
+    if (i === activePos) cell.classList.add('active');
+    else if (matchedPositions && matchedPositions.has(i)) cell.classList.add('matched');
+    else if (activePos >= 0 && i < activePos) cell.classList.add('scanned');
+    const charSpan = document.createElement('span');
+    charSpan.textContent = text[i];
+    const idxSpan = document.createElement('span');
+    idxSpan.className = 'char-idx';
+    idxSpan.textContent = i;
+    cell.appendChild(charSpan);
+    cell.appendChild(idxSpan);
+    textChars.appendChild(cell);
+  }
+}
+
+// ─── Log ──────────────────────────────────────────────────────────────────────
+function log(msg, cls = 'info') {
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + cls;
+  el.textContent = msg;
+  logBox.appendChild(el);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+function clearLog() { logBox.innerHTML = ''; }
+
+// ─── Build & generate steps ───────────────────────────────────────────────────
+function buildAndPrepare() {
+  stopPlay();
+  clearLog();
+  matchList.innerHTML = '';
+  matchCount = 0;
+  statMatches.textContent = '0';
+
+  // Get current patterns from inputs
+  const inputs = document.querySelectorAll('#patternList input');
+  patterns = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+  searchText = document.getElementById('textInput').value;
+
+  if (!patterns.length) { log('Add at least one pattern.', 'info'); return; }
+  if (!searchText) { log('Enter search text.', 'info'); return; }
+
+  renderPatternList();
+
+  // Build AC
+  ac = buildAC(patterns);
+
+  // Store pattern lengths in nodes (needed for match start)
+  for (let pi = 0; pi < patterns.length; pi++) {
+    // mark length in output at terminal nodes — we track via patIdx
+  }
+
+  layout = layoutNodes(ac.nodes);
+
+  statPatterns.textContent = patterns.length;
+  statNodes.textContent = ac.nodes.length;
+  statPos.textContent = '—';
+
+  // Reset render state
+  renderState = {
+    builtNodes: new Set([0]),
+    failLinks: [],
+    activeNode: -1,
+    highlightNodes: new Set(),
+    followingFail: false,
+    followingEdge: null,
+    matchedPositions: new Set(),
+    nodePatterns: {},
+  };
+
+  // Generate all steps
+  steps = [];
+
+  // Build phase steps
+  steps.push({ phase: 'build', type: 'phase_label', msg: '── Build Phase: Inserting Patterns ──' });
+  for (const s of ac.buildSteps) {
+    steps.push({ phase: 'build', ...s });
+  }
+  steps.push({ phase: 'build', type: 'phase_label', msg: '── Build Phase: Computing Failure Links ──' });
+  // Re-add fail link steps from buildSteps that are type fail_link
+  // They're already in ac.buildSteps, we just need to re-fire them visually
+  // Actually we separate them above, let's add a BFS phase separator
+  steps.push({ phase: 'search', type: 'phase_label', msg: '── Search Phase ──' });
+
+  // Search steps
+  const { searchSteps } = acSearch(ac.nodes, searchText);
+  for (const s of searchSteps) {
+    steps.push({ phase: 'search', ...s });
+  }
+
+  stepIdx = 0;
+  builtOnce = true;
+
+  // Enable controls
+  btnPlay.disabled = false;
+  btnStep.disabled = false;
+  btnReset.disabled = false;
+  btnPause.disabled = true;
+
+  renderTextChars(searchText, -1, new Set());
+  draw();
+  log('Built trie with ' + ac.nodes.length + ' nodes for ' + patterns.length + ' pattern(s).', 'phase');
+  log('Ready — press Play or Step.', 'info');
+}
+
+// ─── Step execution ───────────────────────────────────────────────────────────
+function executeStep(s) {
+  if (!s) return;
+
+  switch (s.type) {
+    case 'phase_label':
+      log(s.msg, 'phase');
+      break;
+
+    case 'insert':
+      renderState.builtNodes.add(s.node);
+      log(`  insert node ${s.node} ← '${s.char}' (pattern "${patterns[s.patIdx]}")`, 'info');
+      break;
+
+    case 'mark_output':
+      renderState.highlightNodes.add(s.node);
+      if (!renderState.nodePatterns[s.node]) renderState.nodePatterns[s.node] = [];
+      renderState.nodePatterns[s.node].push(s.patIdx);
+      log(`  node ${s.node} outputs pattern "${patterns[s.patIdx]}"`, 'output');
+      setTimeout(() => { renderState.highlightNodes.delete(s.node); draw(); }, 400);
+      break;
+
+    case 'fail_link': {
+      const existing = renderState.failLinks.find(f => f.from === s.node);
+      if (!existing) renderState.failLinks.push({ from: s.node, to: s.fail });
+      if (s.fail !== 0) {
+        log(`  fail[${s.node}] → ${s.fail}`, 'fail');
+      } else {
+        log(`  fail[${s.node}] → root`, 'fail');
+      }
+      break;
+    }
+
+    case 'char':
+      renderState.activeNode = s.node;
+      renderState.followingEdge = null;
+      statPos.textContent = s.pos;
+      log(`pos ${s.pos}: char '${s.char}', at node ${s.node}`, 'info');
+      renderTextChars(searchText, s.pos, renderState.matchedPositions);
+      break;
+
+    case 'follow_fail':
+      for (const hop of s.hops) {
+        log(`  pos ${s.pos}: no '${s.char}' edge at node ${hop.from} → follow fail → node ${hop.to}`, 'fail');
+      }
+      renderState.activeNode = s.node;
+      renderState.followingEdge = null;
+      break;
+
+    case 'follow_edge':
+      renderState.followingEdge = { from: renderState.activeNode !== s.node ? renderState.activeNode : ac.nodes[s.node].parent, to: s.node };
+      renderState.activeNode = s.node;
+      log(`  pos ${s.pos}: follow '${s.char}' → node ${s.node}`, 'info');
+      break;
+
+    case 'match': {
+      const pat = patterns[s.patIdx];
+      const start = s.matchEnd - pat.length + 1;
+      renderState.highlightNodes.add(s.node);
+      // mark matched positions
+      for (let i = start; i <= s.matchEnd; i++) renderState.matchedPositions.add(i);
+      matchCount++;
+      statMatches.textContent = matchCount;
+      log(`  MATCH: "${pat}" ends at pos ${s.matchEnd} (start ${start})`, 'match');
+      // add badge
+      const badge = document.createElement('div');
+      badge.className = 'match-badge';
+      badge.textContent = `"${pat}" @${start}`;
+      if (matchList.querySelector('span')) matchList.innerHTML = '';
+      matchList.appendChild(badge);
+      renderTextChars(searchText, parseInt(statPos.textContent) || 0, renderState.matchedPositions);
+      setTimeout(() => { renderState.highlightNodes.delete(s.node); draw(); }, 600);
+      break;
+    }
+
+    case 'follow_outlink':
+      log(`  outlink → node ${s.node}`, 'output');
+      break;
+  }
+
+  draw();
+}
+
+function doStep() {
+  if (stepIdx >= steps.length) {
+    stopPlay();
+    btnPlay.disabled = true;
+    btnStep.disabled = true;
+    statPos.textContent = 'Done';
+    log('── Search complete ──', 'phase');
+    return;
+  }
+  executeStep(steps[stepIdx]);
+  stepIdx++;
+}
+
+// ─── Play/Pause ───────────────────────────────────────────────────────────────
+function startPlay() {
+  if (playing) return;
+  playing = true;
+  btnPlay.disabled = true;
+  btnPause.disabled = false;
+  btnStep.disabled = true;
+  schedule();
+}
+
+function schedule() {
+  if (!playing) return;
+  if (stepIdx >= steps.length) { stopPlay(); return; }
+  doStep();
+  playTimer = setTimeout(schedule, getDelay());
+}
+
+function stopPlay() {
+  playing = false;
+  clearTimeout(playTimer);
+  btnPlay.disabled = stepIdx >= steps.length;
+  btnPause.disabled = true;
+  btnStep.disabled = stepIdx >= steps.length;
+}
+
+function resetAnim() {
+  stopPlay();
+  if (!ac) return;
+
+  stepIdx = 0;
+  matchCount = 0;
+  statMatches.textContent = '0';
+  statPos.textContent = '—';
+  matchList.innerHTML = '<span style="font-size:0.7rem;color:var(--muted)">None yet</span>';
+  clearLog();
+
+  renderState = {
+    builtNodes: new Set([0]),
+    failLinks: [],
+    activeNode: -1,
+    highlightNodes: new Set(),
+    followingFail: false,
+    followingEdge: null,
+    matchedPositions: new Set(),
+    nodePatterns: {},
+  };
+
+  draw();
+  renderTextChars(searchText, -1, new Set());
+  log('Reset. Press Play or Step.', 'info');
+
+  btnPlay.disabled = false;
+  btnStep.disabled = false;
+  btnPause.disabled = true;
+}
+
+// ─── Event listeners ─────────────────────────────────────────────────────────
+btnBuild.addEventListener('click', buildAndPrepare);
+btnPlay.addEventListener('click', startPlay);
+btnPause.addEventListener('click', stopPlay);
+btnStep.addEventListener('click', () => { stopPlay(); doStep(); });
+btnReset.addEventListener('click', resetAnim);
+
+// ─── Resize ───────────────────────────────────────────────────────────────────
+const ro = new ResizeObserver(resizeCanvas);
+ro.observe(canvas.parentElement);
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+renderPatternList();
+renderTextChars(searchText, -1, new Set());
+statPatterns.textContent = patterns.length;
+
+// Draw empty canvas message
+(function initDraw() {
+  resizeCanvas();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = '14px -apple-system, sans-serif';
+  ctx.fillStyle = '#8b949e';
+  ctx.textAlign = 'center';
+  ctx.fillText('Press "Build & Search" to visualize', canvas.width / 2, canvas.height / 2);
+})();
+</script>
+</body>
+</html>

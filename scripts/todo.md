@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- aho-corasick — Aho-Corasick Multi-Pattern String Matching (trie + failure links + output links) ✅ 2026-03-29
 - fibonacci-heap — Fibonacci Heap (lazy consolidation, decrease-key cascading cuts, amortized O(1) insert) ✅ 2026-03-29
 - ford-fulkerson — Ford-Fulkerson Max Flow (augmenting paths, residual graph, BFS/DFS) ✅ 2026-03-29
 - b-tree — B-Tree（多分岐木、DBインデックス）✅ 2026-03-29

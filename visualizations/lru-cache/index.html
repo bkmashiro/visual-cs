@@ -8,188 +8,71 @@
   :root {
     --bg: #0d1117;
     --surface: #161b22;
-    --panel: #101720;
+    --panel: #111720;
     --border: #30363d;
     --text: #e6edf3;
     --muted: #8b949e;
     --accent: #58a6ff;
-    --good: #3fb950;
+    --green: #7ee787;
     --warn: #f78166;
     --gold: #e3b341;
     --violet: #a371f7;
+    --red: #ff7b72;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), var(--bg);
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     min-height: 100vh;
   }
-  header, .controls, .stats, .panel, .explain {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-  }
   header {
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
+    background: rgba(22,27,34,0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 16px;
-    padding: 16px 28px;
   }
-  header a { color: var(--accent); text-decoration: none; }
+  header a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+  header h1 { font-size: 1.3rem; }
   .main { max-width: 1320px; margin: 0 auto; padding: 28px 22px 40px; }
-  .controls {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-  input, button {
-    border-radius: 8px;
-    font: inherit;
-  }
-  input[type=text], input[type=number] {
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--border);
-    padding: 10px 12px;
-  }
-  input[type=number] { width: 90px; }
+  .toolbar, .stats, .panel, .explain { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 16px; margin-bottom: 16px; }
+  input[type=number], input[type=text] { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font: inherit; }
+  input[type=number] { width: 80px; }
   input[type=text] { width: 110px; }
   input[type=range] { accent-color: var(--accent); }
-  button {
-    border: none;
-    padding: 10px 14px;
-    font-weight: 700;
-    cursor: pointer;
-    background: var(--accent);
-    color: #08111b;
-  }
-  button.secondary {
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
+  button { border: none; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; font: inherit; background: var(--accent); color: #08111b; }
+  button.sec { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
   button:disabled { opacity: 0.45; cursor: default; }
-  .slider {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    font-size: 0.86rem;
-  }
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(120px, 1fr));
-    gap: 12px;
-    padding: 14px 16px;
-    margin-bottom: 16px;
-  }
+  .slider-group { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 12px; padding: 14px 16px; margin-bottom: 16px; }
   .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
-  .stat-value { font-size: 1.2rem; font-weight: 800; }
+  .stat-value { font-size: 1.25rem; font-weight: 800; }
   .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-  .layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) 340px;
-    gap: 16px;
-  }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; }
+  .workspace { position: relative; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 620px; background: radial-gradient(circle at top, rgba(88,166,255,0.07), transparent 24%), #09111a; }
+  .side { display: flex; flex-direction: column; gap: 16px; }
   .panel { padding: 16px; }
-  .workspace {
-    min-height: 560px;
-    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 24%), #091119;
-  }
-  .labels {
-    display: flex;
-    justify-content: space-between;
-    color: var(--muted);
-    font-size: 0.78rem;
-    margin-bottom: 14px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-  .list-row {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    overflow-x: auto;
-    padding-bottom: 10px;
-  }
-  .node {
-    min-width: 132px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px;
-    background: var(--panel);
-    position: relative;
-    transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
-  }
-  .node.active {
-    border-color: var(--accent);
-    transform: translateY(-4px);
-    box-shadow: 0 0 0 1px rgba(88,166,255,0.22) inset;
-  }
-  .node.hit { border-color: var(--good); }
-  .node.evicted { border-color: var(--warn); background: rgba(247,129,102,0.08); }
-  .node .key { font-size: 0.76rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-  .node .value { font-size: 1.1rem; font-weight: 800; margin-top: 6px; }
-  .arrow {
-    font-size: 1.4rem;
-    color: var(--muted);
-    flex: 0 0 auto;
-  }
-  .map-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 10px;
-    margin-top: 24px;
-  }
-  .map-entry {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--panel);
-    padding: 12px;
-  }
-  .map-entry.active { border-color: var(--gold); }
-  .map-entry .small { font-size: 0.76rem; color: var(--muted); }
-  .map-entry strong { display: block; font-size: 1rem; margin-top: 6px; }
-  .log {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: 560px;
-    overflow: auto;
-  }
-  .log-item {
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--panel);
-    padding: 10px 12px;
-    font-size: 0.86rem;
-    color: var(--muted);
-  }
+  .panel h3 { font-size: 0.95rem; margin-bottom: 12px; }
+  .log-list { display: flex; flex-direction: column; gap: 8px; max-height: 560px; overflow: auto; }
+  .log-item { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 0.84rem; color: var(--muted); }
   .log-item.active { border-color: var(--accent); color: var(--text); }
-  .legend {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    color: var(--muted);
-    font-size: 0.82rem;
-    margin-top: 16px;
-  }
-  .legend-item { display: flex; gap: 8px; align-items: center; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 16px; margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--muted); font-size: 0.82rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
   .swatch { width: 14px; height: 14px; border-radius: 4px; }
   .explain { margin-top: 20px; padding: 24px 28px; }
   .explain h2 { color: var(--accent); margin-bottom: 12px; }
   .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
-  .explain ul { padding-left: 20px; }
+  .explain ul { padding-left: 20px; margin-top: 8px; }
+  .explain code { background: var(--panel); padding: 1px 6px; border-radius: 4px; color: var(--text); font-size: 0.88em; }
   @media (max-width: 1080px) {
-    .layout, .stats { grid-template-columns: 1fr; }
+    .layout { grid-template-columns: 1fr; }
+    canvas { height: 480px; }
+    .stats { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
   }
 </style>
 </head>
@@ -197,330 +80,380 @@
 <header>
   <a href="../../index.html">← Back to Index</a>
   <h1>🧠 LRU Cache</h1>
-  <span style="color:var(--muted);font-size:0.84rem">Hash Map + Doubly Linked List · Get / Put / Evict</span>
+  <span style="color:var(--muted);font-size:0.84rem">Doubly Linked List + Hash Map · Get / Put / Evict</span>
 </header>
 
 <div class="main">
-  <div class="controls">
-    <label style="color:var(--muted)">Capacity</label>
-    <input id="capacity-input" type="number" min="2" max="8" value="4">
-    <input id="key-input" type="text" placeholder="key">
-    <input id="value-input" type="text" placeholder="value">
-    <button id="put-btn">Put</button>
-    <button id="get-btn" class="secondary">Get</button>
-    <button id="sample-btn" class="secondary">Load Demo</button>
-    <button id="play-btn">▶ Play</button>
-    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
-    <button id="step-btn" class="secondary">⏭ Step</button>
-    <button id="reset-btn" class="secondary">↺ Replay</button>
-    <button id="clear-btn" class="secondary">Clear</button>
-    <div class="slider">
-      <label>Speed <span id="speed-label">650</span>ms</label>
-      <input id="speed-slider" type="range" min="150" max="1400" step="50" value="650">
+  <div class="toolbar">
+    <label style="color:var(--muted);font-size:0.86rem">Capacity</label>
+    <input id="cap-in" type="number" min="2" max="7" value="4">
+    <input id="key-in" type="text" placeholder="key">
+    <input id="val-in" type="text" placeholder="value">
+    <button id="put-btn" style="background:#7ee787;color:#081808">Put</button>
+    <button id="get-btn" style="background:#e3b341;color:#1a1000">Get</button>
+    <button class="sec" id="demo-btn">Load Demo</button>
+    <button id="play-btn">&#9654; Play</button>
+    <button class="sec" id="pause-btn" disabled>&#9646;&#9646; Pause</button>
+    <button class="sec" id="step-btn">&#9197; Step</button>
+    <button class="sec" id="reset-btn">&#8635; Replay</button>
+    <button class="sec" id="clear-btn">Clear</button>
+    <div class="slider-group">
+      <label>Speed <span id="spd-lbl">700</span>ms</label>
+      <input id="spd-in" type="range" min="150" max="1600" step="50" value="700">
     </div>
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="stat-value" id="size-value">0/4</div><div class="stat-label">Size</div></div>
-    <div class="stat"><div class="stat-value" id="head-value">-</div><div class="stat-label">Most Recent</div></div>
-    <div class="stat"><div class="stat-value" id="tail-value">-</div><div class="stat-label">Least Recent</div></div>
-    <div class="stat"><div class="stat-value" id="hit-value">0</div><div class="stat-label">Cache Hits</div></div>
-    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
+    <div class="stat"><div class="stat-value" id="s-size">0/4</div><div class="stat-label">Size</div></div>
+    <div class="stat"><div class="stat-value" id="s-mru">&#8212;</div><div class="stat-label">Most Recent</div></div>
+    <div class="stat"><div class="stat-value" id="s-lru">&#8212;</div><div class="stat-label">Least Recent</div></div>
+    <div class="stat"><div class="stat-value" id="s-hits">0</div><div class="stat-label">Cache Hits</div></div>
+    <div class="stat"><div class="stat-value" id="s-status" style="font-size:0.9rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
   </div>
 
   <div class="layout">
     <div class="panel workspace">
-      <div class="labels"><span>MRU Head</span><span>LRU Tail</span></div>
-      <div class="list-row" id="list-row"></div>
-      <div class="map-grid" id="map-grid"></div>
-      <div class="legend">
-        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Node touched or moved</div>
-        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Successful cache hit</div>
-        <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Evicted least-recent node</div>
-        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Hash map lookup focus</div>
+      <canvas id="cv"></canvas>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>Operation Log</h3>
+        <div class="log-list" id="log-list"></div>
       </div>
     </div>
-    <div class="panel">
-      <h3 style="margin-bottom:12px">Operation Log</h3>
-      <div class="log" id="log"></div>
-    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Touched / moved to MRU</div>
+    <div class="legend-item"><div class="swatch" style="background:#7ee787"></div>Cache hit</div>
+    <div class="legend-item"><div class="swatch" style="background:#ff7b72"></div>Evicted (LRU tail)</div>
+    <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Hash map lookup</div>
+    <div class="legend-item"><div class="swatch" style="background:#a371f7"></div>New insertion</div>
   </div>
 
   <div class="explain">
     <h2>How It Works</h2>
-    <p>An LRU cache pairs a hash map with a doubly linked list. The hash map gives <code>O(1)</code> key lookup, while the list keeps keys ordered by recency.</p>
+    <p>An LRU (Least Recently Used) cache evicts the least-recently-used entry when full. It achieves <code>O(1)</code> get and put using two structures:</p>
     <ul>
-      <li><strong>get(key)</strong> returns the value and moves the node to the head because it just became most recently used.</li>
-      <li><strong>put(key, value)</strong> inserts or updates a node, then moves it to the head.</li>
-      <li>If the cache is full, the tail node is evicted because it is the least recently used entry.</li>
+      <li><strong>Doubly linked list</strong> &mdash; maintains recency order. <strong>Head = MRU</strong>, <strong>Tail = LRU</strong>. Moving a node to the head and removing the tail are both <code>O(1)</code> pointer swaps.</li>
+      <li><strong>Hash map</strong> &mdash; maps each key directly to its list node, giving <code>O(1)</code> lookup without traversal.</li>
+      <li><strong>get(key)</strong>: hash map lookup &rarr; move found node to head &rarr; return value (or -1 on miss).</li>
+      <li><strong>put(key, val)</strong>: if key exists, update and move to head. Otherwise insert at head. If over capacity, remove tail node and its hash entry first.</li>
     </ul>
   </div>
 </div>
 
 <script>
-const capacityInput = document.getElementById('capacity-input');
-const keyInput = document.getElementById('key-input');
-const valueInput = document.getElementById('value-input');
-const putBtn = document.getElementById('put-btn');
-const getBtn = document.getElementById('get-btn');
-const sampleBtn = document.getElementById('sample-btn');
-const playBtn = document.getElementById('play-btn');
-const pauseBtn = document.getElementById('pause-btn');
-const stepBtn = document.getElementById('step-btn');
-const resetBtn = document.getElementById('reset-btn');
-const clearBtn = document.getElementById('clear-btn');
-const speedSlider = document.getElementById('speed-slider');
-const speedLabel = document.getElementById('speed-label');
-const listRow = document.getElementById('list-row');
-const mapGrid = document.getElementById('map-grid');
-const logEl = document.getElementById('log');
-const sizeValue = document.getElementById('size-value');
-const headValue = document.getElementById('head-value');
-const tailValue = document.getElementById('tail-value');
-const hitValue = document.getElementById('hit-value');
-const statusValue = document.getElementById('status-value');
+(function () {
+  // ── canvas ──────────────────────────────────────────────────────────────
+  const cv  = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
 
-let capacity = 4;
-let cacheList = [];
-let frameStates = [];
-let frameIndex = 0;
-let timer = null;
-let speed = 650;
-let hits = 0;
-let operations = [];
-
-function snapshot(status, activeKey = '', mode = '') {
-  frameStates.push({
-    list: cacheList.map((item) => ({ ...item })),
-    status,
-    activeKey,
-    mode,
-    hits,
-    capacity
-  });
-}
-
-function resetFrames() {
-  frameStates = [];
-  frameIndex = 0;
-  stopPlayback();
-}
-
-function moveToFront(key) {
-  const index = cacheList.findIndex((item) => item.key === key);
-  if (index <= 0) return;
-  const [item] = cacheList.splice(index, 1);
-  cacheList.unshift(item);
-}
-
-function put(key, value) {
-  const existing = cacheList.find((item) => item.key === key);
-  snapshot(`Hash map lookup for ${key}`, key, 'map');
-  if (existing) {
-    existing.value = value;
-    snapshot(`Update value of ${key}`, key, 'active');
-    moveToFront(key);
-    snapshot(`Move ${key} to head`, key, 'active');
-    return;
+  function resizeCv() {
+    cv.width  = cv.parentElement.clientWidth;
+    cv.height = cv.offsetHeight;
   }
-  if (cacheList.length >= capacity) {
-    const evicted = cacheList[cacheList.length - 1];
-    snapshot(`Cache full, evict tail ${evicted.key}`, evicted.key, 'evicted');
-    cacheList.pop();
-  }
-  cacheList.unshift({ key, value });
-  snapshot(`Insert ${key} at head`, key, 'active');
-}
+  resizeCv();
+  window.addEventListener('resize', function () { resizeCv(); draw(); });
 
-function get(key) {
-  snapshot(`Hash map lookup for ${key}`, key, 'map');
-  const existing = cacheList.find((item) => item.key === key);
-  if (!existing) {
-    snapshot(`Miss: ${key} not found`, key, 'miss');
-    return;
-  }
-  hits += 1;
-  snapshot(`Hit: read ${key}=${existing.value}`, key, 'hit');
-  moveToFront(key);
-  snapshot(`Move ${key} to head`, key, 'hit');
-}
-
-function render() {
-  const frame = frameStates[Math.min(frameIndex, Math.max(frameStates.length - 1, 0))] || {
-    list: cacheList,
-    status: 'Ready',
-    activeKey: '',
-    mode: '',
-    hits,
-    capacity
+  // ── palette ─────────────────────────────────────────────────────────────
+  var P = {
+    bg:'#09111a', surf:'#161b22', panel:'#111720', border:'#30363d',
+    text:'#e6edf3', muted:'#8b949e',
+    blue:'#58a6ff', green:'#7ee787', warn:'#f78166',
+    gold:'#e3b341', violet:'#a371f7', red:'#ff7b72',
   };
-  const list = frame.list;
-  listRow.innerHTML = '';
-  list.forEach((item, index) => {
-    const node = document.createElement('div');
-    const modeClass = frame.activeKey === item.key
-      ? (frame.mode === 'evicted' ? 'evicted' : frame.mode === 'hit' ? 'hit' : 'active')
-      : '';
-    node.className = `node ${modeClass}`;
-    node.innerHTML = `<div class="key">${item.key}</div><div class="value">${item.value}</div>`;
-    listRow.appendChild(node);
-    if (index < list.length - 1) {
-      const arrow = document.createElement('div');
-      arrow.className = 'arrow';
-      arrow.textContent = '↔';
-      listRow.appendChild(arrow);
-    }
-  });
-  if (!list.length) {
-    listRow.innerHTML = '<div style="color:var(--muted);padding:14px 2px;">Cache is empty. Add key/value pairs or load the demo sequence.</div>';
+
+  // ── state ────────────────────────────────────────────────────────────────
+  var cap      = 4;
+  var frames   = [];
+  var frameIdx = 0;
+  var timer    = null;
+  var speed    = 700;
+  var hits     = 0;
+  var wList    = [];   // [{key,value}], index 0 = MRU head
+  var opLog    = [];   // [{text,type}]
+
+  function snap(status, activeKey, mode) {
+    frames.push({
+      list:      wList.map(function(n){ return {key:n.key, value:n.value}; }),
+      status:    status    || '',
+      activeKey: activeKey || '',
+      mode:      mode      || '',
+      hits:      hits,
+      cap:       cap,
+      opIdx:     opLog.length - 1,
+    });
   }
 
-  mapGrid.innerHTML = list.map((item) => `
-    <div class="map-entry ${frame.activeKey === item.key && frame.mode === 'map' ? 'active' : ''}">
-      <div class="small">hash[${item.key}]</div>
-      <strong>${item.value}</strong>
-      <div class="small">node -> ${item.key}</div>
-    </div>
-  `).join('');
-
-  sizeValue.textContent = `${list.length}/${frame.capacity}`;
-  headValue.textContent = list[0] ? list[0].key : '-';
-  tailValue.textContent = list[list.length - 1] ? list[list.length - 1].key : '-';
-  hitValue.textContent = frame.hits;
-  statusValue.textContent = frame.status;
-
-  logEl.innerHTML = operations.map((op, index) => `
-    <div class="log-item ${index === Math.min(frameIndex, operations.length - 1) ? 'active' : ''}">${op}</div>
-  `).join('');
-}
-
-function applyAction(action) {
-  capacity = Number(capacityInput.value) || 4;
-  if (action.type === 'put') {
-    operations.push(`put(${action.key}, ${action.value})`);
-    put(action.key, action.value);
-  } else {
-    operations.push(`get(${action.key})`);
-    get(action.key);
+  function resetAll() {
+    frames = []; frameIdx = 0; stopPlay();
   }
-}
 
-function rebuildFrames(actions) {
-  resetFrames();
-  cacheList = [];
-  hits = 0;
-  operations = [];
-  snapshot('Ready');
-  actions.forEach((action) => applyAction(action));
-  render();
-}
-
-function play() {
-  if (frameStates.length <= 1) return;
-  playBtn.disabled = true;
-  pauseBtn.disabled = false;
-  timer = setInterval(() => {
-    if (frameIndex >= frameStates.length - 1) {
-      stopPlayback();
+  // ── LRU logic ────────────────────────────────────────────────────────────
+  function lruPut(key, value) {
+    opLog.push({ text: 'put("'+key+'", '+value+')', type:'put' });
+    snap('Hash map lookup: key="'+key+'"', key, 'map');
+    var idx = wList.findIndex(function(n){ return n.key===key; });
+    if (idx !== -1) {
+      wList[idx].value = value;
+      snap('Update node "'+key+'" = '+value, key, 'active');
+      var node = wList.splice(idx, 1)[0];
+      wList.unshift(node);
+      snap('Move "'+key+'" to MRU head', key, 'active');
       return;
     }
-    frameIndex += 1;
-    render();
-  }, speed);
-}
-
-function stopPlayback() {
-  if (timer) clearInterval(timer);
-  timer = null;
-  playBtn.disabled = false;
-  pauseBtn.disabled = true;
-}
-
-putBtn.addEventListener('click', () => {
-  const key = keyInput.value.trim();
-  const value = valueInput.value.trim();
-  if (!key || !value) return;
-  const actions = operations.map((entry) => {
-    const match = entry.match(/(put|get)\(([^,)]+)(?:, ([^)]+))?\)/);
-    return match[1] === 'put'
-      ? { type: 'put', key: match[2], value: match[3] }
-      : { type: 'get', key: match[2] };
-  });
-  actions.push({ type: 'put', key, value });
-  rebuildFrames(actions);
-  keyInput.value = '';
-  valueInput.value = '';
-});
-
-getBtn.addEventListener('click', () => {
-  const key = keyInput.value.trim();
-  if (!key) return;
-  const actions = operations.map((entry) => {
-    const match = entry.match(/(put|get)\(([^,)]+)(?:, ([^)]+))?\)/);
-    return match[1] === 'put'
-      ? { type: 'put', key: match[2], value: match[3] }
-      : { type: 'get', key: match[2] };
-  });
-  actions.push({ type: 'get', key });
-  rebuildFrames(actions);
-  keyInput.value = '';
-});
-
-sampleBtn.addEventListener('click', () => {
-  capacityInput.value = 4;
-  rebuildFrames([
-    { type: 'put', key: 'A', value: '13' },
-    { type: 'put', key: 'B', value: '21' },
-    { type: 'put', key: 'C', value: '34' },
-    { type: 'get', key: 'A' },
-    { type: 'put', key: 'D', value: '55' },
-    { type: 'put', key: 'E', value: '89' },
-    { type: 'get', key: 'C' }
-  ]);
-});
-
-clearBtn.addEventListener('click', () => {
-  capacity = Number(capacityInput.value) || 4;
-  cacheList = [];
-  operations = [];
-  hits = 0;
-  resetFrames();
-  snapshot('Cleared');
-  render();
-});
-
-playBtn.addEventListener('click', play);
-pauseBtn.addEventListener('click', stopPlayback);
-stepBtn.addEventListener('click', () => {
-  stopPlayback();
-  if (frameIndex < frameStates.length - 1) frameIndex += 1;
-  render();
-});
-resetBtn.addEventListener('click', () => {
-  stopPlayback();
-  frameIndex = 0;
-  render();
-});
-speedSlider.addEventListener('input', () => {
-  speed = Number(speedSlider.value);
-  speedLabel.textContent = speed;
-  if (timer) {
-    stopPlayback();
-    play();
+    if (wList.length >= cap) {
+      var evicted = wList[wList.length - 1];
+      snap('Cache full ('+cap+'/'+cap+') — evict LRU tail "'+evicted.key+'"', evicted.key, 'evicted');
+      wList.pop();
+      snap('Removed "'+evicted.key+'" from hash map', evicted.key, 'evicted');
+    }
+    wList.unshift({ key: key, value: value });
+    snap('Inserted "'+key+'"='+value+' at MRU head', key, 'new');
   }
-});
-capacityInput.addEventListener('change', () => {
-  const actions = operations.map((entry) => {
-    const match = entry.match(/(put|get)\(([^,)]+)(?:, ([^)]+))?\)/);
-    return match[1] === 'put'
-      ? { type: 'put', key: match[2], value: match[3] }
-      : { type: 'get', key: match[2] };
-  });
-  rebuildFrames(actions);
-});
 
-snapshot('Ready');
-render();
-</script>
-</body>
-</html>
+  function lruGet(key) {
+    opLog.push({ text: 'get("'+key+'")', type:'get' });
+    snap('Hash map lookup: key="'+key+'"', key, 'map');
+    var idx = wList.findIndex(function(n){ return n.key===key; });
+    if (idx === -1) {
+      snap('MISS — "'+key+'" not in cache, return -1', key, 'miss');
+      return;
+    }
+    hits++;
+    snap('HIT — "'+key+'" found, value='+wList[idx].value, key, 'hit');
+    var node = wList.splice(idx, 1)[0];
+    wList.unshift(node);
+    snap('Moved "'+key+'" to MRU head', key, 'hit');
+  }
+
+  function rebuild(ops) {
+    wList=[]; hits=0; opLog=[];
+    resetAll();
+    snap('Ready','','');
+    ops.forEach(function(op){
+      if (op.type==='put') lruPut(op.key, op.value);
+      else lruGet(op.key);
+    });
+    draw(); updateDom();
+  }
+
+  // ── drawing helpers ──────────────────────────────────────────────────────
+  function rrect(x,y,w,h,r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function darrow(x1,y1,x2,y2,color,dashed) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    if (dashed) ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.setLineDash([]);
+    var ang = Math.atan2(y2-y1, x2-x1), sz=7;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-sz*Math.cos(ang-0.45), y2-sz*Math.sin(ang-0.45));
+    ctx.lineTo(x2-sz*Math.cos(ang+0.45), y2-sz*Math.sin(ang+0.45));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── main draw ────────────────────────────────────────────────────────────
+  function draw() {
+    var W = cv.width, H = cv.height;
+    ctx.fillStyle = P.bg; ctx.fillRect(0,0,W,H);
+
+    var fr = frames[Math.min(frameIdx, Math.max(frames.length-1,0))] || {
+      list:[], status:'Ready', activeKey:'', mode:'', hits:0, cap:cap, opIdx:-1
+    };
+    var list = fr.list, n = list.length;
+
+    // section labels
+    ctx.font = '700 10.5px -apple-system,sans-serif';
+    ctx.fillStyle = P.muted;
+    ctx.fillText('DOUBLY LINKED LIST', 20, 30);
+    ctx.fillStyle = P.blue; ctx.fillText('◀ MRU HEAD', 20, 46);
+    ctx.fillStyle = P.muted; ctx.textAlign='right'; ctx.fillText('LRU TAIL ▶', W-20, 46); ctx.textAlign='left';
+
+    // node layout
+    var NW=120, NH=78, GAP=52;
+    var listY = 56;
+    var totalW = n*NW + Math.max(0,n-1)*GAP;
+    var startX = Math.max(20, (W-totalW)/2);
+    var npos = [];
+
+    list.forEach(function(item, i) {
+      var nx = startX + i*(NW+GAP), ny = listY;
+      npos.push({x:nx, y:ny});
+
+      var fill=P.panel, stroke=P.border, tc=P.text;
+      if (fr.activeKey === item.key) {
+        if      (fr.mode==='active')  { fill='rgba(88,166,255,0.12)';  stroke=P.blue;   tc=P.blue;   }
+        else if (fr.mode==='hit')     { fill='rgba(126,231,135,0.12)'; stroke=P.green;  tc=P.green;  }
+        else if (fr.mode==='evicted') { fill='rgba(255,123,114,0.14)'; stroke=P.red;    tc=P.red;    }
+        else if (fr.mode==='map')     { fill='rgba(227,179,65,0.11)';  stroke=P.gold;   tc=P.gold;   }
+        else if (fr.mode==='new')     { fill='rgba(163,113,247,0.12)'; stroke=P.violet; tc=P.violet; }
+        else if (fr.mode==='miss')    { fill='rgba(247,129,102,0.10)'; stroke=P.warn;   tc=P.warn;   }
+        else                          { fill='rgba(88,166,255,0.08)';  stroke=P.blue;   tc=P.blue;   }
+        // glow
+        ctx.save(); ctx.shadowColor=stroke; ctx.shadowBlur=18;
+        rrect(nx,ny,NW,NH,12); ctx.fillStyle='transparent'; ctx.fill();
+        ctx.restore();
+      }
+
+      rrect(nx,ny,NW,NH,12);
+      ctx.fillStyle=fill; ctx.fill();
+      ctx.strokeStyle=stroke; ctx.lineWidth=(i===0?2:1.5); ctx.stroke();
+
+      if (i===0) {
+        ctx.font='600 10px -apple-system,sans-serif'; ctx.fillStyle=P.blue; ctx.fillText('HEAD',nx+8,ny-6);
+      }
+      if (i===n-1 && n>1) {
+        ctx.font='600 10px -apple-system,sans-serif'; ctx.fillStyle=P.muted;
+        ctx.textAlign='right'; ctx.fillText('TAIL',nx+NW-8,ny-6); ctx.textAlign='left';
+      }
+
+      ctx.font='600 10px -apple-system,sans-serif'; ctx.fillStyle=P.muted; ctx.fillText(String(item.key), nx+9, ny+18);
+      ctx.font='800 24px -apple-system,sans-serif'; ctx.fillStyle=tc;
+      ctx.textAlign='center'; ctx.fillText(String(item.value), nx+NW/2, ny+56); ctx.textAlign='left';
+
+      ctx.font='500 9px -apple-system,sans-serif'; ctx.fillStyle='rgba(139,148,158,0.5)';
+      if (i>0)   { ctx.fillText('◀prev', nx+4, ny+NH-5); }
+      if (i<n-1) { ctx.textAlign='right'; ctx.fillText('next▶', nx+NW-4, ny+NH-5); ctx.textAlign='left'; }
+    });
+
+    // arrows between nodes
+    for (var i=0; i<n-1; i++) {
+      var ax=npos[i].x+NW+3, bx=npos[i+1].x-3, ay=listY+NH/2;
+      darrow(ax, ay-7, bx, ay-7, P.blue);
+      darrow(bx, ay+7, ax, ay+7, P.muted);
+    }
+
+    // null sentinels
+    if (n>0) {
+      ctx.font='10px -apple-system,sans-serif'; ctx.fillStyle='rgba(139,148,158,0.5)';
+      darrow(npos[0].x-3, listY+NH/2-7, npos[0].x-32, listY+NH/2-7, 'rgba(139,148,158,0.3)', true);
+      ctx.fillText('null', npos[0].x-50, listY+NH/2-3);
+      var tx=npos[n-1].x+NW, ty=listY+NH/2;
+      darrow(tx+3, ty+7, tx+32, ty+7, 'rgba(139,148,158,0.3)', true);
+      ctx.fillText('null', tx+35, ty+11);
+    } else {
+      ctx.font='14px -apple-system,sans-serif'; ctx.fillStyle=P.muted;
+      ctx.textAlign='center';
+      ctx.fillText('Cache is empty — load the demo or add items', W/2, listY+NH/2+10);
+      ctx.textAlign='left';
+    }
+
+    // hash map section
+    var MAP_Y = listY + NH + 72;
+    ctx.font='700 10.5px -apple-system,sans-serif'; ctx.fillStyle=P.muted;
+    ctx.fillText('HASH MAP   key \u2192 node pointer', 20, MAP_Y-14);
+
+    var BW=114, BH=62, BGAP=12;
+    var maxCols = Math.max(1, Math.floor((W-40)/(BW+BGAP)));
+    var bcols = Math.min(fr.cap, maxCols);
+
+    for (var slot=0; slot<fr.cap; slot++) {
+      var col=slot%bcols, row=Math.floor(slot/bcols);
+      var bx=20+col*(BW+BGAP), by=MAP_Y+row*(BH+12);
+      var mitem = list[slot];
+      var bfill=P.panel, bstroke=P.border;
+      if (mitem) {
+        if (fr.activeKey===mitem.key && fr.mode==='map')   { bfill='rgba(227,179,65,0.12)'; bstroke=P.gold; }
+        else if (fr.activeKey===mitem.key)                  { bfill='rgba(88,166,255,0.07)'; bstroke=P.blue; }
+      }
+      rrect(bx,by,BW,BH,10); ctx.fillStyle=bfill; ctx.fill();
+      ctx.strokeStyle=bstroke; ctx.lineWidth=1.4; ctx.stroke();
+      ctx.font='600 9.5px -apple-system,sans-serif'; ctx.fillStyle=P.muted; ctx.fillText('bucket['+slot+']',bx+7,by+15);
+      if (mitem) {
+        ctx.font='700 13px -apple-system,sans-serif';
+        ctx.fillStyle=(fr.activeKey===mitem.key)?P.gold:P.text;
+        ctx.textAlign='center'; ctx.fillText('"'+mitem.key+'"',bx+BW/2,by+36); ctx.textAlign='left';
+        ctx.font='500 10px -apple-system,sans-serif'; ctx.fillStyle=P.muted;
+        ctx.textAlign='center'; ctx.fillText('\u2192 node('+mitem.value+')',bx+BW/2,by+51); ctx.textAlign='left';
+      } else {
+        ctx.font='11.5px -apple-system,sans-serif'; ctx.fillStyle='rgba(139,148,158,0.28)';
+        ctx.textAlign='center'; ctx.fillText('(empty)',bx+BW/2,by+36); ctx.textAlign='left';
+      }
+    }
+
+    // pointer arrows: hash bucket -> list node
+    list.forEach(function(item, i) {
+      if (i >= fr.cap || i >= npos.length) return;
+      var col=i%bcols, row=Math.floor(i/bcols);
+      var bx=20+col*(BW+BGAP), by=MAP_Y+row*(BH+12);
+      var srcX=bx+BW/2, srcY=by;
+      var dstX=npos[i].x+NW/2, dstY=npos[i].y+NH;
+      var isActive = fr.activeKey===item.key && (fr.mode==='map'||fr.mode==='active'||fr.mode==='hit');
+      darrow(srcX, srcY, dstX, dstY, isActive?P.gold:'rgba(88,166,255,0.18)', !isActive);
+    });
+
+    // status bar
+    var sbY = H-28;
+    ctx.fillStyle='rgba(13,17,23,0.9)'; ctx.fillRect(0,sbY-4,W,36);
+    ctx.font='600 12px -apple-system,sans-serif';
+    var sc = fr.mode==='hit'?P.green : fr.mode==='evicted'?P.red : fr.mode==='miss'?P.warn : fr.mode==='new'?P.violet : P.blue;
+    ctx.fillStyle=sc; ctx.textAlign='center'; ctx.fillText(fr.status, W/2, sbY+14); ctx.textAlign='left';
+    ctx.font='10px -apple-system,sans-serif'; ctx.fillStyle='rgba(139,148,158,0.4)';
+    ctx.textAlign='right'; ctx.fillText('frame '+(frameIdx+1)+'/'+frames.length, W-14, sbY+14); ctx.textAlign='left';
+
+    updateDom();
+  }
+
+  function updateDom() {
+    var fr = frames[Math.min(frameIdx, Math.max(frames.length-1,0))] || {list:[],status:'Ready',hits:0,cap:cap,opIdx:-1};
+    var l=fr.list;
+    document.getElementById('s-size').textContent  = l.length+'/'+fr.cap;
+    document.getElementById('s-mru').textContent   = l[0]       ? l[0].key           : '\u2014';
+    document.getElementById('s-lru').textContent   = l[l.length-1] ? l[l.length-1].key : '\u2014';
+    document.getElementById('s-hits').textContent  = fr.hits;
+    var st = fr.status||'Ready';
+    document.getElementById('s-status').textContent = st.length>18 ? st.substring(0,18)+'\u2026' : st;
+
+    // log
+    var ll = document.getElementById('log-list');
+    ll.innerHTML = opLog.map(function(op,i){
+      var cls = (i===fr.opIdx) ? 'log-item active' : 'log-item';
+      return '<div class="'+cls+'">'+op.text+'</div>';
+    }).join('');
+    var active = ll.querySelector('.active');
+    if (active) active.scrollIntoView({block:'nearest'});
+  }
+
+  // ── playback ─────────────────────────────────────────────────────────────
+  function play() {
+    if (frames.length<=1) return;
+    document.getElementById('play-btn').disabled=true;
+    document.getElementById('pause-btn').disabled=false;
+    timer = setInterval(function(){
+      if (frameIdx >= frames.length-1) { stopPlay(); return; }
+      frameIdx++; draw();
+    }, speed);
+  }
+  function stopPlay() {
+    if (timer) { clearInterval(timer); timer=null; }
+    document.getElementById('play-btn').disabled=false;
+    document.getElementById('pause-btn').disabled=true;
+  }
+
+  // ── parse op log ─────────────────────────────────────────────────────────
+  function parseOps() {
+    return opLog.map(function(op){
+      var m = op.text.match(/(put|get)\("([^"]+)"(?:,\s*([^)]+))?\)/);
+      if (!m) return null;
+      return m[1]==='put' ? {type:'put',key:m[2],value:m[3]} : {type:'get',key:m[2]};
+    }).filter(Boolean);
+  }
+
+  // ── event handlers ────────────────────────────────────────────────────────
+  document.getElementById('put-btn').addEventListener('click', function(){
+    var key = document.getElementById('key-in').value.trim();
