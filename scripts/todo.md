@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- topological-sort — Topological Sort / Kahn's Algorithm (BFS, in-degree, queue, cycle detection) ✅ 2026-03-29
 - coin-change — Coin Change (DP table fill + traceback, minimum coins with recurrence dp[a]=min(dp[a-c]+1)) ✅ 2026-03-29
 - manacher — Manacher's Algorithm (longest palindromic substring in O(n), center expansion with p-array) ✅ 2026-03-29
 - bridge-articulation — Bridge & Articulation Points (Tarjan DFS, disc/low values, bridge detection low[v]>disc[u], cut-vertex detection) ✅ 2026-03-29

@@ -5,450 +5,940 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Topological Sort — visual-cs</title>
 <style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --panel: #101720;
-    --border: #30363d;
-    --text: #e6edf3;
-    --muted: #8b949e;
-    --accent: #58a6ff;
-    --good: #3fb950;
-    --warn: #f78166;
-    --gold: #e3b341;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 26%), var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    min-height: 100vh;
-  }
-  header, .controls, .stats, .panel, .explain {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-  }
-  header {
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 28px;
-  }
-  header a { color: var(--accent); text-decoration: none; }
-  .main { max-width: 1420px; margin: 0 auto; padding: 28px 22px 40px; }
-  .controls {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-  button {
-    background: var(--accent);
-    color: #08111b;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  button.secondary {
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-  button:disabled { opacity: 0.45; cursor: default; }
-  .slider { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
-  input[type=range] { accent-color: var(--accent); }
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(120px, 1fr));
-    gap: 12px;
-    padding: 14px 16px;
-    margin-bottom: 16px;
-  }
-  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
-  .stat-value { font-size: 1.22rem; font-weight: 800; }
-  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-  .layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  .panel { padding: 16px; }
-  svg { width: 100%; height: 520px; display: block; background: radial-gradient(circle at top, rgba(63,185,80,0.08), transparent 25%), #091119; border-radius: 12px; }
-  .panel h3 { margin-bottom: 12px; }
-  .subinfo {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 12px;
-  }
-  .chip {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 6px 10px;
-    font-size: 0.82rem;
-    color: var(--muted);
-  }
-  .order {
-    margin-top: 12px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px;
-    font-size: 0.88rem;
-    color: var(--muted);
-  }
-  .legend {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-top: 16px;
-    color: var(--muted);
-    font-size: 0.82rem;
-  }
-  .legend-item { display: flex; align-items: center; gap: 8px; }
-  .swatch { width: 14px; height: 14px; border-radius: 4px; }
-  .explain { margin-top: 20px; padding: 24px 28px; }
-  .explain h2 { color: var(--accent); margin-bottom: 12px; }
-  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
-  .explain ul { padding-left: 20px; }
-  @media (max-width: 1100px) {
-    .layout, .stats { grid-template-columns: 1fr; }
-  }
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --accent:#58a6ff;--accent0:rgba(88,166,255,.15);
+  --good:#3fb950;--good0:rgba(63,185,80,.15);
+  --warn:#f78166;--warn0:rgba(247,129,102,.15);
+  --gold:#e3b341;--gold0:rgba(227,179,65,.15);
+  --violet:#a371f7;--violet0:rgba(163,113,247,.15);
+  --cyan:#67e8f9;--cyan0:rgba(103,232,249,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--accent)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:1fr 300px;flex:1;min-height:0}
+@media(max-width:700px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+
+/* Presets */
+.presets{display:flex;flex-wrap:wrap;gap:5px}
+.pb{font-size:.7rem;padding:3px 9px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-weight:500;transition:all .15s}
+.pb:hover{color:var(--accent);border-color:var(--accent)}
+.pb.active{color:var(--accent);border-color:var(--accent);background:var(--accent0)}
+
+/* Controls */
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.pr{background:var(--accent);border-color:var(--accent);color:#0d1117}
+button.pr:hover{opacity:.85}
+button:disabled{opacity:.35;cursor:default;pointer-events:none}
+.speed-wrap{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted)}
+input[type=range]{width:90px;accent-color:var(--accent)}
+
+/* Section labels */
+.sec-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;margin-bottom:6px}
+
+/* Stats */
+.stats-bar{display:flex;gap:12px;flex-wrap:wrap}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:.78rem;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:70px}
+.stat-label{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-weight:700;font-size:1rem;font-variant-numeric:tabular-nums}
+.stat-value.accent{color:var(--accent)}
+.stat-value.good{color:var(--good)}
+.stat-value.gold{color:var(--gold)}
+.stat-value.warn{color:var(--warn)}
+
+/* SVG Graph canvas */
+.graph-wrap{background:var(--s2);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative}
+svg#graph{width:100%;display:block}
+
+/* Queue display */
+.queue-display{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-height:38px}
+.q-node{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:700;
+  border:2px solid var(--accent);
+  background:var(--accent0);
+  color:var(--accent);
+  font-family:monospace;
+  flex-shrink:0;
+  transition:all .25s;
+}
+.q-arrow{color:var(--muted);font-size:.8rem}
+
+/* Result array */
+.result-display{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-height:38px}
+.res-node{
+  width:34px;height:34px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:700;
+  border:2px solid var(--good);
+  background:var(--good0);
+  color:var(--good);
+  font-family:monospace;
+  flex-shrink:0;
+}
+.res-idx{font-size:.6rem;color:var(--muted);text-align:center;margin-top:1px;font-family:monospace}
+
+/* Result banner */
+.result-banner{
+  border-radius:8px;padding:12px 16px;
+  font-size:.9rem;display:none;
+  line-height:1.6;
+}
+.result-banner.success{background:var(--good0);border:1px solid var(--good)}
+.result-banner.failure{background:var(--warn0);border:1px solid var(--warn)}
+.result-banner strong{color:var(--good)}
+.result-banner.failure strong{color:var(--warn)}
+.result-banner code{font-family:monospace;background:var(--s2);padding:2px 6px;border-radius:4px;color:var(--gold);font-size:.88rem}
+
+/* Sidebar */
+.sb-section{display:flex;flex-direction:column;gap:8px}
+.sb-section h3{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700}
+
+/* Pseudocode */
+.pseudo{font-family:'Cascadia Code','Fira Code',monospace;font-size:.72rem;line-height:1.7;background:var(--s2);border-radius:8px;border:1px solid var(--border);padding:10px 12px;display:flex;flex-direction:column;gap:0}
+.ps-line{padding:1px 6px;border-radius:4px;color:var(--muted);white-space:pre;transition:all .15s}
+.ps-line.active{background:var(--accent0);color:var(--accent);font-weight:600}
+.ps-line.done{color:var(--good)}
+
+/* In-degree table */
+.indeg-table{width:100%;border-collapse:separate;border-spacing:2px;font-size:.75rem;font-family:monospace}
+.indeg-table th{color:var(--muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;padding:3px 6px;text-align:center}
+.indeg-table td{text-align:center;padding:5px 6px;border-radius:4px;background:var(--s2);border:1px solid var(--border);font-weight:600;transition:background .2s,border-color .2s,color .2s}
+.indeg-table td.id-current{background:var(--gold0);border-color:var(--gold);color:var(--gold)}
+.indeg-table td.id-queue{background:var(--accent0);border-color:var(--accent);color:var(--accent)}
+.indeg-table td.id-done{background:var(--good0);border-color:var(--good);color:var(--good)}
+.indeg-table td.id-zero{background:var(--violet0);border-color:var(--violet);color:var(--violet)}
+.indeg-table td.id-warn{background:var(--warn0);border-color:var(--warn);color:var(--warn)}
+
+/* Log */
+.log{display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto}
+.log-entry{font-size:.72rem;padding:4px 8px;border-radius:5px;background:var(--s2);border-left:3px solid var(--border);line-height:1.4;font-family:monospace;color:var(--muted)}
+.log-entry.ev-queue{border-color:var(--accent);color:var(--accent)}
+.log-entry.ev-process{border-color:var(--gold);color:var(--gold)}
+.log-entry.ev-edge{border-color:var(--cyan);color:var(--text)}
+.log-entry.ev-done{border-color:var(--good);color:var(--good)}
+.log-entry.ev-cycle{border-color:var(--warn);color:var(--warn)}
+
+/* Legend */
+.legend{display:flex;flex-direction:column;gap:5px}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--muted)}
+.leg-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:2px solid}
+
+/* Explain */
+.explain{font-size:.8rem;color:var(--muted);line-height:1.6;background:var(--s2);border-radius:8px;padding:12px 14px;border:1px solid var(--border)}
+.explain strong{color:var(--text)}
+.explain code{font-family:monospace;background:var(--surface);padding:1px 5px;border-radius:3px;color:var(--accent);font-size:.8rem}
 </style>
 </head>
 <body>
+
 <header>
-  <a href="../../index.html">← Back to Index</a>
-  <h1>🧩 Topological Sort</h1>
-  <span style="color:var(--muted);font-size:0.84rem">Kahn + DFS side by side on the same DAG</span>
+  <h1>visual-cs / <span>Topological Sort</span></h1>
+  <a href="../../index.html">← All visualizations</a>
 </header>
 
+<div class="layout">
 <div class="main">
-  <div class="controls">
-    <button id="play-btn">▶ Play</button>
-    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
-    <button id="step-btn" class="secondary">⏭ Step</button>
-    <button id="reset-btn" class="secondary">↺ Reset</button>
-    <button id="graph-btn" class="secondary">🔀 New DAG</button>
-    <div class="slider">
-      <label>Speed <span id="speed-label">520</span>ms</label>
-      <input id="speed-slider" type="range" min="120" max="1400" step="20" value="520">
+
+  <!-- Preset graphs -->
+  <div>
+    <div class="sec-label">Preset Graphs</div>
+    <div class="presets">
+      <button class="pb active" id="pb0" onclick="loadPreset(0)">Small DAG (6 nodes)</button>
+      <button class="pb" id="pb1" onclick="loadPreset(1)">Large DAG (8 nodes)</button>
+      <button class="pb" id="pb2" onclick="loadPreset(2)">Cycle (7 nodes)</button>
     </div>
   </div>
 
-  <div class="stats">
-    <div class="stat"><div class="stat-value" id="step-value">0</div><div class="stat-label">Step</div></div>
-    <div class="stat"><div class="stat-value" id="node-value">-</div><div class="stat-label">Current Node</div></div>
-    <div class="stat"><div class="stat-value" id="queue-value">0</div><div class="stat-label">Kahn Queue</div></div>
-    <div class="stat"><div class="stat-value" id="stack-value">0</div><div class="stat-label">DFS Stack</div></div>
-    <div class="stat"><div class="stat-value" id="status-value" style="font-size:0.96rem;color:var(--muted)">Ready</div><div class="stat-label">Status</div></div>
-  </div>
-
-  <div class="layout">
-    <div class="panel">
-      <h3>Kahn Algorithm (BFS-based)</h3>
-      <svg id="kahn-svg" viewBox="0 0 620 520"></svg>
-      <div class="subinfo">
-        <div class="chip" id="queue-chip">Queue: []</div>
-        <div class="chip" id="indegree-chip">Indegree changes update live</div>
-      </div>
-      <div class="order" id="kahn-order"></div>
-    </div>
-    <div class="panel">
-      <h3>DFS Topological Order</h3>
-      <svg id="dfs-svg" viewBox="0 0 620 520"></svg>
-      <div class="subinfo">
-        <div class="chip" id="stack-chip">DFS stack: []</div>
-        <div class="chip" id="finish-chip">Completion order colors the nodes</div>
-      </div>
-      <div class="order" id="dfs-order"></div>
+  <!-- Controls -->
+  <div class="ctrls">
+    <button class="pr" id="btnPlay" onclick="play()">&#9654; Play</button>
+    <button id="btnPause" onclick="pause()" disabled>&#9646;&#9646; Pause</button>
+    <button id="btnStep" onclick="stepFwd()">&#9197; Step</button>
+    <button onclick="reset()">&#8634; Reset</button>
+    <div class="speed-wrap">
+      Speed <input type="range" id="speedSlider" min="1" max="10" value="5"> <span id="speedLabel">5</span>
     </div>
   </div>
 
-  <div class="legend">
-    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Active node</div>
-    <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Output order / completed</div>
-    <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Edge being removed or explored</div>
-    <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Queued / on recursion stack</div>
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-label">Vertices</div><div class="stat-value accent" id="statV">6</div></div>
+    <div class="stat"><div class="stat-label">Processing</div><div class="stat-value gold" id="statCur">—</div></div>
+    <div class="stat"><div class="stat-label">Queue Size</div><div class="stat-value" id="statQ">0</div></div>
+    <div class="stat"><div class="stat-label">Result Size</div><div class="stat-value good" id="statR">0</div></div>
+    <div class="stat"><div class="stat-label">Phase</div><div class="stat-value" id="statPhase">Ready</div></div>
   </div>
 
-  <div class="explain">
-    <h2>How It Works</h2>
-    <p>Kahn's algorithm repeatedly removes nodes with indegree 0, while DFS records nodes when recursion finishes and reverses that finish order to get a topological ordering.</p>
-    <ul>
-      <li>The same DAG is rendered twice so you can compare the two strategies directly.</li>
-      <li>Kahn highlights queue operations and edge removals.</li>
-      <li>DFS highlights active recursion paths and colors nodes by completion order.</li>
-    </ul>
+  <!-- Graph -->
+  <div>
+    <div class="sec-label">DAG</div>
+    <div class="graph-wrap">
+      <svg id="graph" height="320">
+        <defs>
+          <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#30363d"/>
+          </marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#58a6ff"/>
+          </marker>
+          <marker id="arrow-gold" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#e3b341"/>
+          </marker>
+          <marker id="arrow-good" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#3fb950"/>
+          </marker>
+          <marker id="arrow-dim" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#30363d" opacity="0.4"/>
+          </marker>
+          <marker id="arrow-warn" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#f78166"/>
+          </marker>
+        </defs>
+        <g id="edgeLayer"></g>
+        <g id="nodeLayer"></g>
+      </svg>
+    </div>
   </div>
-</div>
+
+  <!-- Queue -->
+  <div>
+    <div class="sec-label">Queue (zero in-degree)</div>
+    <div class="queue-display" id="queueDisplay">
+      <span style="color:var(--muted);font-size:.8rem">Empty</span>
+    </div>
+  </div>
+
+  <!-- Result array -->
+  <div>
+    <div class="sec-label">Topological Order (result)</div>
+    <div class="result-display" id="resultDisplay">
+      <span style="color:var(--muted);font-size:.8rem">—</span>
+    </div>
+  </div>
+
+  <!-- Result banner -->
+  <div class="result-banner" id="resultBanner"></div>
+
+</div><!-- .main -->
+
+<div class="sidebar">
+
+  <!-- Pseudocode -->
+  <div class="sb-section">
+    <h3>Kahn's Algorithm</h3>
+    <div class="pseudo" id="pseudo">
+      <div class="ps-line" data-line="0">function kahnSort(graph):</div>
+      <div class="ps-line" data-line="1">  compute inDegree[] for all v</div>
+      <div class="ps-line" data-line="2">  queue = [v | inDegree[v] == 0]</div>
+      <div class="ps-line" data-line="3">  result = []</div>
+      <div class="ps-line" data-line="4">  while queue not empty:</div>
+      <div class="ps-line" data-line="5">    u = queue.dequeue()</div>
+      <div class="ps-line" data-line="6">    result.push(u)</div>
+      <div class="ps-line" data-line="7">    for each neighbor w of u:</div>
+      <div class="ps-line" data-line="8">      inDegree[w] -= 1</div>
+      <div class="ps-line" data-line="9">      if inDegree[w] == 0:</div>
+      <div class="ps-line" data-line="10">        queue.enqueue(w)</div>
+      <div class="ps-line" data-line="11">  if len(result) &lt; V:</div>
+      <div class="ps-line" data-line="12">    return "cycle detected!"</div>
+      <div class="ps-line" data-line="13">  return result</div>
+    </div>
+  </div>
+
+  <!-- In-degree table -->
+  <div class="sb-section">
+    <h3>In-Degree Table</h3>
+    <table class="indeg-table" id="indegTable">
+      <thead><tr id="indegHead"></tr></thead>
+      <tbody><tr id="indegBody"></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Legend -->
+  <div class="sb-section">
+    <h3>Legend</h3>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--s2);border-color:var(--border)"></div>Unvisited</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--accent0);border-color:var(--accent)"></div>In queue (zero in-degree)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--gold0);border-color:var(--gold)"></div>Currently processing</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--good0);border-color:var(--good)"></div>Done / added to result</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--warn0);border-color:var(--warn)"></div>Cycle detected</div>
+    </div>
+  </div>
+
+  <!-- Step log -->
+  <div class="sb-section">
+    <h3>Step Log</h3>
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- Explanation -->
+  <div class="sb-section">
+    <h3>How It Works</h3>
+    <div class="explain">
+      <strong>Kahn's Algorithm</strong> uses BFS to produce a topological ordering of a DAG.<br><br>
+      1. Compute <code>inDegree[v]</code> for all vertices.<br>
+      2. Enqueue all vertices with <code>inDegree = 0</code>.<br>
+      3. Dequeue <code>u</code>, append to result, decrement neighbors' in-degrees. If any reach 0, enqueue them.<br>
+      4. If <code>|result| &lt; V</code>, a cycle exists.<br><br>
+      <strong>Complexity:</strong> O(V + E) time, O(V) space.
+    </div>
+  </div>
+
+</div><!-- .sidebar -->
+</div><!-- .layout -->
 
 <script>
-const kahnSvg = document.getElementById('kahn-svg');
-const dfsSvg = document.getElementById('dfs-svg');
-const stepValue = document.getElementById('step-value');
-const nodeValue = document.getElementById('node-value');
-const queueValue = document.getElementById('queue-value');
-const stackValue = document.getElementById('stack-value');
-const statusValue = document.getElementById('status-value');
-const queueChip = document.getElementById('queue-chip');
-const indegreeChip = document.getElementById('indegree-chip');
-const stackChip = document.getElementById('stack-chip');
-const finishChip = document.getElementById('finish-chip');
-const kahnOrder = document.getElementById('kahn-order');
-const dfsOrder = document.getElementById('dfs-order');
-const playBtn = document.getElementById('play-btn');
-const pauseBtn = document.getElementById('pause-btn');
-const stepBtn = document.getElementById('step-btn');
-const resetBtn = document.getElementById('reset-btn');
-const graphBtn = document.getElementById('graph-btn');
-const speedSlider = document.getElementById('speed-slider');
-const speedLabel = document.getElementById('speed-label');
-
-const positions = [
-  { x: 90, y: 90 }, { x: 280, y: 90 }, { x: 470, y: 90 },
-  { x: 180, y: 250 }, { x: 380, y: 250 }, { x: 280, y: 420 }
+// ── Preset graph definitions ───────────────────────────────────────────────
+// Each preset: { name, V, edges:[[u,v],...], positions:[[x,y],...] }
+const PRESETS = [
+  {
+    name: 'Small DAG (6 nodes)',
+    V: 6,
+    labels: ['A','B','C','D','E','F'],
+    edges: [[0,1],[0,2],[1,3],[2,3],[3,4],[2,5],[4,5]],
+    // positions as fractions of SVG width/height (will be scaled)
+    pos: [[0.12,0.5],[0.32,0.2],[0.32,0.8],[0.54,0.5],[0.74,0.2],[0.88,0.65]]
+  },
+  {
+    name: 'Large DAG (8 nodes)',
+    V: 8,
+    labels: ['A','B','C','D','E','F','G','H'],
+    edges: [[0,2],[0,3],[1,3],[1,4],[2,5],[3,5],[3,6],[4,6],[5,7],[6,7]],
+    pos: [[0.10,0.3],[0.10,0.7],[0.30,0.15],[0.30,0.5],[0.30,0.85],[0.60,0.25],[0.60,0.72],[0.88,0.5]]
+  },
+  {
+    name: 'Cycle (7 nodes)',
+    V: 7,
+    labels: ['A','B','C','D','E','F','G'],
+    edges: [[0,1],[0,2],[1,3],[2,3],[3,4],[4,5],[5,3],[3,6]],
+    pos: [[0.12,0.5],[0.30,0.2],[0.30,0.8],[0.52,0.5],[0.68,0.25],[0.82,0.45],[0.88,0.72]]
+  }
 ];
 
-let graph = null;
-let frames = [];
-let frameIndex = 0;
+// ── State ──────────────────────────────────────────────────────────────────
+let currentPreset = 0;
+let graph = null;   // { V, labels, edges, pos, adj }
+let steps = [];
+let stepIdx = 0;
+let playing = false;
 let timer = null;
-let speed = 520;
 
-function buildDag() {
-  const nodes = ['A', 'B', 'C', 'D', 'E', 'F'];
-  const edges = [];
-  for (let from = 0; from < nodes.length; from++) {
-    for (let to = from + 1; to < nodes.length; to++) {
-      if (Math.random() < 0.38) edges.push([from, to]);
-    }
-  }
-  for (let i = 0; i < nodes.length - 1; i++) {
-    if (!edges.some(edge => edge[0] === i && edge[1] === i + 1)) edges.push([i, i + 1]);
-  }
-  return { nodes, edges };
+// Render state (set per step)
+let renderState = {
+  nodeStatus: [],   // 'default'|'queue'|'current'|'done'|'cycle'
+  inDegree: [],
+  edgeStatus: [],   // 'default'|'consumed'|'active'|'cycle'
+  queue: [],
+  result: [],
+  pLine: -1,
+};
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const svgEl        = document.getElementById('graph');
+const edgeLayer    = document.getElementById('edgeLayer');
+const nodeLayer    = document.getElementById('nodeLayer');
+const queueDisplay = document.getElementById('queueDisplay');
+const resultDisplay= document.getElementById('resultDisplay');
+const resultBanner = document.getElementById('resultBanner');
+const logEl        = document.getElementById('log');
+const statV        = document.getElementById('statV');
+const statCur      = document.getElementById('statCur');
+const statQ        = document.getElementById('statQ');
+const statR        = document.getElementById('statR');
+const statPhase    = document.getElementById('statPhase');
+const indegHead    = document.getElementById('indegHead');
+const indegBody    = document.getElementById('indegBody');
+const btnPlay      = document.getElementById('btnPlay');
+const btnPause     = document.getElementById('btnPause');
+const btnStep      = document.getElementById('btnStep');
+const speedSlider  = document.getElementById('speedSlider');
+const speedLabel   = document.getElementById('speedLabel');
+
+speedSlider.addEventListener('input', () => { speedLabel.textContent = speedSlider.value; });
+
+// ── SVG helpers ────────────────────────────────────────────────────────────
+const NODE_R = 20;
+const SVG_H  = 320;
+
+function getSVGWidth() {
+  return svgEl.clientWidth || svgEl.getBoundingClientRect().width || 600;
 }
 
-function cloneFrame(frame) {
-  return JSON.parse(JSON.stringify(frame));
+function nodeXY(i) {
+  const w = getSVGWidth();
+  const [fx, fy] = graph.pos[i];
+  return { x: fx * w, y: fy * SVG_H };
 }
 
-function buildFrames() {
-  frames = [];
-  const n = graph.nodes.length;
-  const adj = Array.from({ length: n }, () => []);
-  const indeg = Array(n).fill(0);
-  for (const [u, v] of graph.edges) {
-    adj[u].push(v);
-    indeg[v] += 1;
-  }
-
-  const base = {
-    node: null,
-    status: 'Start traversal',
-    kahn: { queue: [], order: [], indeg: indeg.slice(), removedEdges: [], active: null, queueSet: [] },
-    dfs: { stack: [], order: [], active: null, onStack: [], done: [], edge: null }
+// Compute edge endpoints (clipped to circle border)
+function edgeEndpoints(u, v) {
+  const a = nodeXY(u), b = nodeXY(v);
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+  const ux = dx/dist, uy = dy/dist;
+  return {
+    x1: a.x + ux * (NODE_R + 1),
+    y1: a.y + uy * (NODE_R + 1),
+    x2: b.x - ux * (NODE_R + 8),
+    y2: b.y - uy * (NODE_R + 8),
   };
-  frames.push(cloneFrame(base));
+}
 
+function markerForStatus(s) {
+  if (s === 'active')    return 'url(#arrow-gold)';
+  if (s === 'consumed')  return 'url(#arrow-good)';
+  if (s === 'dim')       return 'url(#arrow-dim)';
+  if (s === 'cycle')     return 'url(#arrow-warn)';
+  return 'url(#arrow-default)';
+}
+
+function colorForEdge(s) {
+  if (s === 'active')    return '#e3b341';
+  if (s === 'consumed')  return '#3fb950';
+  if (s === 'dim')       return '#30363d';
+  if (s === 'cycle')     return '#f78166';
+  return '#30363d';
+}
+
+function opacityForEdge(s) {
+  return s === 'dim' ? 0.35 : 1;
+}
+
+function strokeWidthForEdge(s) {
+  return (s === 'active' || s === 'cycle') ? 2 : 1.5;
+}
+
+function nodeColors(s) {
+  if (s === 'queue')   return { fill:'var(--accent0)',  stroke:'var(--accent)',  text:'var(--accent)' };
+  if (s === 'current') return { fill:'var(--gold0)',    stroke:'var(--gold)',    text:'var(--gold)' };
+  if (s === 'done')    return { fill:'var(--good0)',    stroke:'var(--good)',    text:'var(--good)' };
+  if (s === 'cycle')   return { fill:'var(--warn0)',    stroke:'var(--warn)',    text:'var(--warn)' };
+  return { fill:'var(--s2)', stroke:'var(--border)', text:'var(--muted)' };
+}
+
+// ── Build SVG ──────────────────────────────────────────────────────────────
+function buildSVG() {
+  edgeLayer.innerHTML = '';
+  nodeLayer.innerHTML = '';
+
+  // Edges
+  graph.edges.forEach((e, i) => {
+    const [u, v] = e;
+    const ep = edgeEndpoints(u, v);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', ep.x1); line.setAttribute('y1', ep.y1);
+    line.setAttribute('x2', ep.x2); line.setAttribute('y2', ep.y2);
+    line.setAttribute('stroke', '#30363d');
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('marker-end', 'url(#arrow-default)');
+    line.setAttribute('id', `edge-${i}`);
+    line.style.transition = 'stroke .25s, opacity .25s, stroke-width .25s';
+    edgeLayer.appendChild(line);
+  });
+
+  // Nodes
+  graph.labels.forEach((lbl, i) => {
+    const {x, y} = nodeXY(i);
+
+    // Shadow circle
+    const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    shadow.setAttribute('cx', x); shadow.setAttribute('cy', y+2);
+    shadow.setAttribute('r', NODE_R+1);
+    shadow.setAttribute('fill', 'rgba(0,0,0,0.3)');
+    shadow.setAttribute('id', `node-shadow-${i}`);
+    nodeLayer.appendChild(shadow);
+
+    // Main circle
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', x); circle.setAttribute('cy', y);
+    circle.setAttribute('r', NODE_R);
+    circle.setAttribute('fill', 'var(--s2)');
+    circle.setAttribute('stroke', 'var(--border)');
+    circle.setAttribute('stroke-width', '2');
+    circle.setAttribute('id', `node-circle-${i}`);
+    circle.style.transition = 'fill .25s, stroke .25s';
+    nodeLayer.appendChild(circle);
+
+    // Label
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', x); text.setAttribute('y', y + 1);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('fill', 'var(--muted)');
+    text.setAttribute('font-size', '13');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('font-family', 'monospace');
+    text.setAttribute('id', `node-text-${i}`);
+    text.style.transition = 'fill .25s';
+    text.textContent = lbl;
+    nodeLayer.appendChild(text);
+
+    // In-degree badge
+    const badge = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    badge.setAttribute('x', x + NODE_R - 2);
+    badge.setAttribute('y', y - NODE_R + 4);
+    badge.setAttribute('text-anchor', 'middle');
+    badge.setAttribute('dominant-baseline', 'middle');
+    badge.setAttribute('fill', 'var(--muted)');
+    badge.setAttribute('font-size', '9');
+    badge.setAttribute('font-weight', '700');
+    badge.setAttribute('font-family', 'monospace');
+    badge.setAttribute('id', `node-badge-${i}`);
+    nodeLayer.appendChild(badge);
+  });
+}
+
+function updateSVG(ns, es, inDeg) {
+  // Update nodes
+  graph.labels.forEach((_, i) => {
+    const c = nodeColors(ns[i]);
+    const circle = document.getElementById(`node-circle-${i}`);
+    const text   = document.getElementById(`node-text-${i}`);
+    const badge  = document.getElementById(`node-badge-${i}`);
+    if (circle) { circle.setAttribute('fill', c.fill); circle.setAttribute('stroke', c.stroke); }
+    if (text)   { text.setAttribute('fill', c.text); }
+    if (badge && inDeg)  {
+      badge.textContent = inDeg[i] !== undefined ? inDeg[i] : '';
+      badge.setAttribute('fill', c.stroke);
+    }
+  });
+  // Update edges
+  graph.edges.forEach((_, i) => {
+    const status = es[i] || 'default';
+    const line = document.getElementById(`edge-${i}`);
+    if (line) {
+      line.setAttribute('stroke', colorForEdge(status));
+      line.setAttribute('stroke-width', strokeWidthForEdge(status));
+      line.setAttribute('marker-end', markerForStatus(status));
+      line.style.opacity = opacityForEdge(status);
+    }
+  });
+}
+
+// ── Pseudocode highlight ───────────────────────────────────────────────────
+function highlightLine(n) {
+  document.querySelectorAll('.ps-line').forEach(el => {
+    el.classList.remove('active');
+  });
+  if (n >= 0) {
+    const el = document.querySelector(`.ps-line[data-line="${n}"]`);
+    if (el) el.classList.add('active');
+  }
+}
+
+// ── In-degree table ────────────────────────────────────────────────────────
+function renderInDegTable(inDeg, ns) {
+  indegHead.innerHTML = '';
+  indegBody.innerHTML = '';
+  graph.labels.forEach((lbl, i) => {
+    const th = document.createElement('th');
+    th.textContent = lbl;
+    indegHead.appendChild(th);
+    const td = document.createElement('td');
+    td.textContent = inDeg[i] !== undefined ? inDeg[i] : '?';
+    // class based on node status
+    if      (ns[i] === 'current') td.className = 'id-current';
+    else if (ns[i] === 'queue')   td.className = 'id-queue';
+    else if (ns[i] === 'done')    td.className = 'id-done';
+    else if (ns[i] === 'cycle')   td.className = 'id-warn';
+    else if (inDeg[i] === 0)      td.className = 'id-zero';
+    indegBody.appendChild(td);
+  });
+}
+
+// ── Queue display ──────────────────────────────────────────────────────────
+function renderQueue(q) {
+  if (!q || q.length === 0) {
+    queueDisplay.innerHTML = '<span style="color:var(--muted);font-size:.8rem">Empty</span>';
+    return;
+  }
+  queueDisplay.innerHTML = '';
+  q.forEach((v, idx) => {
+    if (idx > 0) {
+      const arr = document.createElement('span');
+      arr.className = 'q-arrow';
+      arr.textContent = '→';
+      queueDisplay.appendChild(arr);
+    }
+    const el = document.createElement('div');
+    el.className = 'q-node';
+    el.textContent = graph.labels[v];
+    queueDisplay.appendChild(el);
+  });
+}
+
+// ── Result display ─────────────────────────────────────────────────────────
+function renderResult(res) {
+  if (!res || res.length === 0) {
+    resultDisplay.innerHTML = '<span style="color:var(--muted);font-size:.8rem">—</span>';
+    return;
+  }
+  resultDisplay.innerHTML = '';
+  res.forEach((v, idx) => {
+    const wrap = document.createElement('div');
+    wrap.style.display = 'flex';
+    wrap.style.flexDirection = 'column';
+    wrap.style.alignItems = 'center';
+    const el = document.createElement('div');
+    el.className = 'res-node';
+    el.textContent = graph.labels[v];
+    const ri = document.createElement('div');
+    ri.className = 'res-idx';
+    ri.textContent = idx;
+    wrap.appendChild(el);
+    wrap.appendChild(ri);
+    resultDisplay.appendChild(wrap);
+    if (idx < res.length - 1) {
+      const arr = document.createElement('span');
+      arr.style.cssText = 'color:var(--good);font-size:.9rem;align-self:center;padding:0 2px';
+      arr.textContent = '→';
+      resultDisplay.appendChild(arr);
+    }
+  });
+}
+
+// ── Log ────────────────────────────────────────────────────────────────────
+function addLog(text, cls) {
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + (cls || '');
+  el.textContent = text;
+  logEl.prepend(el);
+  while (logEl.children.length > 80) logEl.removeChild(logEl.lastChild);
+}
+
+// ── Build animation steps ──────────────────────────────────────────────────
+function buildSteps(g) {
+  const V = g.V;
+  const adj = g.adj;
+  const steps = [];
+
+  // Helper to snapshot
+  function snap(extra) {
+    return Object.assign({}, extra);
+  }
+
+  // Compute initial in-degrees
+  const inDeg = new Array(V).fill(0);
+  g.edges.forEach(([u, v]) => { inDeg[v]++; });
+
+  const nodeStatus  = new Array(V).fill('default');
+  const edgeStatus  = new Array(g.edges.length).fill('default');
+
+  function push(s) { steps.push(s); }
+
+  // Step 0: show initial state
+  push({ type:'init', pLine:1,
+    nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+    queue:[], result:[], msg:'Compute in-degrees for all vertices', msgCls:'ev-queue' });
+
+  // Find 0-in-degree nodes
   const queue = [];
-  indeg.forEach((value, index) => { if (value === 0) queue.push(index); });
-  base.kahn.queue = queue.slice();
-  base.kahn.queueSet = queue.slice();
-  frames.push(cloneFrame(base));
+  for (let v = 0; v < V; v++) {
+    if (inDeg[v] === 0) queue.push(v);
+  }
 
-  const kahnState = cloneFrame(base).kahn;
-  while (queue.length) {
-    const node = queue.shift();
-    kahnState.active = node;
-    kahnState.queue = queue.slice();
-    kahnState.queueSet = queue.slice();
-    kahnState.order.push(node);
-    frames.push({
-      node,
-      status: `Kahn removes ${graph.nodes[node]} from the queue`,
-      kahn: JSON.parse(JSON.stringify(kahnState)),
-      dfs: cloneFrame(base).dfs
-    });
-    for (const next of adj[node]) {
-      kahnState.removedEdges = [[node, next]];
-      kahnState.indeg[next] -= 1;
-      if (kahnState.indeg[next] === 0) {
-        queue.push(next);
-      }
-      kahnState.queue = queue.slice();
-      kahnState.queueSet = queue.slice();
-      frames.push({
-        node: next,
-        status: `Kahn updates indegree of ${graph.nodes[next]}`,
-        kahn: JSON.parse(JSON.stringify(kahnState)),
-        dfs: cloneFrame(base).dfs
-      });
+  // Mark queue nodes
+  queue.forEach(v => { nodeStatus[v] = 'queue'; });
+  push({ type:'init_queue', pLine:2,
+    nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+    queue:[...queue], result:[],
+    msg:`Enqueue zero-in-degree: [${queue.map(v=>g.labels[v]).join(', ')}]`, msgCls:'ev-queue' });
+
+  const result = [];
+
+  while (queue.length > 0) {
+    // Dequeue
+    const u = queue.shift();
+    nodeStatus[u] = 'current';
+    push({ type:'dequeue', pLine:5, current:u,
+      nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+      queue:[...queue], result:[...result],
+      msg:`Dequeue ${g.labels[u]}`, msgCls:'ev-process' });
+
+    // Add to result
+    result.push(u);
+    push({ type:'add_result', pLine:6, current:u,
+      nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+      queue:[...queue], result:[...result],
+      msg:`Add ${g.labels[u]} to result`, msgCls:'ev-process' });
+
+    // Process neighbors
+    const neighbors = adj[u] || [];
+    if (neighbors.length === 0) {
+      push({ type:'no_neighbors', pLine:7, current:u,
+        nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+        queue:[...queue], result:[...result],
+        msg:`${g.labels[u]} has no outgoing edges`, msgCls:'ev-edge' });
     }
-    kahnState.removedEdges = [];
-  }
 
-  const visited = Array(n).fill(false);
-  const finished = [];
-  const dfsState = { stack: [], order: [], active: null, onStack: [], done: [], edge: null };
-  function dfs(u) {
-    visited[u] = true;
-    dfsState.stack.push(u);
-    dfsState.onStack = dfsState.stack.slice();
-    dfsState.active = u;
-    frames.push({
-      node: u,
-      status: `DFS enters ${graph.nodes[u]}`,
-      kahn: cloneFrame(base).kahn,
-      dfs: JSON.parse(JSON.stringify(dfsState))
-    });
-    for (const v of adj[u]) {
-      dfsState.edge = [u, v];
-      frames.push({
-        node: v,
-        status: `DFS explores edge ${graph.nodes[u]} → ${graph.nodes[v]}`,
-        kahn: cloneFrame(base).kahn,
-        dfs: JSON.parse(JSON.stringify(dfsState))
-      });
-      if (!visited[v]) dfs(v);
-    }
-    dfsState.stack.pop();
-    finished.push(u);
-    dfsState.order = finished.slice().reverse();
-    dfsState.done = finished.slice();
-    dfsState.onStack = dfsState.stack.slice();
-    dfsState.active = u;
-    dfsState.edge = null;
-    frames.push({
-      node: u,
-      status: `DFS finishes ${graph.nodes[u]}`,
-      kahn: cloneFrame(base).kahn,
-      dfs: JSON.parse(JSON.stringify(dfsState))
-    });
-  }
-  for (let i = 0; i < n; i++) {
-    if (!visited[i]) dfs(i);
-  }
-}
+    for (const { v, edgeIdx } of neighbors) {
+      // Highlight edge as active
+      edgeStatus[edgeIdx] = 'active';
+      push({ type:'check_edge', pLine:7, current:u, neighbor:v,
+        nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+        queue:[...queue], result:[...result],
+        msg:`  Edge ${g.labels[u]}→${g.labels[v]}: decrement inDegree[${g.labels[v]}]`, msgCls:'ev-edge' });
 
-function colorByOrder(index, total) {
-  const hue = 210 - (index / Math.max(total, 1)) * 160;
-  return `hsl(${hue}, 70%, 55%)`;
-}
+      inDeg[v]--;
+      edgeStatus[edgeIdx] = 'consumed';
+      push({ type:'decrement', pLine:8, current:u, neighbor:v,
+        nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+        queue:[...queue], result:[...result],
+        msg:`  inDeg[${g.labels[v]}] = ${inDeg[v]}`, msgCls:'ev-edge' });
 
-function renderGraph(svg, sideState, type) {
-  svg.innerHTML = `
-    <defs>
-      <marker id="${type}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6e7681"></path>
-      </marker>
-    </defs>
-    ${graph.edges.map(([u, v]) => {
-      const a = positions[u];
-      const b = positions[v];
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const len = Math.hypot(dx, dy) || 1;
-      const ux = dx / len;
-      const uy = dy / len;
-      const x1 = a.x + ux * 30;
-      const y1 = a.y + uy * 30;
-      const x2 = b.x - ux * 30;
-      const y2 = b.y - uy * 30;
-      const activeEdge = type === 'kahn'
-        ? sideState.removedEdges.some(edge => edge[0] === u && edge[1] === v)
-        : sideState.edge && sideState.edge[0] === u && sideState.edge[1] === v;
-      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${activeEdge ? '#f78166' : '#6e7681'}" stroke-width="${activeEdge ? 4 : 2.2}" marker-end="url(#${type}-arrow)" opacity="${activeEdge ? 1 : 0.8}"></line>`;
-    }).join('')}
-    ${graph.nodes.map((label, index) => {
-      let fill = '#1f6feb';
-      if (type === 'kahn') {
-        if (sideState.order.includes(index)) fill = colorByOrder(sideState.order.indexOf(index), graph.nodes.length);
-        else if (sideState.queueSet.includes(index)) fill = '#e3b341';
-        if (sideState.active === index) fill = '#58a6ff';
+      if (inDeg[v] === 0) {
+        nodeStatus[v] = 'queue';
+        queue.push(v);
+        push({ type:'enqueue', pLine:10, current:u, neighbor:v,
+          nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+          queue:[...queue], result:[...result],
+          msg:`  inDeg[${g.labels[v]}]=0 → enqueue ${g.labels[v]}`, msgCls:'ev-queue' });
       } else {
-        if (sideState.done.includes(index)) fill = colorByOrder(sideState.done.indexOf(index), graph.nodes.length);
-        else if (sideState.onStack.includes(index)) fill = '#e3b341';
-        if (sideState.active === index) fill = '#58a6ff';
+        push({ type:'not_zero', pLine:9, current:u, neighbor:v,
+          nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+          queue:[...queue], result:[...result],
+          msg:`  inDeg[${g.labels[v]}]=${inDeg[v]}, not queued yet`, msgCls:'ev-edge' });
       }
-      return `<g>
-        <circle cx="${positions[index].x}" cy="${positions[index].y}" r="28" fill="${fill}" stroke="#c9d1d9"></circle>
-        <text x="${positions[index].x}" y="${positions[index].y + 5}" fill="#fff" font-size="18" text-anchor="middle">${label}</text>
-      </g>`;
-    }).join('')}
-  `;
-}
-
-function render() {
-  const frame = frames[frameIndex] || frames[0];
-  if (!frame) return;
-  stepValue.textContent = frameIndex + 1;
-  nodeValue.textContent = frame.node == null ? '-' : graph.nodes[frame.node];
-  queueValue.textContent = frame.kahn.queue.length;
-  stackValue.textContent = frame.dfs.stack.length;
-  statusValue.textContent = frame.status;
-  queueChip.textContent = `Queue: [${frame.kahn.queue.map(i => graph.nodes[i]).join(', ')}]`;
-  indegreeChip.textContent = `Indegree: [${frame.kahn.indeg.map((value, i) => `${graph.nodes[i]}:${value}`).join('  ')}]`;
-  stackChip.textContent = `DFS stack: [${frame.dfs.stack.map(i => graph.nodes[i]).join(', ')}]`;
-  finishChip.textContent = `Finish order: [${frame.dfs.done.map(i => graph.nodes[i]).join(', ')}]`;
-  kahnOrder.innerHTML = `<strong>Kahn order:</strong> ${frame.kahn.order.map(i => graph.nodes[i]).join(' → ') || 'pending'}`;
-  dfsOrder.innerHTML = `<strong>DFS topo order:</strong> ${frame.dfs.order.map(i => graph.nodes[i]).join(' → ') || 'pending'}`;
-  renderGraph(kahnSvg, frame.kahn, 'kahn');
-  renderGraph(dfsSvg, frame.dfs, 'dfs');
-}
-
-function stepForward() {
-  if (!frames.length) return;
-  frameIndex = Math.min(frames.length - 1, frameIndex + 1);
-  render();
-}
-
-function setPlaying(playing) {
-  clearInterval(timer);
-  timer = null;
-  playBtn.disabled = playing;
-  pauseBtn.disabled = !playing;
-  if (!playing) return;
-  timer = setInterval(() => {
-    if (frameIndex >= frames.length - 1) {
-      setPlaying(false);
-      return;
     }
-    stepForward();
-  }, speed);
+
+    // Mark node done
+    nodeStatus[u] = 'done';
+    push({ type:'done_node', pLine:4, current:u,
+      nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+      queue:[...queue], result:[...result],
+      msg:`Finished processing ${g.labels[u]}`, msgCls:'ev-done' });
+  }
+
+  // Check for cycle
+  push({ type:'check_cycle', pLine:11,
+    nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+    queue:[], result:[...result],
+    msg:`Check: result.length=${result.length} vs V=${V}`, msgCls:'ev-edge' });
+
+  if (result.length < V) {
+    // Cycle detected — highlight unvisited nodes
+    for (let v = 0; v < V; v++) {
+      if (nodeStatus[v] !== 'done') {
+        nodeStatus[v] = 'cycle';
+      }
+    }
+    // Mark edges to/from cycle nodes
+    g.edges.forEach(([u, cv], i) => {
+      if (nodeStatus[u] === 'cycle' || nodeStatus[cv] === 'cycle') {
+        if (edgeStatus[i] !== 'consumed') edgeStatus[i] = 'cycle';
+      }
+    });
+    push({ type:'cycle', pLine:12,
+      nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+      queue:[], result:[...result],
+      msg:`CYCLE DETECTED — ${V - result.length} vertices not reachable`, msgCls:'ev-cycle' });
+  } else {
+    push({ type:'success', pLine:13,
+      nodeStatus:[...nodeStatus], inDeg:[...inDeg], edgeStatus:[...edgeStatus],
+      queue:[], result:[...result],
+      msg:`Topological sort complete! Order: [${result.map(v=>g.labels[v]).join(' → ')}]`, msgCls:'ev-done' });
+  }
+
+  return steps;
 }
 
-function rebuild() {
-  graph = buildDag();
-  buildFrames();
-  frameIndex = 0;
-  setPlaying(false);
-  render();
+// ── Load preset ────────────────────────────────────────────────────────────
+function loadPreset(idx) {
+  currentPreset = idx;
+  document.querySelectorAll('.pb').forEach((btn, i) => {
+    btn.classList.toggle('active', i === idx);
+  });
+  const p = PRESETS[idx];
+  // Build adjacency list with edge indices
+  const adj = Array.from({length: p.V}, () => []);
+  p.edges.forEach(([u, v], i) => {
+    adj[u].push({ v, edgeIdx: i });
+  });
+  graph = { ...p, adj };
+  reset();
 }
 
-playBtn.addEventListener('click', () => setPlaying(true));
-pauseBtn.addEventListener('click', () => setPlaying(false));
-stepBtn.addEventListener('click', stepForward);
-resetBtn.addEventListener('click', () => { frameIndex = 0; render(); });
-graphBtn.addEventListener('click', rebuild);
-speedSlider.addEventListener('input', () => {
-  speed = Number(speedSlider.value);
-  speedLabel.textContent = String(speed);
-  if (timer) setPlaying(true);
+// ── Reset ──────────────────────────────────────────────────────────────────
+function reset() {
+  pause();
+  stepIdx = 0;
+
+  steps = buildSteps(graph);
+
+  // Initial in-degrees for display
+  const initInDeg = new Array(graph.V).fill(0);
+  graph.edges.forEach(([u,v]) => { initInDeg[v]++; });
+
+  // Clear display
+  resultBanner.style.display = 'none';
+  logEl.innerHTML = '';
+
+  statV.textContent = graph.V;
+  statCur.textContent = '—';
+  statQ.textContent = '0';
+  statR.textContent = '0';
+  statPhase.textContent = 'Ready';
+
+  // Build SVG
+  buildSVG();
+  updateSVG(
+    new Array(graph.V).fill('default'),
+    new Array(graph.edges.length).fill('default'),
+    initInDeg
+  );
+  renderInDegTable(initInDeg, new Array(graph.V).fill('default'));
+  renderQueue([]);
+  renderResult([]);
+  highlightLine(-1);
+
+  btnPlay.disabled = false;
+  btnStep.disabled = false;
+  btnPause.disabled = true;
+}
+
+// ── Apply step ─────────────────────────────────────────────────────────────
+function applyStep(s) {
+  highlightLine(s.pLine);
+  updateSVG(s.nodeStatus, s.edgeStatus, s.inDeg);
+  renderInDegTable(s.inDeg, s.nodeStatus);
+  renderQueue(s.queue);
+  renderResult(s.result);
+
+  const cur = s.current !== undefined ? graph.labels[s.current] : '—';
+  statCur.textContent = (s.current !== undefined) ? cur : '—';
+  statQ.textContent = s.queue.length;
+  statR.textContent = s.result.length;
+
+  if (s.msg) addLog(s.msg, s.msgCls);
+
+  switch (s.type) {
+    case 'init':
+      statPhase.textContent = 'Computing';
+      break;
+    case 'init_queue':
+      statPhase.textContent = 'Queue Init';
+      break;
+    case 'dequeue':
+      statPhase.textContent = 'Dequeue';
+      break;
+    case 'add_result':
+      statPhase.textContent = 'Add Result';
+      break;
+    case 'check_edge':
+    case 'decrement':
+    case 'enqueue':
+    case 'not_zero':
+    case 'no_neighbors':
+      statPhase.textContent = 'BFS';
+      break;
+    case 'done_node':
+      statPhase.textContent = 'Next';
+      break;
+    case 'check_cycle':
+      statPhase.textContent = 'Check Cycle';
+      break;
+    case 'success':
+      statPhase.textContent = 'Done';
+      statCur.textContent = '—';
+      resultBanner.className = 'result-banner success';
+      resultBanner.innerHTML = `<strong>Topological order found!</strong> &nbsp;<code>${s.result.map(v => graph.labels[v]).join(' → ')}</code>`;
+      resultBanner.style.display = 'block';
+      endAnimation();
+      break;
+    case 'cycle':
+      statPhase.textContent = 'Cycle!';
+      statCur.textContent = '—';
+      resultBanner.className = 'result-banner failure';
+      resultBanner.innerHTML = `<strong>Cycle detected!</strong> — Topological sort is impossible. ${graph.V - s.result.length} vertices remain unprocessed. Partial order: <code>${s.result.map(v => graph.labels[v]).join(' → ')}</code>`;
+      resultBanner.style.display = 'block';
+      endAnimation();
+      break;
+  }
+}
+
+function endAnimation() {
+  playing = false;
+  clearTimeout(timer);
+  btnPlay.disabled = true;
+  btnStep.disabled = true;
+  btnPause.disabled = true;
+}
+
+// ── Playback ──────────────────────────────────────────────────────────────
+function getDelay() {
+  const v = parseInt(speedSlider.value);
+  return Math.round(1000 - (v - 1) * (950 / 9));
+}
+
+function play() {
+  if (stepIdx >= steps.length) return;
+  playing = true;
+  btnPlay.disabled = true;
+  btnPause.disabled = false;
+  btnStep.disabled = true;
+  tick();
+}
+
+function tick() {
+  if (!playing) return;
+  if (stepIdx >= steps.length) { endAnimation(); return; }
+  applyStep(steps[stepIdx++]);
+  timer = setTimeout(tick, getDelay());
+}
+
+function pause() {
+  playing = false;
+  clearTimeout(timer);
+  if (stepIdx < steps.length) {
+    btnPlay.disabled = false;
+    btnStep.disabled = false;
+  }
+  btnPause.disabled = true;
+}
+
+function stepFwd() {
+  if (stepIdx >= steps.length) return;
+  applyStep(steps[stepIdx++]);
+  if (stepIdx >= steps.length) {
+    btnPlay.disabled = true;
+    btnStep.disabled = true;
+  }
+}
+
+// ── Rebuild SVG on resize ──────────────────────────────────────────────────
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (!graph) return;
+    buildSVG();
+    // Re-apply current state
+    if (steps.length > 0 && stepIdx > 0) {
+      const s = steps[Math.max(0, stepIdx - 1)];
+      updateSVG(s.nodeStatus, s.edgeStatus, s.inDeg);
+    } else {
+      const initInDeg = new Array(graph.V).fill(0);
+      graph.edges.forEach(([u,v]) => { initInDeg[v]++; });
+      updateSVG(new Array(graph.V).fill('default'), new Array(graph.edges.length).fill('default'), initInDeg);
+    }
+  }, 150);
 });
 
-rebuild();
+// ── Init ───────────────────────────────────────────────────────────────────
+loadPreset(0);
 </script>
 </body>
 </html>
