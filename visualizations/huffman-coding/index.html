@@ -19,6 +19,8 @@
   --amber:#fbbf24;
   --green:#4ade80;
   --red:#fb7185;
+  --orange:#fb923c;
+  --pink:#f472b6;
   --shadow:0 24px 80px rgba(0,0,0,.34);
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -33,402 +35,204 @@ body{
 }
 a{color:inherit}
 header{
-  position:sticky;
-  top:0;
-  z-index:20;
+  position:sticky;top:0;z-index:20;
   backdrop-filter:blur(18px);
   background:rgba(3,6,14,.76);
   border-bottom:1px solid rgba(38,58,103,.65);
 }
 .header-inner{
-  max-width:1420px;
-  margin:0 auto;
-  padding:18px 24px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:18px;
+  max-width:1420px;margin:0 auto;padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
 }
 .brand h1{font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase}
 .brand h1 span{color:var(--cyan)}
 .brand p{margin-top:5px;font-size:.82rem;color:var(--muted)}
 .back{
-  text-decoration:none;
-  font-size:.82rem;
-  color:var(--muted);
-  border:1px solid var(--border);
-  border-radius:999px;
-  padding:10px 16px;
-  transition:.18s ease;
+  text-decoration:none;font-size:.82rem;color:var(--muted);
+  border:1px solid var(--border);border-radius:999px;padding:10px 16px;transition:.18s ease;
 }
 .back:hover{color:var(--text);border-color:var(--cyan);transform:translateY(-1px)}
+
 .shell{
-  max-width:1420px;
-  margin:0 auto;
-  padding:28px 24px 42px;
-  display:grid;
-  grid-template-columns:minmax(0,1.4fr) 360px;
-  gap:22px;
+  max-width:1420px;margin:0 auto;padding:28px 24px 42px;
+  display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;
 }
 .panel{
   background:linear-gradient(180deg, rgba(11,18,33,.96), rgba(7,12,22,.96));
-  border:1px solid rgba(38,58,103,.82);
-  border-radius:24px;
-  box-shadow:var(--shadow);
+  border:1px solid rgba(38,58,103,.82);border-radius:24px;box-shadow:var(--shadow);
 }
-.main{
-  padding:24px;
-  display:flex;
-  flex-direction:column;
-  gap:18px;
-}
+.main{padding:24px;display:flex;flex-direction:column;gap:18px;}
 .hero{
-  padding:24px;
-  border-radius:22px;
+  padding:24px;border-radius:22px;
   border:1px solid rgba(103,232,249,.16);
-  background:
-    linear-gradient(135deg, rgba(96,165,250,.14), rgba(103,232,249,.06) 40%, rgba(167,139,250,.16));
-  display:grid;
-  grid-template-columns:1.35fr .95fr;
-  gap:18px;
+  background:linear-gradient(135deg, rgba(96,165,250,.14), rgba(103,232,249,.06) 40%, rgba(167,139,250,.16));
 }
-.hero h2{font-size:2.15rem;line-height:1.02;margin-bottom:10px}
-.hero p{color:var(--muted);line-height:1.65;font-size:.96rem;max-width:60ch}
-.hero-metrics{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
+.hero h2{font-size:2rem;line-height:1.1;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.65;font-size:.92rem;max-width:72ch}
+
+/* Input */
+.input-row{display:flex;gap:10px;align-items:stretch;}
+.input-row input{
+  flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
+  color:var(--text);font-size:.95rem;padding:12px 16px;outline:none;
+  font-family:inherit;transition:.18s ease;
 }
-.metric{
-  background:rgba(7,14,27,.76);
-  border:1px solid rgba(103,232,249,.12);
-  border-radius:18px;
-  padding:14px;
+.input-row input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(103,232,249,.12);}
+.btn{
+  border:none;border-radius:12px;cursor:pointer;font-size:.9rem;font-weight:600;
+  padding:12px 20px;transition:.18s ease;font-family:inherit;white-space:nowrap;
 }
-.metric .label{
-  font-size:.7rem;
-  text-transform:uppercase;
-  letter-spacing:.14em;
-  color:var(--muted);
-  margin-bottom:8px;
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#030610;}
+.btn-primary:hover{filter:brightness(1.15);transform:translateY(-1px);}
+.btn-secondary{background:var(--surface-2);color:var(--muted);border:1px solid var(--border);}
+.btn-secondary:hover{color:var(--text);border-color:var(--cyan);}
+
+/* Tabs */
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);padding-bottom:0;}
+.tab{
+  background:transparent;border:none;color:var(--muted);font-size:.88rem;font-weight:600;
+  padding:10px 18px;cursor:pointer;border-radius:10px 10px 0 0;transition:.18s ease;
+  font-family:inherit;letter-spacing:.04em;text-transform:uppercase;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
 }
-.metric .value{font-size:1.35rem;font-weight:800}
-.metric .hint{margin-top:6px;font-size:.78rem;color:var(--muted);line-height:1.45}
-.toolbar,.status,.timeline,.freq-panel,.build-panel,.tree-panel,.table-panel,.side-card{
-  padding:18px;
-  border-radius:20px;
-  background:rgba(9,16,30,.92);
-  border:1px solid rgba(38,58,103,.72);
-}
-.toolbar{display:flex;flex-direction:column;gap:14px}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
-.field{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  min-width:150px;
-  flex:1;
-}
-.field.small{flex:.35;min-width:120px}
-.field label{
-  font-size:.72rem;
-  color:var(--muted);
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  font-weight:700;
-}
-input[type=text],input[type=range]{
-  width:100%;
-}
-input[type=text]{
-  background:var(--surface-2);
-  color:var(--text);
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab:hover:not(.active){color:var(--text);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* Step controls */
+.step-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--surface-2);border-radius:14px;padding:12px 16px;
   border:1px solid var(--border);
-  border-radius:14px;
-  padding:13px 14px;
-  font-size:1rem;
-  outline:none;
-  transition:border-color .18s ease, box-shadow .18s ease;
 }
-input[type=text]:focus{
-  border-color:var(--cyan);
-  box-shadow:0 0 0 3px rgba(103,232,249,.12);
+.step-bar .step-info{flex:1;font-size:.85rem;color:var(--muted);}
+.step-bar .step-info strong{color:var(--text);}
+.step-counter{font-size:.82rem;color:var(--muted);white-space:nowrap;}
+.step-slider{flex:1;min-width:80px;accent-color:var(--cyan);}
+
+/* Frequency table */
+.freq-table{
+  display:flex;flex-wrap:wrap;gap:8px;padding:16px;
+  background:var(--surface-2);border-radius:14px;border:1px solid var(--border);
 }
-.presets,.buttons{display:flex;flex-wrap:wrap;gap:10px}
-button{
-  border:none;
-  border-radius:14px;
-  padding:11px 16px;
-  font-size:.86rem;
-  font-weight:700;
-  cursor:pointer;
-  color:var(--text);
-  background:var(--surface-2);
-  border:1px solid var(--border);
-  transition:.18s ease;
+.freq-chip{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface-3);border:1px solid var(--border);border-radius:8px;
+  padding:5px 10px;font-size:.85rem;transition:.25s ease;
 }
-button:hover:not(:disabled){transform:translateY(-1px);border-color:var(--cyan)}
-button:disabled{opacity:.45;cursor:not-allowed}
-.primary{background:linear-gradient(135deg, var(--cyan), var(--blue));color:#04101d;border-color:transparent}
-.secondary{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.45);color:#ede9fe}
-.ghost{color:var(--muted)}
-.preset{padding:8px 12px;border-radius:999px;font-size:.78rem}
-.speedbox{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-left:auto;
-  min-width:220px;
+.freq-chip .ch{font-weight:700;color:var(--cyan);font-family:monospace;font-size:.95rem;}
+.freq-chip .cnt{color:var(--muted);}
+.freq-chip.highlight{border-color:var(--amber);background:rgba(251,191,36,.12);}
+
+/* Tree canvas */
+#tree-canvas{
+  width:100%;background:transparent;display:block;
+  min-height:340px;border-radius:14px;
 }
-.speedbox span{font-size:.78rem;color:var(--muted)}
-input[type=range]{accent-color:var(--cyan)}
-.status{
-  display:grid;
-  grid-template-columns:170px 1fr auto;
-  gap:14px;
-  align-items:center;
+.canvas-wrap{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:14px;
+  overflow:hidden;position:relative;
 }
-.pill{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-height:42px;
-  padding:0 14px;
-  border-radius:999px;
-  font-weight:800;
-  letter-spacing:.1em;
-  text-transform:uppercase;
-  font-size:.72rem;
-  background:rgba(96,165,250,.12);
-  border:1px solid rgba(96,165,250,.35);
-  color:#bfdbfe;
+.canvas-scroll{overflow-x:auto;overflow-y:hidden;}
+
+/* Priority queue */
+.pq-wrap{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:14px;
 }
-.status p{color:var(--muted);line-height:1.55;font-size:.9rem}
-.quick-stats{display:flex;gap:10px;flex-wrap:wrap}
-.stat-chip{
-  min-width:88px;
-  padding:10px 12px;
-  border-radius:14px;
-  border:1px solid rgba(38,58,103,.72);
-  background:var(--surface-2);
+.pq-label{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;}
+.pq-row{display:flex;gap:8px;flex-wrap:wrap;}
+.pq-node{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:var(--surface-3);border:1px solid var(--border);border-radius:10px;
+  padding:8px 12px;min-width:52px;transition:.3s ease;font-size:.82rem;
 }
-.stat-chip .k{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
-.stat-chip .v{font-size:1.05rem;font-weight:800;margin-top:4px}
-.timeline-track{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:10px;
-  margin-top:14px;
+.pq-node.merged{border-color:var(--green);background:rgba(74,222,128,.12);}
+.pq-node.new{border-color:var(--violet);background:rgba(167,139,250,.12);}
+.pq-node .pq-sym{font-weight:700;color:var(--cyan);font-family:monospace;font-size:.9rem;}
+.pq-node .pq-freq{color:var(--amber);font-weight:700;}
+
+/* Code table */
+.code-table-wrap{overflow-x:auto;}
+table.code-table{
+  width:100%;border-collapse:collapse;font-size:.88rem;
 }
-.timeline-step{
-  border-radius:16px;
-  padding:14px;
-  border:1px solid rgba(38,58,103,.7);
-  background:var(--surface-2);
+table.code-table th{
+  text-align:left;padding:9px 12px;font-size:.78rem;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);
 }
-.timeline-step.active{border-color:rgba(103,232,249,.55);box-shadow:0 0 0 2px rgba(103,232,249,.08) inset}
-.timeline-step.done{border-color:rgba(74,222,128,.42)}
-.timeline-step .eyebrow{
-  font-size:.68rem;
-  text-transform:uppercase;
-  letter-spacing:.14em;
-  color:var(--muted);
-  margin-bottom:8px;
+table.code-table td{
+  padding:9px 12px;border-bottom:1px solid rgba(38,58,103,.5);transition:.25s ease;
 }
-.timeline-step strong{display:block;font-size:.95rem}
-.timeline-step p{margin-top:7px;font-size:.82rem;color:var(--muted);line-height:1.45}
-.grid-two{
-  display:grid;
-  grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
-  gap:18px;
+table.code-table tr:last-child td{border-bottom:none;}
+table.code-table tr:hover td{background:rgba(103,232,249,.05);}
+.code-bits{font-family:monospace;letter-spacing:.12em;}
+.bit-0{color:var(--blue);}
+.bit-1{color:var(--amber);}
+
+/* Encoding panel */
+.encode-section{display:flex;flex-direction:column;gap:12px;}
+.bits-display{
+  font-family:monospace;font-size:1.05rem;letter-spacing:.08em;
+  line-height:1.8;word-break:break-all;padding:14px;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
+  min-height:60px;
 }
-.grid-stack{
-  display:grid;
-  grid-template-columns:minmax(0,1fr);
-  gap:18px;
+.stat-row{display:flex;gap:10px;flex-wrap:wrap;}
+.stat-pill{
+  flex:1;min-width:110px;background:var(--surface-3);border:1px solid var(--border);
+  border-radius:12px;padding:12px 16px;
 }
-.section-title{
-  display:flex;
-  justify-content:space-between;
-  align-items:end;
-  gap:12px;
-  margin-bottom:14px;
+.stat-pill .sp-label{font-size:.76rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;}
+.stat-pill .sp-val{font-size:1.3rem;font-weight:700;color:var(--cyan);}
+.stat-pill .sp-sub{font-size:.78rem;color:var(--muted);margin-top:2px;}
+
+/* Sidebar */
+.sidebar{padding:22px;display:flex;flex-direction:column;gap:18px;}
+.side-section{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:16px;
 }
-.section-title h3{font-size:1rem}
-.section-title p{font-size:.82rem;color:var(--muted)}
-.freq-chart{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+.side-section h3{
+  font-size:.82rem;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted);margin-bottom:12px;
 }
-.freq-row{
-  display:grid;
-  grid-template-columns:60px 1fr 60px 70px;
-  align-items:center;
-  gap:10px;
+.algo-step{
+  display:flex;gap:10px;align-items:flex-start;padding:8px 0;
+  border-bottom:1px solid rgba(38,58,103,.4);
 }
-.char-tag,.mini-tag{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:8px 10px;
-  min-height:38px;
-  border-radius:12px;
-  border:1px solid rgba(38,58,103,.74);
-  background:var(--surface-2);
-  font-weight:700;
+.algo-step:last-child{border-bottom:none;}
+.algo-step .step-num{
+  width:22px;height:22px;border-radius:50%;background:var(--surface-3);
+  border:1px solid var(--border);font-size:.75rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--cyan);
 }
-.char-tag.active{border-color:rgba(103,232,249,.55);box-shadow:0 0 0 2px rgba(103,232,249,.08) inset}
-.bar{
-  position:relative;
-  height:22px;
-  border-radius:999px;
-  overflow:hidden;
-  background:rgba(17,29,54,.95);
-  border:1px solid rgba(38,58,103,.66);
+.algo-step .step-num.active-step{
+  background:rgba(103,232,249,.2);border-color:var(--cyan);
 }
-.bar-fill{
-  height:100%;
-  width:0;
-  background:linear-gradient(90deg, var(--blue), var(--cyan));
-  transition:width .25s ease;
+.algo-step .step-text{font-size:.83rem;color:var(--muted);line-height:1.5;}
+.algo-step .step-text strong{color:var(--text);}
+
+.complexity{display:flex;flex-direction:column;gap:8px;}
+.cx-row{display:flex;justify-content:space-between;align-items:center;}
+.cx-label{font-size:.82rem;color:var(--muted);}
+.cx-val{font-size:.88rem;font-weight:700;font-family:monospace;color:var(--green);}
+
+.props{display:flex;flex-direction:column;gap:8px;}
+.prop{
+  display:flex;align-items:flex-start;gap:8px;
+  background:var(--surface-3);border-radius:8px;padding:8px 10px;
 }
-.bar-fill.active{background:linear-gradient(90deg, var(--amber), #fde68a)}
-.queue-list,.merge-log{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-}
-.queue-node{
-  min-width:110px;
-  padding:12px;
-  border-radius:16px;
-  background:linear-gradient(180deg, rgba(20,33,61,.95), rgba(12,19,35,.95));
-  border:1px solid rgba(38,58,103,.74);
-}
-.queue-node.active{border-color:rgba(251,191,36,.6);box-shadow:0 0 0 2px rgba(251,191,36,.08) inset}
-.queue-node.parent{border-color:rgba(167,139,250,.42)}
-.queue-node .node-name{font-size:.86rem;font-weight:800}
-.queue-node .node-meta{margin-top:6px;font-size:.78rem;color:var(--muted);line-height:1.4}
-.merge-log{margin-top:14px}
-.merge-chip{
-  padding:10px 12px;
-  border-radius:14px;
-  background:var(--surface-2);
-  border:1px solid rgba(38,58,103,.74);
-  font-size:.82rem;
-  color:var(--muted);
-}
-.merge-chip.active{border-color:rgba(103,232,249,.55);color:var(--text)}
-.tree-wrap{
-  min-height:420px;
-  border-radius:18px;
-  overflow:hidden;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(103,232,249,.06), transparent 24%),
-    linear-gradient(180deg, rgba(8,13,25,.95), rgba(5,8,15,.95));
-  border:1px solid rgba(38,58,103,.7);
-}
-svg{display:block;width:100%;height:100%}
-.edge{stroke:rgba(148,168,201,.4);stroke-width:2}
-.edge-label{
-  fill:#dbeafe;
-  font-size:12px;
-  font-weight:800;
-}
-.tree-node text{
-  fill:var(--text);
-  text-anchor:middle;
-  dominant-baseline:middle;
-  font-size:12px;
-  font-weight:800;
-}
-.tree-node circle{
-  fill:#13213c;
-  stroke:rgba(96,165,250,.3);
-  stroke-width:2;
-}
-.tree-node.leaf circle{fill:#10263b;stroke:rgba(74,222,128,.38)}
-.tree-node.parent circle{fill:#1b1f42;stroke:rgba(167,139,250,.42)}
-.tree-node.active circle{stroke:rgba(251,191,36,.85);filter:drop-shadow(0 0 10px rgba(251,191,36,.35))}
-.tree-node.done circle{stroke:rgba(103,232,249,.6)}
-.tree-node.small text{font-size:11px}
-.tree-caption{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  margin-top:12px;
-  color:var(--muted);
-  font-size:.82rem;
-}
-.code-table{
-  width:100%;
-  border-collapse:collapse;
-  overflow:hidden;
-}
-.code-table th,.code-table td{
-  padding:11px 12px;
-  border-bottom:1px solid rgba(38,58,103,.55);
-  text-align:left;
-  font-size:.86rem;
-}
-.code-table th{
-  color:var(--muted);
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  font-size:.72rem;
-}
-.code-table tr.active td{background:rgba(251,191,36,.06)}
-.code-bits{
-  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
-  letter-spacing:.08em;
-  font-weight:800;
-}
-.empty{
-  color:var(--muted);
-  font-size:.88rem;
-  line-height:1.6;
-}
-.aside{
-  padding:22px;
-  display:flex;
-  flex-direction:column;
-  gap:16px;
-}
-.side-card h3{font-size:.96rem;margin-bottom:10px}
-.side-card p,.side-card li{font-size:.88rem;line-height:1.65;color:var(--muted)}
-.side-card ul{padding-left:18px;display:flex;flex-direction:column;gap:6px}
-.legend{display:flex;flex-wrap:wrap;gap:8px}
-.legend-item{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  font-size:.8rem;
-  color:var(--muted);
-}
-.swatch{
-  width:12px;
-  height:12px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.2);
-}
-@media (max-width:1180px){
-  .shell{grid-template-columns:1fr}
-  .aside{padding-top:0}
-}
-@media (max-width:900px){
-  .hero{grid-template-columns:1fr}
-  .grid-two{grid-template-columns:1fr}
-  .status{grid-template-columns:1fr}
-}
-@media (max-width:640px){
-  .header-inner,.shell{padding-left:16px;padding-right:16px}
-  .main,.aside{padding:16px}
-  .hero,.toolbar,.status,.timeline,.freq-panel,.build-panel,.tree-panel,.table-panel,.side-card{padding:14px}
-  .hero h2{font-size:1.7rem}
-  .freq-row{grid-template-columns:54px 1fr 48px 58px}
-  .timeline-track{grid-template-columns:1fr}
-  .tree-wrap{min-height:340px}
+.prop-icon{font-size:.9rem;flex-shrink:0;margin-top:1px;}
+.prop-text{font-size:.82rem;color:var(--muted);line-height:1.45;}
+.prop-text strong{color:var(--text);}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fadein{animation:fadeIn .3s ease forwards;}
+
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr;}
+  .sidebar{display:none;}
 }
 </style>
 </head>
@@ -437,756 +241,608 @@ svg{display:block;width:100%;height:100%}
   <div class="header-inner">
     <div class="brand">
       <h1>visual<span>-cs</span></h1>
-      <p>Huffman Coding explorer with live frequency, heap merge, and code generation views</p>
+      <p>Algorithm Visualizations</p>
     </div>
-    <a class="back" href="../../index.html">← Back to gallery</a>
+    <a class="back" href="../../index.html">← All Visualizations</a>
   </div>
 </header>
 
-<main class="shell">
-  <section class="panel main">
+<div class="shell">
+  <div class="main panel">
     <div class="hero">
-      <div>
-        <h2>Huffman Coding, built one merge at a time</h2>
-        <p>Count character frequencies, repeatedly combine the two lightest nodes, then read off each character's bitstring from the final prefix tree. The animation keeps the histogram, min-heap frontier, tree, and code table synchronized at every step.</p>
-      </div>
-      <div class="hero-metrics">
-        <div class="metric">
-          <div class="label">Guarantee</div>
-          <div class="value">Optimal Prefix Code</div>
-          <div class="hint">Among binary prefix-free codes, Huffman minimizes weighted path length.</div>
-        </div>
-        <div class="metric">
-          <div class="label">Core Move</div>
-          <div class="value">Greedy Merge</div>
-          <div class="hint">Always merge the two least frequent subtrees still available.</div>
-        </div>
-        <div class="metric">
-          <div class="label">Encoding Rule</div>
-          <div class="value">Left = 0, Right = 1</div>
-          <div class="hint">Each root-to-leaf path becomes the emitted code for that symbol.</div>
-        </div>
-        <div class="metric">
-          <div class="label">Best For</div>
-          <div class="value">Skewed Frequencies</div>
-          <div class="hint">Common symbols get short codes; rare symbols are pushed deeper.</div>
+      <h2>Huffman Coding</h2>
+      <p>An optimal prefix-free compression algorithm that assigns shorter bit strings to more frequent symbols. Build the Huffman tree step-by-step, inspect codes, and see live compression statistics.</p>
+    </div>
+
+    <!-- Input -->
+    <div class="input-row">
+      <input id="inp" type="text" value="hello huffman" placeholder="Enter text to compress…" maxlength="120"/>
+      <button class="btn btn-primary" onclick="build()">Build</button>
+      <button class="btn btn-secondary" onclick="usePreset()">Example</button>
+    </div>
+
+    <!-- Frequency chips -->
+    <div class="freq-table" id="freq-table"></div>
+
+    <!-- Priority queue -->
+    <div class="pq-wrap">
+      <div class="pq-label">Priority Queue (min-heap) — Step <span id="pq-step-num">0</span></div>
+      <div class="pq-row" id="pq-row"></div>
+    </div>
+
+    <!-- Step controls -->
+    <div class="step-bar">
+      <button class="btn btn-secondary" style="padding:8px 14px;" onclick="stepBack()">◀</button>
+      <button class="btn btn-secondary" style="padding:8px 14px;" onclick="stepFwd()">▶</button>
+      <button class="btn btn-secondary" style="padding:8px 14px;" id="play-btn" onclick="togglePlay()">▷ Auto</button>
+      <div class="step-info" id="step-info"><strong>Press Build</strong> to start</div>
+      <span class="step-counter" id="step-counter"></span>
+      <input class="step-slider" type="range" id="step-slider" min="0" value="0" oninput="goToStep(+this.value)"/>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('tree',this)">Tree</button>
+      <button class="tab" onclick="switchTab('codes',this)">Code Table</button>
+      <button class="tab" onclick="switchTab('encode',this)">Encode</button>
+    </div>
+
+    <!-- Tree tab -->
+    <div class="tab-content active" id="tab-tree">
+      <div class="canvas-wrap">
+        <div class="canvas-scroll">
+          <canvas id="tree-canvas"></canvas>
         </div>
       </div>
     </div>
 
-    <div class="toolbar">
-      <div class="row">
-        <div class="field">
-          <label for="textInput">Input text</label>
-          <input id="textInput" type="text" value="beep boop beer!" maxlength="28" spellcheck="false">
-        </div>
-        <div class="field small">
-          <label for="speedRange">Playback speed</label>
-          <div class="speedbox">
-            <input id="speedRange" type="range" min="120" max="1800" step="60" value="820">
-            <span id="speedLabel">820 ms</span>
-          </div>
-        </div>
-      </div>
-      <div class="presets">
-        <button class="preset" data-preset="beep boop beer!">beep boop beer!</button>
-        <button class="preset" data-preset="mississippi river">mississippi river</button>
-        <button class="preset" data-preset="data structures">data structures</button>
-        <button class="preset" data-preset="abracadabra">abracadabra</button>
-      </div>
-      <div class="row">
-        <div class="buttons">
-          <button id="buildBtn" class="primary">Build</button>
-          <button id="playBtn" class="secondary">Play</button>
-          <button id="pauseBtn">Pause</button>
-          <button id="stepBtn">Step</button>
-          <button id="resetBtn" class="ghost">Reset</button>
-        </div>
+    <!-- Codes tab -->
+    <div class="tab-content" id="tab-codes">
+      <div class="code-table-wrap">
+        <table class="code-table" id="code-table">
+          <thead><tr><th>Char</th><th>Freq</th><th>Code</th><th>Bits</th><th>Contribution</th></tr></thead>
+          <tbody id="code-tbody"></tbody>
+        </table>
       </div>
     </div>
 
-    <div class="status">
-      <div class="pill" id="stagePill">Frequency</div>
-      <p id="statusText">Count how many times every symbol appears. These weights decide which leaves stay shallow and which move deeper in the final tree.</p>
-      <div class="quick-stats">
-        <div class="stat-chip"><div class="k">Step</div><div class="v" id="stepStat">1 / 1</div></div>
-        <div class="stat-chip"><div class="k">Chars</div><div class="v" id="charStat">0</div></div>
-        <div class="stat-chip"><div class="k">Bits</div><div class="v" id="bitsStat">0</div></div>
-        <div class="stat-chip"><div class="k">Avg</div><div class="v" id="avgStat">0.00</div></div>
-      </div>
-    </div>
-
-    <div class="timeline">
-      <div class="section-title">
-        <h3>Pipeline</h3>
-        <p>Three synchronized phases from raw text to final bitstrings</p>
-      </div>
-      <div class="timeline-track" id="timelineTrack"></div>
-    </div>
-
-    <div class="grid-two">
-      <div class="grid-stack">
-        <div class="freq-panel">
-          <div class="section-title">
-            <h3>Character Frequency</h3>
-            <p id="freqHint">Weights sorted by count, then character label</p>
-          </div>
-          <div class="freq-chart" id="freqChart"></div>
+    <!-- Encode tab -->
+    <div class="tab-content" id="tab-encode">
+      <div class="encode-section">
+        <div class="input-row">
+          <input id="enc-inp" type="text" placeholder="Text to encode (defaults to input)…" style="font-family:monospace;"/>
+          <button class="btn btn-primary" onclick="encodeText()">Encode</button>
         </div>
-
-        <div class="build-panel">
-          <div class="section-title">
-            <h3>Heap / Merge Frontier</h3>
-            <p id="buildHint">The priority queue always exposes the two cheapest nodes</p>
-          </div>
-          <div class="queue-list" id="queueList"></div>
-          <div class="merge-log" id="mergeLog"></div>
-        </div>
-      </div>
-
-      <div class="grid-stack">
-        <div class="tree-panel">
-          <div class="section-title">
-            <h3>Prefix Tree</h3>
-            <p id="treeHint">Leaf depth is the code length for that symbol</p>
-          </div>
-          <div class="tree-wrap">
-            <svg id="treeSvg" viewBox="0 0 860 420" preserveAspectRatio="xMidYMid meet"></svg>
-          </div>
-          <div class="tree-caption">
-            <span id="treeCaption">No merges yet. Build the tree to reveal code lengths.</span>
-            <span id="treeBits"></span>
-          </div>
-        </div>
-
-        <div class="table-panel">
-          <div class="section-title">
-            <h3>Code Table</h3>
-            <p id="tableHint">Codes appear after the tree is finished and traversed</p>
-          </div>
-          <div id="tableWrap"></div>
-        </div>
+        <div class="bits-display" id="bits-out"><span style="color:var(--muted)">Encoded bits will appear here…</span></div>
+        <div class="stat-row" id="enc-stats"></div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <aside class="panel aside">
-    <div class="side-card">
-      <h3>How To Read This</h3>
-      <p>Start with a short string. The first phase tallies raw frequencies. The second phase shows the greedy tree construction. The last phase walks the final tree and assigns a code to every leaf.</p>
-    </div>
-
-    <div class="side-card">
-      <h3>Legend</h3>
-      <div class="legend">
-        <div class="legend-item"><span class="swatch" style="background:#fbbf24"></span> current merge or assignment focus</div>
-        <div class="legend-item"><span class="swatch" style="background:#60a5fa"></span> ordinary leaf / frequency bar</div>
-        <div class="legend-item"><span class="swatch" style="background:#a78bfa"></span> internal merged parent</div>
-        <div class="legend-item"><span class="swatch" style="background:#67e8f9"></span> completed / revealed code</div>
+  <!-- Sidebar -->
+  <aside class="sidebar panel">
+    <div class="side-section">
+      <h3>Algorithm Steps</h3>
+      <div id="algo-steps">
+        <div class="algo-step"><div class="step-num" id="as1">1</div><div class="step-text"><strong>Count frequencies</strong> of each symbol in the input.</div></div>
+        <div class="algo-step"><div class="step-num" id="as2">2</div><div class="step-text"><strong>Create leaf nodes</strong> for each symbol and insert into a min-heap.</div></div>
+        <div class="algo-step"><div class="step-num" id="as3">3</div><div class="step-text"><strong>Extract two minimums,</strong> merge into an internal node with combined frequency.</div></div>
+        <div class="algo-step"><div class="step-num" id="as4">4</div><div class="step-text"><strong>Repeat</strong> until one node remains — the Huffman root.</div></div>
+        <div class="algo-step"><div class="step-num" id="as5">5</div><div class="step-text"><strong>Assign codes</strong>: traverse left → 0, right → 1.</div></div>
       </div>
     </div>
 
-    <div class="side-card">
-      <h3>Why Huffman Works</h3>
-      <ul>
-        <li>The two smallest frequencies can safely become siblings in some optimal tree.</li>
-        <li>Merging them reduces the problem to a smaller instance with one combined weight.</li>
-        <li>Repeating this greedy choice yields an optimal prefix-free code.</li>
-      </ul>
-    </div>
-
-    <div class="side-card">
+    <div class="side-section">
       <h3>Complexity</h3>
-      <ul>
-        <li>Frequency counting: <code>O(n)</code></li>
-        <li>Heap-based tree build: <code>O(k log k)</code> for <code>k</code> distinct characters</li>
-        <li>DFS code generation: <code>O(k)</code></li>
-      </ul>
+      <div class="complexity">
+        <div class="cx-row"><span class="cx-label">Build tree</span><span class="cx-val">O(n log n)</span></div>
+        <div class="cx-row"><span class="cx-label">Encode</span><span class="cx-val">O(m)</span></div>
+        <div class="cx-row"><span class="cx-label">Space</span><span class="cx-val">O(n)</span></div>
+        <div class="cx-row"><span class="cx-label">n = unique chars</span><span class="cx-val" style="color:var(--muted)">m = input length</span></div>
+      </div>
     </div>
 
-    <div class="side-card">
-      <h3>Notes</h3>
-      <ul>
-        <li>For a single unique character, the visualization assigns code <code>0</code>.</li>
-        <li>Displayed bit count uses the final code table even while you scrub earlier stages.</li>
-        <li>Character labels normalize spaces and punctuation so duplicates stay easy to track.</li>
-      </ul>
+    <div class="side-section">
+      <h3>Key Properties</h3>
+      <div class="props">
+        <div class="prop"><div class="prop-icon">🌿</div><div class="prop-text"><strong>Prefix-free</strong> — no code is a prefix of another; decoding is unambiguous.</div></div>
+        <div class="prop"><div class="prop-icon">⚖️</div><div class="prop-text"><strong>Optimal</strong> — minimizes expected code length for a given symbol frequency distribution.</div></div>
+        <div class="prop"><div class="prop-icon">🔢</div><div class="prop-text"><strong>Greedy</strong> — always merges the two least-frequent nodes first.</div></div>
+        <div class="prop"><div class="prop-icon">📦</div><div class="prop-text"><strong>Lossless</strong> — the original data can be fully recovered from the encoded bitstream.</div></div>
+      </div>
+    </div>
+
+    <div class="side-section" id="live-stats" style="display:none;">
+      <h3>Compression Stats</h3>
+      <div class="complexity" id="live-stats-inner"></div>
     </div>
   </aside>
-</main>
+</div>
 
 <script>
-const textInput = document.getElementById("textInput");
-const speedRange = document.getElementById("speedRange");
-const speedLabel = document.getElementById("speedLabel");
-const buildBtn = document.getElementById("buildBtn");
-const playBtn = document.getElementById("playBtn");
-const pauseBtn = document.getElementById("pauseBtn");
-const stepBtn = document.getElementById("stepBtn");
-const resetBtn = document.getElementById("resetBtn");
-const stagePill = document.getElementById("stagePill");
-const statusText = document.getElementById("statusText");
-const stepStat = document.getElementById("stepStat");
-const charStat = document.getElementById("charStat");
-const bitsStat = document.getElementById("bitsStat");
-const avgStat = document.getElementById("avgStat");
-const timelineTrack = document.getElementById("timelineTrack");
-const freqChart = document.getElementById("freqChart");
-const queueList = document.getElementById("queueList");
-const mergeLog = document.getElementById("mergeLog");
-const treeSvg = document.getElementById("treeSvg");
-const treeCaption = document.getElementById("treeCaption");
-const treeBits = document.getElementById("treeBits");
-const tableWrap = document.getElementById("tableWrap");
-const freqHint = document.getElementById("freqHint");
-const buildHint = document.getElementById("buildHint");
-const treeHint = document.getElementById("treeHint");
-const tableHint = document.getElementById("tableHint");
-
-const pipeline = [
-  { key: "frequency", title: "1. Count Frequencies", body: "Every character becomes a weighted leaf candidate." },
-  { key: "build", title: "2. Merge Lowest Weights", body: "Use a min-priority queue to grow the tree bottom-up." },
-  { key: "codes", title: "3. Emit Prefix Codes", body: "Walk the finished tree to assign 0/1 paths to leaves." }
-];
-
-let animationTimer = null;
-let state = {
-  steps: [],
-  currentStep: 0,
-  codeMap: new Map(),
-  frequencies: [],
-  root: null,
-  totalBits: 0,
-  text: ""
-};
-
-function escapeHtml(value){
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-function describeChar(char){
-  if (char === " ") return "space";
-  if (char === "\n") return "\\n";
-  if (char === "\t") return "\\t";
-  return char;
-}
-
-function encodeLabel(node){
-  if (node.char != null) return `'${describeChar(node.char)}'`;
-  return node.label;
-}
-
-function compareNodes(a, b){
-  if (a.freq !== b.freq) return a.freq - b.freq;
-  return a.order.localeCompare(b.order);
-}
-
-function cloneQueue(queue){
-  return queue
-    .slice()
-    .sort(compareNodes)
-    .map((node) => ({
-      id: node.id,
-      freq: node.freq,
-      char: node.char,
-      label: node.label,
-      isLeaf: node.isLeaf,
-      order: node.order
-    }));
-}
-
-function gatherLeaves(node, output){
-  if (!node) return;
-  if (node.isLeaf) {
-    output.push(node.char);
-    return;
+// ── Data structures ──────────────────────────────────────────────────────────
+class HNode{
+  constructor(sym,freq,left=null,right=null){
+    this.sym=sym;this.freq=freq;this.left=left;this.right=right;
+    this.id=HNode._id++;
   }
-  gatherLeaves(node.left, output);
-  gatherLeaves(node.right, output);
+}
+HNode._id=0;
+
+// ── State ────────────────────────────────────────────────────────────────────
+let steps=[];    // array of {pq:[...nodes], merged:id, desc, algoStep}
+let codes={};    // sym -> bitstring
+let rootNode=null;
+let currentStep=0;
+let playTimer=null;
+const PLAY_MS=900;
+
+// colour palette for symbols
+const PALETTE=['#67e8f9','#60a5fa','#a78bfa','#4ade80','#fb923c','#f472b6','#fbbf24','#fb7185','#34d399','#818cf8'];
+let symColors={};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function getColor(sym){
+  if(!symColors[sym]){
+    const keys=Object.keys(symColors);
+    symColors[sym]=PALETTE[keys.length%PALETTE.length];
+  }
+  return symColors[sym];
+}
+function symLabel(sym){
+  if(sym===null)return '∅';
+  if(sym===' ')return '⎵';
+  if(sym==='\n')return '↵';
+  return sym;
 }
 
-function computeCodes(root){
-  const codes = new Map();
-  function walk(node, path){
-    if (!node) return;
-    if (node.isLeaf) {
-      codes.set(node.char, path || "0");
-      return;
+// Min-heap operations
+function heapPush(h,node){
+  h.push(node);
+  let i=h.length-1;
+  while(i>0){
+    const p=(i-1)>>1;
+    if(h[p].freq<=h[i].freq)break;
+    [h[p],h[i]]=[h[i],h[p]];i=p;
+  }
+}
+function heapPop(h){
+  const top=h[0];
+  const last=h.pop();
+  if(h.length){h[0]=last;heapify(h,0);}
+  return top;
+}
+function heapify(h,i){
+  const n=h.length;
+  let s=i;
+  const l=2*i+1,r=2*i+2;
+  if(l<n&&h[l].freq<h[s].freq)s=l;
+  if(r<n&&h[r].freq<h[s].freq)s=r;
+  if(s!==i){[h[s],h[i]]=[h[i],h[s]];heapify(h,s);}
+}
+function cloneHeap(h){return h.map(n=>Object.assign(Object.create(Object.getPrototypeOf(n)),n));}
+
+// ── Build ────────────────────────────────────────────────────────────────────
+function build(){
+  stopPlay();
+  HNode._id=0;
+  symColors={};
+  codes={};
+  rootNode=null;
+  steps=[];
+  currentStep=0;
+
+  const text=document.getElementById('inp').value;
+  if(!text){return;}
+
+  // Frequency map
+  const freq={};
+  for(const c of text) freq[c]=(freq[c]||0)+1;
+  const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+
+  // Assign colours
+  sorted.forEach(([sym])=>getColor(sym));
+
+  // Render frequency chips
+  renderFreqTable(sorted);
+
+  // Build heap
+  let heap=[];
+  sorted.forEach(([sym,f])=>heapPush(heap,new HNode(sym,f)));
+
+  // Record step 0 = initial state
+  steps.push({pq:cloneHeap(heap),merged:null,newNode:null,desc:'Initial priority queue — all leaf nodes sorted by frequency.',algoStep:2});
+
+  // Greedy merge
+  while(heap.length>1){
+    const a=heapPop(heap);
+    const b=heapPop(heap);
+    const merged=new HNode(null,a.freq+b.freq,a,b);
+    heapPush(heap,merged);
+    steps.push({
+      pq:cloneHeap(heap),
+      merged:merged.id,
+      newNode:merged,
+      leftId:a.id,rightId:b.id,
+      desc:`Merge <strong>${symLabel(a.sym??'('+a.freq+')')}</strong> (${a.freq}) + <strong>${symLabel(b.sym??'('+b.freq+')')}</strong> (${b.freq}) → node (${merged.freq})`,
+      algoStep:3
+    });
+  }
+
+  rootNode=heap[0];
+  // Generate codes
+  function traverse(node,code){
+    if(!node)return;
+    if(node.sym!==null){codes[node.sym]=code||'0';return;}
+    traverse(node.left,code+'0');
+    traverse(node.right,code+'1');
+  }
+  traverse(rootNode,'');
+
+  // Final step
+  steps.push({pq:cloneHeap(heap),merged:null,newNode:null,desc:'Tree complete! Codes assigned: left=0, right=1.',algoStep:5});
+
+  // Update slider
+  const slider=document.getElementById('step-slider');
+  slider.max=steps.length-1;
+  slider.value=0;
+
+  goToStep(steps.length-1);
+  updateCodeTable();
+  updateLiveStats(text);
+}
+
+function renderFreqTable(sorted){
+  const el=document.getElementById('freq-table');
+  el.innerHTML='';
+  sorted.forEach(([sym,cnt])=>{
+    const chip=document.createElement('div');
+    chip.className='freq-chip';
+    chip.id='fc-'+sym.charCodeAt(0);
+    const color=getColor(sym);
+    chip.innerHTML=`<span class="ch" style="color:${color}">${symLabel(sym)}</span><span class="cnt">×${cnt}</span>`;
+    el.appendChild(chip);
+  });
+}
+
+// ── Step navigation ──────────────────────────────────────────────────────────
+function goToStep(n){
+  if(!steps.length)return;
+  n=Math.max(0,Math.min(n,steps.length-1));
+  currentStep=n;
+  document.getElementById('step-slider').value=n;
+  renderStep(steps[n]);
+  updateTree(n);
+}
+function stepFwd(){goToStep(currentStep+1);}
+function stepBack(){goToStep(currentStep-1);}
+
+function togglePlay(){
+  if(playTimer){stopPlay();return;}
+  const btn=document.getElementById('play-btn');
+  btn.textContent='⏸ Pause';
+  playTimer=setInterval(()=>{
+    if(currentStep>=steps.length-1){stopPlay();return;}
+    stepFwd();
+  },PLAY_MS);
+}
+function stopPlay(){
+  if(playTimer){clearInterval(playTimer);playTimer=null;}
+  document.getElementById('play-btn').textContent='▷ Auto';
+}
+
+function renderStep(s){
+  if(!s)return;
+  // Step info
+  document.getElementById('step-info').innerHTML=s.desc||'';
+  document.getElementById('step-counter').textContent=`Step ${currentStep+1}/${steps.length}`;
+  document.getElementById('pq-step-num').textContent=currentStep+1;
+
+  // Highlight algo step
+  for(let i=1;i<=5;i++){
+    const el=document.getElementById('as'+i);
+    el.classList.toggle('active-step',s.algoStep===i);
+  }
+
+  // Priority queue
+  const row=document.getElementById('pq-row');
+  row.innerHTML='';
+  s.pq.forEach(node=>{
+    const div=document.createElement('div');
+    div.className='pq-node';
+    if(s.newNode&&node.id===s.newNode.id)div.classList.add('new');
+    const label=node.sym!==null?symLabel(node.sym):'⊕';
+    const color=node.sym!==null?getColor(node.sym):'var(--violet)';
+    div.innerHTML=`<span class="pq-sym" style="color:${color}">${label}</span><span class="pq-freq">${node.freq}</span>`;
+    row.appendChild(div);
+  });
+}
+
+// ── Tree rendering ───────────────────────────────────────────────────────────
+const RADIUS=20,V_GAP=68,H_BASE=42;
+
+function updateTree(stepIdx){
+  if(!rootNode)return;
+  const canvas=document.getElementById('tree-canvas');
+  const ctx=canvas.getContext('2d');
+
+  // Determine which nodes to show based on merge steps
+  // We reconstruct the visible tree at this step
+  const visibleNodes=getVisibleNodesAtStep(stepIdx);
+
+  // Layout
+  const positions={};
+  function layout(node,depth,lo,hi){
+    if(!node||!visibleNodes.has(node.id))return;
+    const mid=(lo+hi)/2;
+    positions[node.id]={x:mid,y:depth*V_GAP+50};
+    if(node.left&&visibleNodes.has(node.left.id))layout(node.left,depth+1,lo,mid);
+    if(node.right&&visibleNodes.has(node.right.id))layout(node.right,depth+1,mid,hi);
+  }
+
+  // Estimate width
+  const depth=treeDepth(rootNode);
+  const leaves=Math.pow(2,depth);
+  const W=Math.max(700,leaves*H_BASE*2);
+  const H=Math.max(300,(depth+1)*V_GAP+80);
+
+  canvas.width=W;canvas.height=H;
+  ctx.clearRect(0,0,W,H);
+
+  layout(rootNode,0,0,W);
+
+  const step=steps[stepIdx];
+  const highlightIds=new Set();
+  if(step&&step.newNode){
+    highlightIds.add(step.newNode.id);
+    if(step.leftId!==undefined)highlightIds.add(step.leftId);
+    if(step.rightId!==undefined)highlightIds.add(step.rightId);
+  }
+
+  // Draw edges first
+  ctx.lineWidth=1.5;
+  visibleNodes.forEach(id=>{
+    const node=nodeById(rootNode,id);
+    if(!node)return;
+    const pos=positions[id];
+    if(!pos)return;
+    if(node.left&&visibleNodes.has(node.left.id)&&positions[node.left.id]){
+      drawEdge(ctx,pos,positions[node.left.id],'0','var(--blue)',highlightIds.has(node.left.id));
     }
-    walk(node.left, path + "0");
-    walk(node.right, path + "1");
-  }
-  walk(root, "");
-  return codes;
-}
-
-function snapshotCodes(codeMap){
-  return Array.from(codeMap.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([char, code]) => ({ char, code }));
-}
-
-function buildModel(text){
-  const sanitized = text.length ? text.slice(0, 28) : "beep boop beer!";
-  const freqMap = new Map();
-  for (const ch of sanitized) {
-    freqMap.set(ch, (freqMap.get(ch) || 0) + 1);
-  }
-
-  const frequencies = Array.from(freqMap.entries())
-    .map(([char, freq]) => ({
-      char,
-      freq,
-      order: `${String(freq).padStart(4, "0")}:${char}`,
-      id: `leaf-${char.codePointAt(0)}-${freq}`
-    }))
-    .sort(compareNodes);
-
-  const queue = frequencies.map((item, index) => ({
-    id: item.id,
-    freq: item.freq,
-    char: item.char,
-    label: describeChar(item.char),
-    isLeaf: true,
-    order: `${String(item.freq).padStart(4, "0")}:${item.char}:${index}`
-  }));
-
-  const steps = [];
-  const baseCodes = new Map();
-  steps.push({
-    stage: "frequency",
-    stageIndex: 0,
-    title: "Frequency table ready",
-    description: "Count each symbol first. These frequencies are the weights used by the priority queue.",
-    activeChars: queue.map((node) => node.char),
-    queue: cloneQueue(queue),
-    merges: [],
-    activeNodeIds: [],
-    focusCodeChar: null,
-    visibleCodes: snapshotCodes(baseCodes),
-    root: null
+    if(node.right&&visibleNodes.has(node.right.id)&&positions[node.right.id]){
+      drawEdge(ctx,pos,positions[node.right.id],'1','var(--amber)',highlightIds.has(node.right.id));
+    }
   });
 
-  if (queue.length === 1) {
-    const only = queue[0];
-    baseCodes.set(only.char, "0");
-    steps.push({
-      stage: "codes",
-      stageIndex: 2,
-      title: "Single-symbol special case",
-      description: "With only one distinct symbol, the tree is a single leaf, so assign code 0.",
-      activeChars: [only.char],
-      queue: cloneQueue(queue),
-      merges: [],
-      activeNodeIds: [only.id],
-      focusCodeChar: only.char,
-      visibleCodes: snapshotCodes(baseCodes),
-      root: only
-    });
-
-    return {
-      text: sanitized,
-      frequencies,
-      root: only,
-      steps,
-      codeMap: new Map(baseCodes)
-    };
-  }
-
-  let mergeIndex = 1;
-  const merges = [];
-  while (queue.length > 1) {
-    queue.sort(compareNodes);
-    const left = queue.shift();
-    const right = queue.shift();
-    const leafChars = [];
-    gatherLeaves(left, leafChars);
-    gatherLeaves(right, leafChars);
-    const mergedLeaves = [...new Set(leafChars)].sort();
-    const parent = {
-      id: `parent-${mergeIndex}`,
-      freq: left.freq + right.freq,
-      char: null,
-      label: `${encodeLabel(left)} + ${encodeLabel(right)}`,
-      isLeaf: false,
-      left,
-      right,
-      order: `${String(left.freq + right.freq).padStart(4, "0")}:${mergedLeaves.join("")}:${mergeIndex}`
-    };
-    queue.push(parent);
-    merges.push({ left: encodeLabel(left), right: encodeLabel(right), freq: parent.freq });
-    steps.push({
-      stage: "build",
-      stageIndex: 1,
-      title: `Merge ${mergeIndex}`,
-      description: `Combine ${encodeLabel(left)} (${left.freq}) and ${encodeLabel(right)} (${right.freq}) into a new internal node of weight ${parent.freq}.`,
-      activeChars: mergedLeaves,
-      queue: cloneQueue(queue),
-      merges: merges.slice(),
-      activeNodeIds: [left.id, right.id, parent.id],
-      focusCodeChar: null,
-      visibleCodes: snapshotCodes(baseCodes),
-      root: parent
-    });
-    mergeIndex += 1;
-  }
-
-  const root = queue[0];
-  const fullCodes = computeCodes(root);
-  const progressiveCodes = new Map();
-  const orderedLeaves = Array.from(fullCodes.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]));
-
-  for (const [char, code] of orderedLeaves) {
-    progressiveCodes.set(char, code);
-    steps.push({
-      stage: "codes",
-      stageIndex: 2,
-      title: `Assign code for '${describeChar(char)}'`,
-      description: `Trace the root-to-leaf path for '${describeChar(char)}'. Left edges append 0 and right edges append 1, producing ${code}.`,
-      activeChars: [char],
-      queue: cloneQueue([root]),
-      merges: merges.slice(),
-      activeNodeIds: [],
-      focusCodeChar: char,
-      visibleCodes: snapshotCodes(progressiveCodes),
-      root
-    });
-  }
-
-  return {
-    text: sanitized,
-    frequencies,
-    root,
-    steps,
-    codeMap: fullCodes
-  };
+  // Draw nodes
+  visibleNodes.forEach(id=>{
+    const node=nodeById(rootNode,id);
+    if(!node||!positions[id])return;
+    drawNode(ctx,node,positions[id],highlightIds.has(id));
+  });
 }
 
-function computeBitStats(text, codeMap){
-  let totalBits = 0;
-  const distinct = new Set(text).size;
-  for (const ch of text) {
-    totalBits += (codeMap.get(ch) || "").length;
+function drawEdge(ctx,from,to,label,color,highlight){
+  ctx.save();
+  ctx.strokeStyle=highlight?color:'rgba(38,58,103,.9)';
+  ctx.lineWidth=highlight?2.5:1.5;
+  ctx.beginPath();
+  ctx.moveTo(from.x,from.y+RADIUS);
+  ctx.lineTo(to.x,to.y-RADIUS);
+  ctx.stroke();
+
+  // Label
+  const mx=(from.x+to.x)/2;
+  const my=(from.y+to.y)/2;
+  ctx.font='bold 11px Inter,sans-serif';
+  ctx.fillStyle=color;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  // tiny circle bg
+  ctx.beginPath();
+  ctx.arc(mx,my,9,0,Math.PI*2);
+  ctx.fillStyle='rgba(7,12,22,.9)';
+  ctx.fill();
+  ctx.fillStyle=highlight?color:'rgba(103,232,249,.6)';
+  ctx.fillText(label,mx,my);
+  ctx.restore();
+}
+
+function drawNode(ctx,node,pos,highlight){
+  ctx.save();
+  const isLeaf=node.sym!==null;
+  const color=isLeaf?getColor(node.sym):'var(--violet)';
+  // resolve css var
+  const resolvedColor=isLeaf?getColor(node.sym):'#a78bfa';
+
+  // glow
+  if(highlight){
+    ctx.shadowColor=resolvedColor;
+    ctx.shadowBlur=18;
   }
-  return {
-    chars: distinct,
-    bits: totalBits,
-    avg: text.length ? (totalBits / text.length).toFixed(2) : "0.00"
-  };
-}
 
-function stopPlayback(){
-  if (animationTimer) {
-    clearInterval(animationTimer);
-    animationTimer = null;
+  // circle
+  ctx.beginPath();
+  ctx.arc(pos.x,pos.y,RADIUS,0,Math.PI*2);
+  if(highlight){
+    ctx.fillStyle=resolvedColor+'33';
+  } else {
+    ctx.fillStyle='rgba(11,18,33,.95)';
   }
+  ctx.fill();
+  ctx.strokeStyle=highlight?resolvedColor:'rgba(38,58,103,.9)';
+  ctx.lineWidth=highlight?2:1.5;
+  ctx.stroke();
+
+  ctx.shadowBlur=0;
+
+  // Symbol
+  ctx.font=`bold 13px Inter,monospace`;
+  ctx.fillStyle=isLeaf?resolvedColor:'#c4b5fd';
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(isLeaf?symLabel(node.sym):'', pos.x, pos.y-5);
+
+  // Freq
+  ctx.font='11px Inter,sans-serif';
+  ctx.fillStyle='rgba(237,244,255,.7)';
+  ctx.fillText(node.freq, pos.x, pos.y+(isLeaf?6:0));
+
+  // Code (for leaves on final step)
+  if(isLeaf&&codes[node.sym]!==undefined&&currentStep===steps.length-1){
+    ctx.font='bold 10px monospace';
+    ctx.fillStyle='rgba(103,232,249,.85)';
+    ctx.fillText(codes[node.sym], pos.x, pos.y+RADIUS+14);
+  }
+
+  ctx.restore();
 }
 
-function play(){
-  stopPlayback();
-  animationTimer = setInterval(() => {
-    if (state.currentStep >= state.steps.length - 1) {
-      stopPlayback();
-      return;
-    }
-    state.currentStep += 1;
-    render();
-  }, Number(speedRange.value));
+function getVisibleNodesAtStep(stepIdx){
+  // Collect all node IDs that appear in the pq at this step, plus their subtrees
+  const visible=new Set();
+  const s=steps[stepIdx];
+  if(!s)return visible;
+
+  function addSubtree(node){
+    if(!node)return;
+    visible.add(node.id);
+    addSubtree(node.left);
+    addSubtree(node.right);
+  }
+
+  // For each node in pq at this step, show entire subtree
+  s.pq.forEach(n=>{
+    // Find the actual node in the full tree
+    const actual=nodeById(rootNode,n.id);
+    if(actual)addSubtree(actual);
+  });
+
+  return visible;
 }
 
-function renderTimeline(stageKey){
-  timelineTrack.innerHTML = pipeline.map((item, index) => {
-    const status = stageKey === item.key ? "active" : (pipeline.findIndex((step) => step.key === stageKey) > index ? "done" : "");
-    return `
-      <div class="timeline-step ${status}">
-        <div class="eyebrow">${item.key}</div>
-        <strong>${item.title}</strong>
-        <p>${item.body}</p>
-      </div>
+function nodeById(node,id){
+  if(!node)return null;
+  if(node.id===id)return node;
+  return nodeById(node.left,id)||nodeById(node.right,id);
+}
+
+function treeDepth(node){
+  if(!node)return 0;
+  return 1+Math.max(treeDepth(node.left),treeDepth(node.right));
+}
+
+// ── Code table ───────────────────────────────────────────────────────────────
+function updateCodeTable(){
+  const tbody=document.getElementById('code-tbody');
+  tbody.innerHTML='';
+  const entries=Object.entries(codes).sort((a,b)=>a[1].length-b[1].length);
+  entries.forEach(([sym,code])=>{
+    const tr=document.createElement('tr');
+    const bits=code.split('').map(b=>`<span class="bit-${b}">${b}</span>`).join('');
+    tr.innerHTML=`
+      <td><span style="color:${getColor(sym)};font-weight:700;font-family:monospace">${symLabel(sym)}</span></td>
+      <td style="color:var(--amber)">${codes[sym]?1:1}</td>
+      <td><span class="code-bits">${bits}</span></td>
+      <td>${code.length}</td>
+      <td><span style="color:var(--muted)">${code.length} bit${code.length!==1?'s':''}</span></td>
     `;
-  }).join("");
+    tbody.appendChild(tr);
+  });
 }
 
-function renderFrequency(step){
-  const maxFreq = Math.max(...state.frequencies.map((item) => item.freq), 1);
-  const active = new Set(step.activeChars || []);
-  freqChart.innerHTML = state.frequencies.map((item) => {
-    const width = `${(item.freq / maxFreq) * 100}%`;
-    return `
-      <div class="freq-row">
-        <div class="char-tag ${active.has(item.char) ? "active" : ""}">${escapeHtml(describeChar(item.char))}</div>
-        <div class="bar"><div class="bar-fill ${active.has(item.char) ? "active" : ""}" style="width:${width}"></div></div>
-        <div>${item.freq}</div>
-        <div class="mini-tag">${(state.codeMap.get(item.char) || "-")}</div>
-      </div>
-    `;
-  }).join("");
-}
+// ── Encode ───────────────────────────────────────────────────────────────────
+function encodeText(){
+  const text=document.getElementById('enc-inp').value||document.getElementById('inp').value;
+  if(!text||!Object.keys(codes).length)return;
 
-function renderQueue(step){
-  if (!step.queue.length) {
-    queueList.innerHTML = '<div class="empty">No heap nodes available.</div>';
-    return;
-  }
-  const activeIds = new Set(step.activeNodeIds || []);
-  queueList.innerHTML = step.queue.map((node) => `
-    <div class="queue-node ${activeIds.has(node.id) ? "active" : ""} ${node.isLeaf ? "" : "parent"}">
-      <div class="node-name">${escapeHtml(encodeLabel(node))}</div>
-      <div class="node-meta">freq = ${node.freq}<br>${node.isLeaf ? "leaf" : "internal node"}</div>
-    </div>
-  `).join("");
-
-  if (!step.merges.length) {
-    mergeLog.innerHTML = '<div class="merge-chip active">Waiting for the first merge</div>';
-    return;
-  }
-  mergeLog.innerHTML = step.merges.map((item, index) => `
-    <div class="merge-chip ${index === step.merges.length - 1 && step.stage === "build" ? "active" : ""}">
-      ${escapeHtml(item.left)} + ${escapeHtml(item.right)} → ${item.freq}
-    </div>
-  `).join("");
-}
-
-function layoutTree(root){
-  const nodes = [];
-  const edges = [];
-  if (!root) return { nodes, edges, height: 420 };
-
-  function countLeaves(node){
-    if (!node) return 0;
-    if (node.isLeaf) return 1;
-    return countLeaves(node.left) + countLeaves(node.right);
+  let bits='';
+  let valid=true;
+  for(const c of text){
+    if(!codes[c]){valid=false;break;}
+    bits+=codes[c];
   }
 
-  function maxDepth(node){
-    if (!node) return 0;
-    if (node.isLeaf) return 0;
-    return 1 + Math.max(maxDepth(node.left), maxDepth(node.right));
-  }
-
-  const leafCount = countLeaves(root);
-  const xStep = leafCount === 1 ? 0 : 740 / (leafCount - 1);
-  const height = Math.max(420, 120 + maxDepth(root) * 92);
-  let nextLeaf = 0;
-
-  function visit(node, depth){
-    const y = 48 + depth * 92;
-    let x;
-    if (node.isLeaf) {
-      x = 60 + nextLeaf * xStep;
-      nextLeaf += 1;
-    } else {
-      const leftPos = visit(node.left, depth + 1);
-      const rightPos = visit(node.right, depth + 1);
-      x = (leftPos.x + rightPos.x) / 2;
-      edges.push({ from: node.id, to: node.left.id, bit: "0", x1: x, y1: y, x2: leftPos.x, y2: leftPos.y });
-      edges.push({ from: node.id, to: node.right.id, bit: "1", x1: x, y1: y, x2: rightPos.x, y2: rightPos.y });
-    }
-    nodes.push({ id: node.id, x, y, node, depth });
-    return { x, y };
-  }
-
-  visit(root, 0);
-  return { nodes, edges, height };
-}
-
-function activePathIds(root, focusChar){
-  if (!root || !focusChar) return new Set();
-  const ids = new Set();
-  function dfs(node){
-    if (!node) return false;
-    if (node.isLeaf && node.char === focusChar) {
-      ids.add(node.id);
-      return true;
-    }
-    const found = dfs(node.left) || dfs(node.right);
-    if (found) ids.add(node.id);
-    return found;
-  }
-  dfs(root);
-  return ids;
-}
-
-function renderTree(step){
-  treeSvg.innerHTML = "";
-  if (!step.root) {
-    treeCaption.textContent = "No tree yet. Distinct characters are ready to enter the priority queue.";
-    treeBits.textContent = "";
+  const out=document.getElementById('bits-out');
+  if(!valid){
+    out.innerHTML='<span style="color:var(--red)">Input contains characters not in the code table. Use the same text as input.</span>';
     return;
   }
 
-  const { nodes, edges, height } = layoutTree(step.root);
-  treeSvg.setAttribute("viewBox", `0 0 860 ${height}`);
-  const pathIds = activePathIds(step.root, step.focusCodeChar);
-  const activeIds = new Set([...(step.activeNodeIds || []), ...pathIds]);
-  const revealed = new Set((step.visibleCodes || []).map((item) => item.char));
-
-  for (const edge of edges) {
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("class", "edge");
-    line.setAttribute("x1", edge.x1);
-    line.setAttribute("y1", edge.y1 + 22);
-    line.setAttribute("x2", edge.x2);
-    line.setAttribute("y2", edge.y2 - 22);
-    treeSvg.appendChild(line);
-
-    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("class", "edge-label");
-    label.setAttribute("x", (edge.x1 + edge.x2) / 2 + (edge.bit === "0" ? -10 : 10));
-    label.setAttribute("y", (edge.y1 + edge.y2) / 2);
-    label.textContent = edge.bit;
-    treeSvg.appendChild(label);
+  // Colorize bits by groups corresponding to each character
+  let html='';
+  let pos=0;
+  for(const c of text){
+    const code=codes[c];
+    const color=getColor(c);
+    html+=`<span title="${symLabel(c)}" style="color:${color}">${code}</span>`;
+    pos+=code.length;
   }
+  out.innerHTML=html;
 
-  for (const entry of nodes) {
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    let className = `tree-node ${entry.node.isLeaf ? "leaf" : "parent"}`;
-    if (activeIds.has(entry.id)) className += " active";
-    if (entry.node.isLeaf && revealed.has(entry.node.char)) className += " done";
-    if (!entry.node.isLeaf && entry.depth > 2) className += " small";
-    group.setAttribute("class", className);
-    group.setAttribute("transform", `translate(${entry.x}, ${entry.y})`);
+  // Stats
+  const origBits=text.length*8;
+  const compBits=bits.length;
+  const ratio=((1-compBits/origBits)*100).toFixed(1);
+  const avgBits=(compBits/text.length).toFixed(2);
 
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("r", entry.node.isLeaf ? 24 : 26);
-    group.appendChild(circle);
-
-    const freq = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    freq.setAttribute("y", entry.node.isLeaf ? -4 : -5);
-    freq.textContent = entry.node.freq;
-    group.appendChild(freq);
-
-    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("y", 11);
-    label.textContent = entry.node.isLeaf ? describeChar(entry.node.char) : "•";
-    group.appendChild(label);
-
-    treeSvg.appendChild(group);
-  }
-
-  treeCaption.textContent = step.focusCodeChar
-    ? `Highlighted path emits code for '${describeChar(step.focusCodeChar)}'.`
-    : "Internal nodes accumulate combined frequencies until only the root remains.";
-  treeBits.textContent = `Root weight: ${step.root.freq}`;
-}
-
-function renderTable(step){
-  const rows = snapshotCodes(state.codeMap);
-  if (!rows.length) {
-    tableWrap.innerHTML = '<div class="empty">No encodings available yet.</div>';
-    return;
-  }
-  const visible = new Map((step.visibleCodes || []).map((item) => [item.char, item.code]));
-  tableWrap.innerHTML = `
-    <table class="code-table">
-      <thead>
-        <tr>
-          <th>Char</th>
-          <th>Freq</th>
-          <th>Code</th>
-          <th>Bits Saved</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map((item) => {
-          const freq = state.frequencies.find((entry) => entry.char === item.char)?.freq || 0;
-          const visibleCode = visible.get(item.char);
-          const rawBits = freq * 8;
-          const codedBits = freq * item.code.length;
-          return `
-            <tr class="${step.focusCodeChar === item.char ? "active" : ""}">
-              <td>${escapeHtml(describeChar(item.char))}</td>
-              <td>${freq}</td>
-              <td class="code-bits">${visibleCode ? escapeHtml(visibleCode) : "..."}</td>
-              <td>${rawBits - codedBits}</td>
-            </tr>
-          `;
-        }).join("")}
-      </tbody>
-    </table>
+  document.getElementById('enc-stats').innerHTML=`
+    <div class="stat-pill"><div class="sp-label">Original</div><div class="sp-val">${origBits}</div><div class="sp-sub">${text.length} chars × 8 bits</div></div>
+    <div class="stat-pill"><div class="sp-label">Compressed</div><div class="sp-val" style="color:var(--green)">${compBits}</div><div class="sp-sub">bits</div></div>
+    <div class="stat-pill"><div class="sp-label">Savings</div><div class="sp-val" style="color:var(--amber)">${ratio}%</div><div class="sp-sub">compression ratio</div></div>
+    <div class="stat-pill"><div class="sp-label">Avg bits/char</div><div class="sp-val" style="color:var(--violet)">${avgBits}</div><div class="sp-sub">vs 8 fixed</div></div>
   `;
 }
 
-function render(){
-  const step = state.steps[state.currentStep];
-  const stageLabels = {
-    frequency: "Frequency",
-    build: "Tree Build",
-    codes: "Code Table"
-  };
-  stagePill.textContent = stageLabels[step.stage];
-  statusText.textContent = step.description;
-  stepStat.textContent = `${state.currentStep + 1} / ${state.steps.length}`;
-  charStat.textContent = String(state.frequencies.length);
-  bitsStat.textContent = String(state.totalBits);
-  avgStat.textContent = state.text.length ? (state.totalBits / state.text.length).toFixed(2) : "0.00";
-  freqHint.textContent = step.stage === "frequency"
-    ? "Every leaf starts here with its observed weight."
-    : "Highlighted bars participate in the current merge or code assignment.";
-  buildHint.textContent = step.stage === "build"
-    ? "The queue is re-sorted after each merge so the next cheapest pair rises to the front."
-    : "The complete merge history stays visible even while generating codes.";
-  treeHint.textContent = step.stage === "codes"
-    ? "Highlighted path from root to leaf spells the emitted bitstring."
-    : "Leaf depth equals code length after the tree is complete.";
-  tableHint.textContent = step.stage === "codes"
-    ? "Rows reveal progressively as the DFS visits each leaf."
-    : "Final code lengths are shown for reference; active rows appear during code emission.";
+function updateLiveStats(text){
+  if(!Object.keys(codes).length)return;
+  const el=document.getElementById('live-stats');
+  const inner=document.getElementById('live-stats-inner');
+  el.style.display='block';
 
-  renderTimeline(step.stage);
-  renderFrequency(step);
-  renderQueue(step);
-  renderTree(step);
-  renderTable(step);
+  let bits=0;
+  for(const c of text) bits+=(codes[c]||'').length;
+  const orig=text.length*8;
+  const ratio=((1-bits/orig)*100).toFixed(1);
+  const avg=(bits/text.length).toFixed(2);
+  const unique=Object.keys(codes).length;
+
+  inner.innerHTML=`
+    <div class="cx-row"><span class="cx-label">Unique symbols</span><span class="cx-val">${unique}</span></div>
+    <div class="cx-row"><span class="cx-label">Original bits</span><span class="cx-val">${orig}</span></div>
+    <div class="cx-row"><span class="cx-label">Huffman bits</span><span class="cx-val" style="color:var(--green)">${bits}</span></div>
+    <div class="cx-row"><span class="cx-label">Savings</span><span class="cx-val" style="color:var(--amber)">${ratio}%</span></div>
+    <div class="cx-row"><span class="cx-label">Avg bits/char</span><span class="cx-val" style="color:var(--violet)">${avg}</span></div>
+  `;
 }
 
-function rebuild(){
-  stopPlayback();
-  const model = buildModel(textInput.value.length ? textInput.value : "beep boop beer!");
-  const stats = computeBitStats(model.text, model.codeMap);
-  state = {
-    ...model,
-    totalBits: stats.bits,
-    currentStep: 0
-  };
-  textInput.value = model.text;
-  render();
+// ── Presets ──────────────────────────────────────────────────────────────────
+const PRESETS=[
+  'abracadabra',
+  'the quick brown fox',
+  'aaabbbccddeeff',
+  'mississippi',
+  'banana split',
+];
+let presetIdx=0;
+function usePreset(){
+  document.getElementById('inp').value=PRESETS[presetIdx%PRESETS.length];
+  presetIdx++;
+  build();
 }
 
-buildBtn.addEventListener("click", rebuild);
-playBtn.addEventListener("click", play);
-pauseBtn.addEventListener("click", stopPlayback);
-stepBtn.addEventListener("click", () => {
-  stopPlayback();
-  state.currentStep = Math.min(state.currentStep + 1, state.steps.length - 1);
-  render();
-});
-resetBtn.addEventListener("click", () => {
-  stopPlayback();
-  state.currentStep = 0;
-  render();
-});
-speedRange.addEventListener("input", () => {
-  speedLabel.textContent = `${speedRange.value} ms`;
-  if (animationTimer) play();
-});
-textInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") rebuild();
-});
-document.querySelectorAll("[data-preset]").forEach((button) => {
-  button.addEventListener("click", () => {
-    textInput.value = button.dataset.preset;
-    rebuild();
-  });
-});
+// ── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='tree')updateTree(currentStep);
+}
 
-speedLabel.textContent = `${speedRange.value} ms`;
-rebuild();
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter')build();});
+build();
 </script>
 </body>
 </html>
