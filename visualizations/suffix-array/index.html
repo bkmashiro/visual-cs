@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suffix Array Explorer — visual-cs</title>
+<style>
+:root{
+  --bg:#07111f;
+  --surface:#0d1728;
+  --surface-2:#13213a;
+  --surface-3:#192a48;
+  --border:#284166;
+  --text:#e6eefc;
+  --muted:#90a5c7;
+  --cyan:#67e8f9;
+  --blue:#60a5fa;
+  --violet:#a78bfa;
+  --amber:#fbbf24;
+  --green:#4ade80;
+  --red:#fb7185;
+  --shadow:0 24px 80px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(103,232,249,.12), transparent 26%),
+    radial-gradient(circle at top right, rgba(167,139,250,.12), transparent 24%),
+    linear-gradient(180deg, #08101d, #050b14 60%);
+}
+a{color:inherit}
+header{
+  position:sticky;
+  top:0;
+  z-index:30;
+  backdrop-filter:blur(18px);
+  background:rgba(5,11,20,.72);
+  border-bottom:1px solid rgba(40,65,102,.7);
+}
+.header-inner{
+  max-width:1380px;
+  margin:0 auto;
+  padding:18px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+}
+.brand h1{font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase}
+.brand h1 span{color:var(--cyan)}
+.brand p{font-size:.82rem;color:var(--muted);margin-top:4px}
+.back{
+  text-decoration:none;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:10px 16px;
+  font-size:.8rem;
+  color:var(--muted);
+  transition:.18s ease;
+}
+.back:hover{color:var(--text);border-color:var(--cyan);transform:translateY(-1px)}
+.shell{
+  max-width:1380px;
+  margin:0 auto;
+  padding:28px 24px 40px;
+  display:grid;
+  grid-template-columns:minmax(0,1.3fr) 360px;
+  gap:22px;
+}
+.panel{
+  background:linear-gradient(180deg, rgba(13,23,40,.95), rgba(8,14,25,.95));
+  border:1px solid rgba(40,65,102,.85);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+}
+.main{
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.hero{
+  padding:22px;
+  border-radius:22px;
+  background:
+    linear-gradient(135deg, rgba(96,165,250,.14), rgba(103,232,249,.08) 40%, rgba(167,139,250,.14));
+  border:1px solid rgba(103,232,249,.16);
+  display:grid;
+  grid-template-columns:1.3fr .9fr;
+  gap:18px;
+}
+.hero h2{font-size:2.1rem;line-height:1.02;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.6;font-size:.96rem;max-width:58ch}
+.hero-metrics{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.metric{
+  background:rgba(9,18,33,.74);
+  border:1px solid rgba(103,232,249,.12);
+  border-radius:18px;
+  padding:14px;
+}
+.metric .label{
+  font-size:.7rem;
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.metric .value{font-size:1.35rem;font-weight:800}
+.metric .hint{font-size:.78rem;color:var(--muted);margin-top:6px;line-height:1.45}
+.toolbar,.status,.stage,.table-wrap,.final-wrap,.timeline{
+  padding:18px;
+  border-radius:20px;
+  background:rgba(10,18,31,.9);
+  border:1px solid rgba(40,65,102,.72);
+}
+.toolbar{display:flex;flex-direction:column;gap:14px}
+.row{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:end;
+}
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:150px;
+  flex:1;
+}
+.field.small{flex:.4;min-width:120px}
+.field label{
+  font-size:.72rem;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:700;
+}
+input[type=text],input[type=range]{
+  width:100%;
+}
+input[type=text]{
+  background:var(--surface-2);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:13px 14px;
+  font-size:1rem;
+  outline:none;
+  transition:border-color .18s ease, box-shadow .18s ease;
+}
+input[type=text]:focus{
+  border-color:var(--cyan);
+  box-shadow:0 0 0 3px rgba(103,232,249,.12);
+}
+.presets,.buttons{display:flex;flex-wrap:wrap;gap:10px}
+button{
+  border:none;
+  border-radius:14px;
+  padding:11px 16px;
+  font-size:.86rem;
+  font-weight:700;
+  cursor:pointer;
+  color:var(--text);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  transition:.18s ease;
+}
+button:hover:not(:disabled){transform:translateY(-1px);border-color:var(--cyan)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:linear-gradient(135deg, var(--cyan), var(--blue));color:#04101d;border-color:transparent}
+.secondary{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.45);color:#ddd6fe}
+.ghost{color:var(--muted)}
+.preset{padding:8px 12px;border-radius:999px;font-size:.78rem}
+.speedbox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-left:auto;
+  min-width:220px;
+}
+.speedbox span{font-size:.78rem;color:var(--muted)}
+input[type=range]{accent-color:var(--cyan)}
+.status{
+  display:grid;
+  grid-template-columns:170px 1fr auto;
+  gap:14px;
+  align-items:center;
+}
+.pill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:0 14px;
+  border-radius:999px;
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  font-size:.72rem;
+  background:rgba(96,165,250,.12);
+  border:1px solid rgba(96,165,250,.4);
+  color:#bfdbfe;
+}
+.status p{color:var(--muted);line-height:1.55;font-size:.9rem}
+.quick-stats{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.stat-chip{
+  min-width:88px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(40,65,102,.7);
+  background:var(--surface-2);
+}
+.stat-chip .k{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.stat-chip .v{font-size:1.05rem;font-weight:800;margin-top:4px}
+.stage{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.section-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:12px;
+}
+.section-title h3{font-size:1rem}
+.section-title p{font-size:.82rem;color:var(--muted)}
+.string-strip{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(48px,1fr));
+  gap:8px;
+}
+.char-card{
+  position:relative;
+  min-height:68px;
+  background:linear-gradient(180deg, rgba(25,42,72,.96), rgba(16,25,43,.96));
+  border:1px solid rgba(96,165,250,.26);
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  overflow:hidden;
+}
+.char-card::after{
+  content:"";
+  position:absolute;
+  inset:auto 0 0;
+  height:3px;
+  background:linear-gradient(90deg, transparent, rgba(103,232,249,.75), transparent);
+}
+.char-card.active{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(103,232,249,.12) inset}
+.char-card.sorted{border-color:rgba(74,222,128,.55)}
+.char-card .ch{font-size:1.25rem;font-weight:800}
+.char-card .ix{font-size:.72rem;color:var(--muted);margin-top:4px}
+.pair-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;
+}
+.suffix-card{
+  background:linear-gradient(180deg, rgba(19,33,58,.95), rgba(11,18,30,.95));
+  border:1px solid rgba(40,65,102,.76);
+  border-radius:18px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.suffix-card.focus{
+  border-color:var(--amber);
+  box-shadow:0 0 0 1px rgba(251,191,36,.2) inset, 0 14px 40px rgba(0,0,0,.22);
+  transform:translateY(-2px);
+}
+.suffix-top{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+}
+.suffix-index{
+  font-size:.78rem;
+  color:#fde68a;
+  font-weight:800;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(251,191,36,.12);
+  border:1px solid rgba(251,191,36,.32);
+}
+.suffix-text{
+  font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;
+  font-size:1rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.pair-row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;
+  font-size:.84rem;
+  color:var(--muted);
+}
+.pair-row b{color:var(--text)}
+.pair-row .rank{color:#bfdbfe}
+.pair-row .next{color:#c4b5fd}
+.pair-row .new{color:#86efac}
+.table-wrap{overflow:auto}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.9rem;
+}
+th,td{
+  text-align:left;
+  padding:11px 12px;
+  border-bottom:1px solid rgba(40,65,102,.62);
+}
+th{
+  font-size:.72rem;
+  text-transform:uppercase;
+  letter-spacing:.11em;
+  color:var(--muted);
+}
+td code{
+  font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;
+  color:#c7d2fe;
+}
+.row-focus{background:rgba(96,165,250,.08)}
+.final-wrap{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+.chip-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:flex-start;
+}
+.array-chip{
+  padding:10px 12px;
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(96,165,250,.16), rgba(37,99,235,.12));
+  border:1px solid rgba(96,165,250,.35);
+  min-width:58px;
+  text-align:center;
+}
+.array-chip .top{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.array-chip .num{font-size:1.12rem;font-weight:800;margin-top:4px}
+.timeline{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.timeline-list{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  max-height:250px;
+  overflow:auto;
+  padding-right:4px;
+}
+.timeline-list::-webkit-scrollbar{width:6px}
+.timeline-list::-webkit-scrollbar-thumb{background:rgba(40,65,102,.95);border-radius:999px}
+.timeline-item{
+  padding:12px 14px;
+  border-radius:16px;
+  background:rgba(19,33,58,.85);
+  border:1px solid rgba(40,65,102,.65);
+}
+.timeline-item.active{border-color:var(--cyan);background:rgba(96,165,250,.1)}
+.timeline-item .phase{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);margin-bottom:6px}
+.timeline-item p{font-size:.86rem;color:var(--muted);line-height:1.48}
+.sidebar{
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.side-card{
+  padding:18px;
+  border-radius:20px;
+  background:rgba(10,18,31,.9);
+  border:1px solid rgba(40,65,102,.72);
+}
+.side-card h3{font-size:.95rem;margin-bottom:10px}
+.side-card p,.side-card li{
+  color:var(--muted);
+  line-height:1.58;
+  font-size:.88rem;
+}
+.side-card ul{padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.legend{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+.legend-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:.84rem;
+  color:var(--muted);
+}
+.swatch{
+  width:14px;
+  height:14px;
+  border-radius:4px;
+  flex-shrink:0;
+}
+.mono{
+  font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;
+  color:#dbeafe;
+}
+@media (max-width:1120px){
+  .shell{grid-template-columns:1fr}
+  .hero{grid-template-columns:1fr}
+  .status{grid-template-columns:1fr}
+  .final-wrap{grid-template-columns:1fr}
+}
+@media (max-width:700px){
+  .header-inner,.shell{padding-left:16px;padding-right:16px}
+  .main,.sidebar{padding:16px}
+  .hero{padding:18px}
+  .hero h2{font-size:1.7rem}
+  .toolbar,.status,.stage,.table-wrap,.final-wrap,.timeline,.side-card{padding:15px}
+  .speedbox{margin-left:0;min-width:0;width:100%}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>visual<span>-cs</span> / suffix array</h1>
+      <p>Prefix doubling, rank pairs, and lexicographic order in one animated view.</p>
+    </div>
+    <a class="back" href="../../index.html">← All Visualizations</a>
+  </div>
+</header>
+
+<div class="shell">
+  <section class="panel main">
+    <div class="hero">
+      <div>
+        <h2>Build a suffix array phase by phase.</h2>
+        <p>
+          Watch the prefix-doubling algorithm re-rank all suffixes as the compared prefix length grows from
+          <span class="mono">1</span> to <span class="mono">2</span>, <span class="mono">4</span>, and beyond. Each step exposes the rank pair
+          <span class="mono">(rank[i], rank[i + k])</span> used to sort suffixes without comparing full strings.
+        </p>
+      </div>
+      <div class="hero-metrics">
+        <div class="metric">
+          <div class="label">Algorithm</div>
+          <div class="value">Prefix Doubling</div>
+          <div class="hint">Sort by 2-part ranks, then compress equal pairs into the same rank.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Time</div>
+          <div class="value">O(n log² n)</div>
+          <div class="hint">Classic implementation: <span class="mono">log n</span> phases, each with a sort.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Output</div>
+          <div class="value">Suffix Array</div>
+          <div class="hint">Sorted starting indices of all suffixes in lexicographic order.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Use Cases</div>
+          <div class="value">Search, LCP, BWT</div>
+          <div class="hint">A base structure for fast substring work and compressed text indexing.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="row">
+        <div class="field">
+          <label for="textInput">String</label>
+          <input id="textInput" type="text" maxlength="18" value="banana$" spellcheck="false">
+        </div>
+        <div class="field small">
+          <label for="speed">Speed</label>
+          <div class="speedbox">
+            <input id="speed" type="range" min="1" max="10" value="5">
+            <span id="speedLabel">5×</span>
+          </div>
+        </div>
+      </div>
+      <div class="presets">
+        <button class="preset" data-text="banana$">banana$</button>
+        <button class="preset" data-text="abracadabra$">abracadabra$</button>
+        <button class="preset" data-text="mississippi$">mississippi$</button>
+        <button class="preset" data-text="tartar$">tartar$</button>
+        <button class="preset" data-text="suffix$">suffix$</button>
+      </div>
+      <div class="buttons">
+        <button class="primary" id="startBtn">▶ Start</button>
+        <button class="secondary" id="stepBtn">Step</button>
+        <button id="pauseBtn">Pause</button>
+        <button class="ghost" id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <div class="status">
+      <div class="pill" id="phasePill">Ready</div>
+      <p id="statusText">Enter a string, preferably ending with a unique sentinel like <span class="mono">$</span>, then start the animation.</p>
+      <div class="quick-stats">
+        <div class="stat-chip">
+          <div class="k">Length</div>
+          <div class="v" id="lengthStat">0</div>
+        </div>
+        <div class="stat-chip">
+          <div class="k">Phase</div>
+          <div class="v" id="roundStat">0</div>
+        </div>
+        <div class="stat-chip">
+          <div class="k">Focus k</div>
+          <div class="v" id="kStat">1</div>
+        </div>
+        <div class="stat-chip">
+          <div class="k">Distinct ranks</div>
+          <div class="v" id="rankStat">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="section-title">
+        <h3>String and Active Suffixes</h3>
+        <p id="stageHint">Each card anchors one suffix start position.</p>
+      </div>
+      <div class="string-strip" id="stringStrip"></div>
+      <div class="pair-grid" id="suffixGrid"></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="section-title" style="margin-bottom:10px">
+        <h3>Rank Table</h3>
+        <p>The current phase sorts suffixes by <span class="mono">(rank[i], rank[i + k])</span>.</p>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Index</th>
+            <th>Suffix</th>
+            <th>Rank Pair</th>
+            <th>New Rank</th>
+          </tr>
+        </thead>
+        <tbody id="rankTable"></tbody>
+      </table>
+    </div>
+
+    <div class="final-wrap">
+      <div class="timeline">
+        <div class="section-title">
+          <h3>Phase Timeline</h3>
+          <p>Auto-play and step mode use the same discrete snapshots.</p>
+        </div>
+        <div class="timeline-list" id="timeline"></div>
+      </div>
+      <div class="timeline">
+        <div class="section-title">
+          <h3>Final Arrays</h3>
+          <p>The suffix array is the sorted list of starting indices. LCP comes from Kasai's scan.</p>
+        </div>
+        <div>
+          <div style="font-size:.76rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Suffix Array</div>
+          <div class="chip-list" id="saOutput"></div>
+        </div>
+        <div>
+          <div style="font-size:.76rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">LCP Array</div>
+          <div class="chip-list" id="lcpOutput"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel sidebar">
+    <div class="side-card">
+      <h3>How The Doubling Trick Works</h3>
+      <p>Start by ranking suffixes using only their first character. After one phase with offset <span class="mono">k</span>, each suffix has enough information to compare its first <span class="mono">2k</span> characters.</p>
+      <p>Sorting pairs <span class="mono">(rank[i], rank[i + k])</span> is enough because both halves were already ranked in the previous phase.</p>
+    </div>
+
+    <div class="side-card">
+      <h3>Reading The Colors</h3>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:rgba(96,165,250,.85)"></span> Active suffix start in the string strip</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(251,191,36,.85)"></span> Focused suffix card in the current step</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(74,222,128,.85)"></span> Stabilized ranks after re-ranking</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(167,139,250,.85)"></span> Second-half rank in each comparison pair</div>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <h3>Why The Sentinel Helps</h3>
+      <p>A unique last character such as <span class="mono">$</span> makes every suffix distinct and guarantees one suffix is lexicographically smallest. It also cleanly terminates comparisons.</p>
+    </div>
+
+    <div class="side-card">
+      <h3>Where Suffix Arrays Show Up</h3>
+      <ul>
+        <li>Fast substring search with binary search on sorted suffixes</li>
+        <li>Longest repeated substring through the LCP array</li>
+        <li>Burrows-Wheeler transform and compressed full-text indexes</li>
+        <li>Genome and large-scale text indexing</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const state = {
+  text: "",
+  steps: [],
+  index: 0,
+  timer: null,
+  running: false,
+  paused: false
+};
+
+const speed = $("speed");
+const speedLabel = $("speedLabel");
+
+speed.addEventListener("input", () => {
+  speedLabel.textContent = speed.value + "×";
+});
+
+document.querySelectorAll(".preset").forEach(btn => {
+  btn.addEventListener("click", () => {
+    $("textInput").value = btn.dataset.text;
+    reset();
+  });
+});
+
+$("startBtn").addEventListener("click", start);
+$("stepBtn").addEventListener("click", stepForward);
+$("pauseBtn").addEventListener("click", togglePause);
+$("resetBtn").addEventListener("click", reset);
+
+function sanitizeText(raw) {
+  const compact = (raw || "").replace(/\s+/g, "");
+  return compact.slice(0, 18);
+}
+
+function buildSteps(text) {
+  const n = text.length;
+  const steps = [];
+  if (!n) {
+    return steps;
+  }
+
+  let ranks = Array.from(text, ch => ch.charCodeAt(0));
+  let k = 1;
+  let phase = 0;
+
+  steps.push({
+    type: "init",
+    title: "Initial character ranks",
+    message: "Each suffix starts with the rank of its first character. The next phases will compare pairs of previous ranks.",
+    k: 1,
+    phase,
+    rows: Array.from({ length: n }, (_, i) => ({
+      index: i,
+      suffix: text.slice(i),
+      pair: [ranks[i], -1],
+      newRank: ranks[i],
+      order: i
+    })),
+    sortedIndices: Array.from({ length: n }, (_, i) => i),
+    ranks: [...ranks]
+  });
+
+  while (k < n) {
+    const rows = Array.from({ length: n }, (_, i) => ({
+      index: i,
+      suffix: text.slice(i),
+      pair: [ranks[i], i + k < n ? ranks[i + k] : -1]
+    }));
+    rows.sort((a, b) => (a.pair[0] - b.pair[0]) || (a.pair[1] - b.pair[1]) || (a.index - b.index));
+
+    const newRanks = Array(n).fill(0);
+    rows[0].newRank = 0;
+    newRanks[rows[0].index] = 0;
+    let distinct = 1;
+
+    for (let i = 1; i < n; i++) {
+      const prev = rows[i - 1].pair;
+      const cur = rows[i].pair;
+      if (prev[0] !== cur[0] || prev[1] !== cur[1]) {
+        distinct++;
+      }
+      rows[i].newRank = distinct - 1;
+      newRanks[rows[i].index] = distinct - 1;
+    }
+
+    phase++;
+    steps.push({
+      type: "phase",
+      title: `Phase ${phase}: sort by ${k}-length rank pairs`,
+      message: `Use k = ${k}. Each suffix compares (${labelRankPair(rows[0].pair, false)}...) style rank pairs, then equal pairs collapse into the same new rank.`,
+      k,
+      phase,
+      rows: rows.map((row, order) => ({ ...row, order })),
+      sortedIndices: rows.map(row => row.index),
+      ranks: [...newRanks]
+    });
+
+    ranks = newRanks;
+    if (distinct === n) {
+      break;
+    }
+    k *= 2;
+  }
+
+  const sa = steps[steps.length - 1].sortedIndices;
+  const lcp = buildLcp(text, sa);
+  steps.push({
+    type: "done",
+    title: "Final suffix array",
+    message: "All suffixes now have unique ranks. The sorted indices form the suffix array, and the LCP array summarizes shared prefixes between neighbors.",
+    k: Math.min(k, n),
+    phase: steps.length - 1,
+    rows: steps[steps.length - 1].rows,
+    sortedIndices: [...sa],
+    ranks: [...steps[steps.length - 1].ranks],
+    sa,
+    lcp
+  });
+
+  return steps;
+}
+
+function buildLcp(text, sa) {
+  const n = sa.length;
+  const rank = Array(n).fill(0);
+  const lcp = Array(n).fill(0);
+  for (let i = 0; i < n; i++) {
+    rank[sa[i]] = i;
+  }
+  let h = 0;
+  for (let i = 0; i < n; i++) {
+    const r = rank[i];
+    if (r === 0) {
+      h = 0;
+      continue;
+    }
+    const j = sa[r - 1];
+    while (i + h < n && j + h < n && text[i + h] === text[j + h]) {
+      h++;
+    }
+    lcp[r] = h;
+    if (h > 0) {
+      h--;
+    }
+  }
+  return lcp;
+}
+
+function labelRankPair(pair, wrap = true) {
+  const content = `${pair[0]}, ${pair[1]}`;
+  return wrap ? `(${content})` : content;
+}
+
+function start() {
+  const text = sanitizeText($("textInput").value);
+  if (!text) {
+    $("statusText").innerHTML = "Provide a non-empty string before starting.";
+    return;
+  }
+
+  if (!state.running || text !== state.text) {
+    state.text = text;
+    state.steps = buildSteps(text);
+    state.index = 0;
+    state.running = true;
+    state.paused = false;
+    if (!state.steps.length) {
+      return;
+    }
+    render();
+  }
+
+  clearTimer();
+  state.paused = false;
+  $("pauseBtn").textContent = "Pause";
+  scheduleNext();
+}
+
+function reset() {
+  clearTimer();
+  state.running = false;
+  state.paused = false;
+  state.index = 0;
+  state.text = sanitizeText($("textInput").value);
+  state.steps = buildSteps(state.text);
+  $("pauseBtn").textContent = "Pause";
+  render();
+}
+
+function togglePause() {
+  if (!state.running) {
+    return;
+  }
+  state.paused = !state.paused;
+  $("pauseBtn").textContent = state.paused ? "Resume" : "Pause";
+  if (state.paused) {
+    clearTimer();
+  } else {
+    scheduleNext();
+  }
+}
+
+function stepForward() {
+  const text = sanitizeText($("textInput").value);
+  if (!state.running || text !== state.text) {
+    state.text = text;
+    state.steps = buildSteps(text);
+    state.index = 0;
+    state.running = !!state.steps.length;
+    state.paused = true;
+  } else if (state.index < state.steps.length - 1) {
+    state.index++;
+  }
+  clearTimer();
+  $("pauseBtn").textContent = "Resume";
+  render();
+}
+
+function clearTimer() {
+  if (state.timer) {
+    clearTimeout(state.timer);
+    state.timer = null;
+  }
+}
+
+function scheduleNext() {
+  clearTimer();
+  if (state.paused || !state.running) {
+    return;
+  }
+  if (state.index >= state.steps.length - 1) {
+    return;
+  }
+  const wait = 1400 - Number(speed.value) * 100;
+  state.timer = setTimeout(() => {
+    state.index++;
+    render();
+    scheduleNext();
+  }, Math.max(260, wait));
+}
+
+function render() {
+  const text = state.text || sanitizeText($("textInput").value);
+  const steps = state.steps.length ? state.steps : buildSteps(text);
+  const current = steps[Math.min(state.index, Math.max(0, steps.length - 1))];
+
+  $("lengthStat").textContent = text.length;
+  $("roundStat").textContent = current ? current.phase : 0;
+  $("kStat").textContent = current ? current.k : 1;
+  $("rankStat").textContent = current ? (new Set(current.ranks)).size : 0;
+
+  $("phasePill").textContent = current ? current.title : "Ready";
+  $("statusText").innerHTML = current ? current.message : "Enter a string, preferably ending with a unique sentinel like <span class=\"mono\">$</span>, then start the animation.";
+  $("stageHint").textContent = current
+    ? `Sorted order for this step: [${current.sortedIndices.join(", ")}]`
+    : "Each card anchors one suffix start position.";
+
+  renderStringStrip(text, current);
+  renderSuffixGrid(text, current);
+  renderRankTable(current);
+  renderTimeline(steps, state.index);
+  renderArrays(current);
+
+  const hasSteps = steps.length > 0;
+  $("stepBtn").disabled = !hasSteps;
+  $("pauseBtn").disabled = !state.running;
+}
+
+function renderStringStrip(text, current) {
+  const strip = $("stringStrip");
+  strip.innerHTML = "";
+  if (!text) {
+    return;
+  }
+  const active = new Set(current ? current.sortedIndices : []);
+  Array.from(text).forEach((ch, index) => {
+    const card = document.createElement("div");
+    card.className = "char-card" + (active.has(index) ? " active" : "");
+    if (current && current.type === "done") {
+      card.className += " sorted";
+    }
+    card.innerHTML = `<div class="ch">${escapeHtml(ch)}</div><div class="ix">${index}</div>`;
+    strip.appendChild(card);
+  });
+}
+
+function renderSuffixGrid(text, current) {
+  const grid = $("suffixGrid");
+  grid.innerHTML = "";
+  if (!current) {
+    return;
+  }
+  current.rows.forEach((row, idx) => {
+    const card = document.createElement("div");
+    card.className = "suffix-card" + (idx === 0 ? " focus" : "");
+    card.innerHTML = `
+      <div class="suffix-top">
+        <div class="suffix-index">i = ${row.index}</div>
+        <div style="font-size:.76rem;color:var(--muted)">order ${idx}</div>
+      </div>
+      <div class="suffix-text">${escapeHtml(row.suffix)}</div>
+      <div class="pair-row"><span>rank pair</span><b><span class="rank">${row.pair[0]}</span>, <span class="next">${row.pair[1]}</span></b></div>
+      <div class="pair-row"><span>new rank</span><b class="new">${row.newRank ?? "-"}</b></div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderRankTable(current) {
+  const body = $("rankTable");
+  body.innerHTML = "";
+  if (!current) {
+    return;
+  }
+  current.rows.forEach((row, idx) => {
+    const tr = document.createElement("tr");
+    if (idx === 0) {
+      tr.className = "row-focus";
+    }
+    tr.innerHTML = `
+      <td>${idx}</td>
+      <td>${row.index}</td>
+      <td><code>${escapeHtml(row.suffix)}</code></td>
+      <td><code>${labelRankPair(row.pair)}</code></td>
+      <td>${row.newRank ?? "-"}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+function renderTimeline(steps, activeIndex) {
+  const timeline = $("timeline");
+  timeline.innerHTML = "";
+  steps.forEach((step, idx) => {
+    const item = document.createElement("div");
+    item.className = "timeline-item" + (idx === activeIndex ? " active" : "");
+    item.innerHTML = `
+      <div class="phase">${step.title}</div>
+      <p>${step.message}</p>
+    `;
+    timeline.appendChild(item);
+  });
+}
+
+function renderArrays(current) {
+  const saBox = $("saOutput");
+  const lcpBox = $("lcpOutput");
+  saBox.innerHTML = "";
+  lcpBox.innerHTML = "";
+
+  if (!current) {
+    return;
+  }
+
+  const sa = current.sa || current.sortedIndices || [];
+  const lcp = current.lcp || buildLcp(state.text, sa);
+
+  sa.forEach((value, idx) => {
+    const chip = document.createElement("div");
+    chip.className = "array-chip";
+    chip.innerHTML = `<div class="top">sa[${idx}]</div><div class="num">${value}</div>`;
+    saBox.appendChild(chip);
+  });
+
+  lcp.forEach((value, idx) => {
+    const chip = document.createElement("div");
+    chip.className = "array-chip";
+    chip.style.borderColor = "rgba(167,139,250,.36)";
+    chip.style.background = "linear-gradient(180deg, rgba(167,139,250,.16), rgba(91,33,182,.10))";
+    chip.innerHTML = `<div class="top">lcp[${idx}]</div><div class="num">${value}</div>`;
+    lcpBox.appendChild(chip);
+  });
+}
+
+function escapeHtml(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+reset();
+</script>
+</body>
+</html>

@@ -34,6 +34,7 @@
 | [A* Pathfinding](./visualizations/astar/) | Search | Heuristic grid pathfinding |
 | [Skip List](./visualizations/skip-list/) | Data Structure | Probabilistic layered linked list |
 | [Trie](./visualizations/trie/) | Search | Prefix tree with real-time matching |
+| [Suffix Array](./visualizations/suffix-array/) | String | Prefix-doubling suffix ordering with final SA + LCP arrays |
 | [KD-Tree](./visualizations/kd-tree/) | Data Structure | 2D spatial partitioning & nearest neighbor |
 | [Radix Sort](./visualizations/radix-sort/) | Sorting | Non-comparative digit-by-digit sort |
 | [Counting Sort](./visualizations/counting-sort/) | Sorting | Linear-time sort for bounded integers |

@@ -34,6 +34,7 @@
 | [A* 寻路](./visualizations/astar/) | 搜索 | 启发式网格寻路 |
 | [跳表](./visualizations/skip-list/) | 数据结构 | 概率层级链表 |
 | [字典树](./visualizations/trie/) | 搜索 | 前缀树，实时匹配 |
+| [后缀数组](./visualizations/suffix-array/) | 字符串 | 前缀倍增构建后缀序，并展示最终 SA 与 LCP 数组 |
 | [KD 树](./visualizations/kd-tree/) | 数据结构 | 二维空间划分与最近邻搜索 |
 | [基数排序](./visualizations/radix-sort/) | 排序 | 非比较排序，按位分桶 |
 | [计数排序](./visualizations/counting-sort/) | 排序 | 线性时间，适用于有界整数 |

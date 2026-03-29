@@ -1,7 +1,6 @@
 # Visual-CS Todo Queue
 
 ## Upcoming
-- suffix-array — Suffix Array (efficient string indexing)
 - hash-table — Hash Table (collision handling visualization)
 - splay-tree — Splay Tree (self-adjusting BST)
 - treap — Treap (randomized BST)
@@ -9,6 +8,7 @@
 - huffman-coding — Huffman Coding (optimal prefix-free compression)
 
 ## Done
+- suffix-array — Suffix Array (efficient string indexing) ✅ 2026-03-29
 - rabin-karp — Rabin-Karp (rolling hash string search) ✅ 2026-03-29
 - knuth-morris-pratt — KMP String Matching (pattern search with failure function) ✅ 2026-03-27
 - convex-hull — Convex Hull (Graham scan / Jarvis march) ✅ 2026-03-25
