@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>van Emde Boas Tree — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+  --ac:#a371f7;--ac0:rgba(163,113,247,.15);
+  --gr:#3fb950;--gr0:rgba(63,185,80,.15);
+  --rd:#f85149;--rd0:rgba(248,81,73,.15);
+  --bl:#58a6ff;--bl0:rgba(88,166,255,.15);
+  --yl:#e3b341;--yl0:rgba(227,179,65,.15);
+  --or:#f97316;--or0:rgba(249,115,22,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.irow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.ig{display:flex;flex-direction:column;gap:4px;flex:1;min-width:90px}
+.ig label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.ig input[type=number]{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:.92rem;font-family:'Cascadia Code','Fira Code',monospace;outline:none;transition:border-color .2s;width:100%}
+.ig input:focus{border-color:var(--ac)}
+input[type=range]{-webkit-appearance:none;background:var(--border);height:4px;border-radius:2px;outline:none;width:100%}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--ac);border-radius:50%;cursor:pointer}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.ins{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+button.ins:hover{background:var(--gr);color:#0d1117}
+button.del{background:var(--rd0);border-color:var(--rd);color:var(--rd)}
+button.del:hover{background:var(--rd);color:#0d1117}
+button.qry{background:var(--bl0);border-color:var(--bl);color:var(--bl)}
+button.qry:hover{background:var(--bl);color:#0d1117}
+button.yl{background:var(--yl0);border-color:var(--yl);color:var(--yl)}
+button.yl:hover{background:var(--yl);color:#0d1117}
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+.sbar{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:.82rem;min-height:42px}
+.badge{font-size:.67rem;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px;font-weight:700;flex-shrink:0}
+.badge.rdy{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.badge.ins{background:var(--gr0);border:1px solid var(--gr);color:var(--gr)}
+.badge.del{background:var(--rd0);border:1px solid var(--rd);color:var(--rd)}
+.badge.qry{background:var(--bl0);border:1px solid var(--bl);color:var(--bl)}
+.badge.done{background:var(--ac0);border:1px solid var(--ac);color:var(--ac)}
+.smsg{flex:1;font-size:.8rem;color:var(--muted)}
+
+/* Universe display */
+.universe{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 16px}
+.universe .title{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:10px}
+.ugrid{display:flex;gap:4px;flex-wrap:wrap}
+.ucell{width:42px;height:38px;border-radius:6px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;font-family:monospace;font-weight:700;transition:all .3s;background:var(--bg);color:var(--muted);position:relative;cursor:default}
+.ucell.present{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.ucell.highlight{animation:pulse .5s ease;box-shadow:0 0 12px var(--ac)}
+.ucell .num{font-size:.82rem}
+.ucell .sub{font-size:.48rem;color:var(--muted);margin-top:1px}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+/* Tree visualization */
+.tree-container{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px;flex:1;overflow:auto;min-height:320px}
+.tree-container .title{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:10px}
+
+.veb-node{border:1px solid var(--border);border-radius:8px;padding:8px;margin:4px;background:var(--bg);transition:all .3s;position:relative}
+.veb-node.active{border-color:var(--ac);background:var(--ac0);box-shadow:0 0 8px rgba(163,113,247,.2)}
+.veb-node.summary-path{border-color:var(--yl);background:var(--yl0)}
+.veb-node.cluster-path{border-color:var(--bl);background:var(--bl0)}
+.veb-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.veb-label .tag{font-size:.56rem;padding:1px 5px;border-radius:10px;background:var(--s2);border:1px solid var(--border)}
+.minmax{display:flex;gap:6px;margin-bottom:6px;font-size:.72rem;font-family:monospace;font-weight:700}
+.minmax .mn{padding:2px 7px;border-radius:5px;background:var(--gr0);border:1px solid var(--gr);color:var(--gr)}
+.minmax .mx{padding:2px 7px;border-radius:5px;background:var(--or0);border:1px solid var(--or);color:var(--or)}
+.minmax .empty{padding:2px 7px;border-radius:5px;background:var(--s2);border:1px solid var(--border);color:var(--muted)}
+.children{display:flex;flex-direction:column;gap:4px}
+.summary-section{margin-bottom:4px}
+.summary-section .sec-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.06em;color:var(--yl);font-weight:700;margin-bottom:2px}
+.clusters-section .sec-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.06em;color:var(--bl);font-weight:700;margin-bottom:2px}
+.clusters-row{display:flex;gap:4px;flex-wrap:wrap}
+.veb2{min-width:52px}
+.veb4{min-width:120px}
+.veb16{min-width:100%}
+
+/* Decomposition display */
+.decomp{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:.78rem;display:none;gap:12px;align-items:center}
+.decomp.show{display:flex}
+.decomp .part{display:flex;flex-direction:column;align-items:center;gap:2px}
+.decomp .part .lbl{font-size:.52rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.decomp .part .val{font-weight:700;font-size:.92rem}
+.decomp .eq{color:var(--muted);font-size:.8rem}
+.decomp .hi{color:var(--yl)}
+.decomp .lo{color:var(--bl)}
+
+/* Sidebar */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:4px}
+.stat-card .v{font-family:monospace;font-size:1.15rem;font-weight:700}
+.stat-card .v.ac{color:var(--ac)}.stat-card .v.gr{color:var(--gr)}.stat-card .v.or{color:var(--or)}.stat-card .v.bl{color:var(--bl)}.stat-card .v.yl{color:var(--yl)}
+.legend{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:12px}
+.legend .title{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.75rem;margin-bottom:5px}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.step-log{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:12px;max-height:200px;overflow-y:auto}
+.step-log .title{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.step-entry{font-size:.72rem;font-family:monospace;padding:3px 0;border-bottom:1px solid var(--border);color:var(--muted);line-height:1.4}
+.step-entry:last-child{border-bottom:none}
+.step-entry .fn{color:var(--ac);font-weight:700}
+.step-entry .val{color:var(--text);font-weight:700}
+.info-box{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:12px}
+.info-box .title{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.info-box p{font-size:.75rem;color:var(--muted);line-height:1.5;margin-bottom:6px}
+.info-box code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:.72rem;color:var(--ac)}
+.footer{font-size:.62rem;color:var(--muted);text-align:center;padding-top:8px;border-top:1px solid var(--border);margin-top:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>van Emde Boas Tree</span></h1>
+  <a href="../../index.html">Home</a>
+</header>
+<div class="layout">
+<div class="main">
+  <!-- Controls -->
+  <div class="irow">
+    <div class="ig"><label>Value (0-15)</label><input type="number" id="inp" min="0" max="15" value="5"></div>
+    <div class="ctrls" style="padding-bottom:2px">
+      <button class="ins" onclick="doInsert()">Insert</button>
+      <button class="del" onclick="doDelete()">Delete</button>
+      <button class="qry" onclick="doSuccessor()">Successor</button>
+      <button class="qry" onclick="doPredecessor()">Predecessor</button>
+      <button class="yl" onclick="doMember()">Member</button>
+      <button onclick="doReset()">Reset</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700">Speed</span>
+    <input type="range" id="speed" min="1" max="10" value="5" style="max-width:160px">
+  </div>
+  <!-- Status -->
+  <div class="sbar">
+    <span class="badge rdy" id="badge">READY</span>
+    <span class="smsg" id="smsg">Insert, delete, or query elements in the vEB tree (U=16).</span>
+  </div>
+  <!-- Decomposition -->
+  <div class="decomp" id="decomp">
+    <div class="part"><span class="lbl">x</span><span class="val" id="dec-x">5</span></div>
+    <div class="eq">=</div>
+    <div class="part"><span class="lbl">high(x)</span><span class="val hi" id="dec-hi">1</span></div>
+    <div class="eq">&middot; 4 +</div>
+    <div class="part"><span class="lbl">low(x)</span><span class="val lo" id="dec-lo">1</span></div>
+    <div class="eq">&rarr; cluster[<span id="dec-c" class="hi">1</span>], pos <span id="dec-p" class="lo">1</span></div>
+  </div>
+  <!-- Universe -->
+  <div class="universe">
+    <div class="title">Universe (U = 16)</div>
+    <div class="ugrid" id="ugrid"></div>
+  </div>
+  <!-- Tree -->
+  <div class="tree-container">
+    <div class="title">Recursive vEB Structure</div>
+    <div id="tree-root"></div>
+  </div>
+</div>
+<div class="sidebar">
+  <!-- Stats -->
+  <div class="slbl">Statistics</div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="k">Universe</div><div class="v ac">16</div></div>
+    <div class="stat-card"><div class="k">Elements</div><div class="v gr" id="st-count">0</div></div>
+    <div class="stat-card"><div class="k">Root Min</div><div class="v gr" id="st-min">--</div></div>
+    <div class="stat-card"><div class="k">Root Max</div><div class="v or" id="st-max">--</div></div>
+    <div class="stat-card"><div class="k">Depth</div><div class="v yl">log log 16 = 2</div></div>
+    <div class="stat-card"><div class="k">sqrt(U)</div><div class="v bl">4</div></div>
+  </div>
+  <!-- Legend -->
+  <div class="legend">
+    <div class="title">Legend</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--ac)"></div>Active / Traversed</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gr)"></div>Min value</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--or)"></div>Max value</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--yl)"></div>Summary path</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--bl)"></div>Cluster path</div>
+  </div>
+  <!-- Step log -->
+  <div class="step-log">
+    <div class="title">Step Log</div>
+    <div id="slog"><div class="step-entry" style="color:var(--muted)">No operations yet.</div></div>
+  </div>
+  <!-- Info -->
+  <div class="info-box">
+    <div class="title">How It Works</div>
+    <p>A van Emde Boas tree stores integers from a universe <code>U = {0..U-1}</code> and supports insert, delete, successor, predecessor, and member in <code>O(log log U)</code> time.</p>
+    <p>The key insight: each vEB(U) node splits its universe into <code>sqrt(U)</code> clusters of size <code>sqrt(U)</code>. A summary vEB tree tracks which clusters are non-empty.</p>
+    <p>For element x: <code>high(x) = floor(x/sqrt(U))</code> selects the cluster, <code>low(x) = x mod sqrt(U)</code> gives the position within it.</p>
+    <p>Recursion depth is <code>log log U</code> because each level square-roots the universe size: 16 &rarr; 4 &rarr; 2 (base case).</p>
+  </div>
+  <div class="footer">Pure HTML/CSS/JS. No dependencies.</div>
+</div>
+</div>
+<script>
+/* ---- van Emde Boas Tree Implementation ---- */
+class VEB {
+  constructor(u) {
+    this.u = u;
+    this.min = null;
+    this.max = null;
+    this.sqrtU = (u <= 2) ? null : Math.round(Math.sqrt(u));
+    this.summary = (u <= 2) ? null : new VEB(this.sqrtU);
+    this.cluster = null;
+    if (u > 2) {
+      this.cluster = [];
+      for (let i = 0; i < this.sqrtU; i++) this.cluster.push(new VEB(this.sqrtU));
+    }
+    this.id = VEB._id++;
+  }
+  high(x) { return Math.floor(x / this.sqrtU); }
+  low(x) { return x % this.sqrtU; }
+  index(h, l) { return h * this.sqrtU + l; }
+
+  member(x) {
+    if (x === this.min || x === this.max) return true;
+    if (this.u <= 2) return false;
+    return this.cluster[this.high(x)].member(this.low(x));
+  }
+
+  insert(x) {
+    if (this.min === null) { this.min = this.max = x; return; }
+    if (x < this.min) { let t = x; x = this.min; this.min = t; }
+    if (this.u > 2) {
+      let h = this.high(x), l = this.low(x);
+      if (this.cluster[h].min === null) {
+        this.summary.insert(h);
+        this.cluster[h].min = this.cluster[h].max = l;
+      } else {
+        this.cluster[h].insert(l);
+      }
+    }
+    if (x > this.max) this.max = x;
+  }
+
+  delete(x) {
+    if (this.min === this.max) { this.min = this.max = null; return; }
+    if (this.u === 2) {
+      this.min = (x === 0) ? 1 : 0;
+      this.max = this.min;
+      return;
+    }
+    if (x === this.min) {
+      let firstCluster = this.summary.min;
+      x = this.index(firstCluster, this.cluster[firstCluster].min);
+      this.min = x;
+    }
+    let h = this.high(x), l = this.low(x);
+    this.cluster[h].delete(l);
+    if (this.cluster[h].min === null) {
+      this.summary.delete(h);
+      if (x === this.max) {
+        let summMax = this.summary.max;
+        if (summMax === null) this.max = this.min;
+        else this.max = this.index(summMax, this.cluster[summMax].max);
+      }
+    } else if (x === this.max) {
+      this.max = this.index(h, this.cluster[h].max);
+    }
+  }
+
+  successor(x) {
+    if (this.u === 2) {
+      if (x === 0 && this.max === 1) return 1;
+      return null;
+    }
+    if (this.min !== null && x < this.min) return this.min;
+    let h = this.high(x), l = this.low(x);
+    let maxLow = this.cluster[h].max;
+    if (maxLow !== null && l < maxLow) {
+      let offset = this.cluster[h].successor(l);
+      return this.index(h, offset);
+    } else {
+      let succCluster = this.summary.successor(h);
+      if (succCluster === null) return null;
+      let offset = this.cluster[succCluster].min;
+      return this.index(succCluster, offset);
+    }
+  }
+
+  predecessor(x) {
+    if (this.u === 2) {
+      if (x === 1 && this.min === 0) return 0;
+      return null;
+    }
+    if (this.max !== null && x > this.max) return this.max;
+    let h = this.high(x), l = this.low(x);
+    let minLow = this.cluster[h].min;
+    if (minLow !== null && l > minLow) {
+      let offset = this.cluster[h].predecessor(l);
+      return this.index(h, offset);
+    } else {
+      let predCluster = this.summary.predecessor(h);
+      if (predCluster === null) {
+        if (this.min !== null && x > this.min) return this.min;
+        return null;
+      }
+      let offset = this.cluster[predCluster].max;
+      return this.index(predCluster, offset);
+    }
+  }
+
+  elements() {
+    let res = [];
+    if (this.min === null) return res;
+    res.push(this.min);
+    if (this.min === this.max) return res;
+    if (this.u <= 2) { res.push(this.max); return res; }
+    for (let i = 0; i < this.sqrtU; i++) {
+      let els = this.cluster[i].elements();
+      for (let e of els) res.push(this.index(i, e));
+    }
+    return res;
+  }
+}
+VEB._id = 0;
+
+/* ---- Animated operations (record steps, then replay) ---- */
+let tree = new VEB(16);
+let animating = false;
+let steps = [];
+
+function delay() {
+  let s = document.getElementById('speed').value;
+  return 1200 - s * 100;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function getVal() {
+  let v = parseInt(document.getElementById('inp').value);
+  if (isNaN(v) || v < 0 || v > 15) return null;
+  return v;
+}
+
+function setStatus(type, msg) {
+  let b = document.getElementById('badge');
+  b.className = 'badge ' + type;
+  b.textContent = type.toUpperCase();
+  document.getElementById('smsg').textContent = msg;
+}
+
+function logStep(html) {
+  let el = document.getElementById('slog');
+  if (el.querySelector('.step-entry') && el.children[0].textContent === 'No operations yet.') el.innerHTML = '';
+  let d = document.createElement('div');
+  d.className = 'step-entry';
+  d.innerHTML = html;
+  el.prepend(d);
+  if (el.children.length > 50) el.removeChild(el.lastChild);
+}
+
+function showDecomp(x, u) {
+  let sq = Math.round(Math.sqrt(u));
+  let h = Math.floor(x / sq), l = x % sq;
+  let el = document.getElementById('decomp');
+  el.classList.add('show');
+  document.getElementById('dec-x').textContent = x;
+  document.getElementById('dec-hi').textContent = h;
+  document.getElementById('dec-lo').textContent = l;
+  document.getElementById('dec-c').textContent = h;
+  document.getElementById('dec-p').textContent = l;
+}
+
+function hideDecomp() { document.getElementById('decomp').classList.remove('show'); }
+
+/* ---- Rendering ---- */
+function renderUniverse() {
+  let grid = document.getElementById('ugrid');
+  grid.innerHTML = '';
+  let els = new Set(tree.elements());
+  for (let i = 0; i < 16; i++) {
+    let d = document.createElement('div');
+    d.className = 'ucell' + (els.has(i) ? ' present' : '');
+    d.id = 'u-' + i;
+    let h = Math.floor(i / 4), l = i % 4;
+    d.innerHTML = `<span class="num">${i}</span><span class="sub">[${h},${l}]</span>`;
+    grid.appendChild(d);
+  }
+}
+
+function renderTree() {
+  document.getElementById('tree-root').innerHTML = renderVEB(tree, 'vEB(16)', 16);
+  updateStats();
+}
+
+function renderVEB(node, label, uSize) {
+  if (!node) return '';
+  let sizeClass = uSize === 16 ? 'veb16' : uSize === 4 ? 'veb4' : 'veb2';
+  let minStr = node.min !== null
+    ? `<span class="mn">min=${node.min}</span>` : `<span class="empty">min=--</span>`;
+  let maxStr = node.max !== null
+    ? `<span class="mx">max=${node.max}</span>` : `<span class="empty">max=--</span>`;
+
+  let childrenHTML = '';
+  if (uSize > 2 && node.cluster) {
+    let sq = node.sqrtU;
+    let summHTML = `<div class="summary-section"><div class="sec-label">Summary</div>${renderVEB(node.summary, 'summary', sq)}</div>`;
+    let clHTML = '<div class="clusters-section"><div class="sec-label">Clusters</div><div class="clusters-row">';
+    for (let i = 0; i < sq; i++) {
+      clHTML += renderVEB(node.cluster[i], `cluster[${i}]`, sq);
+    }
+    clHTML += '</div></div>';
+    childrenHTML = `<div class="children">${summHTML}${clHTML}</div>`;
+  }
+
+  return `<div class="veb-node ${sizeClass}" data-id="${node.id}">
+    <div class="veb-label">${label} <span class="tag">U=${uSize}</span></div>
+    <div class="minmax">${minStr}${maxStr}</div>
+    ${childrenHTML}
+  </div>`;
+}
+
+function updateStats() {
+  let els = tree.elements();
+  document.getElementById('st-count').textContent = els.length;
+  document.getElementById('st-min').textContent = tree.min !== null ? tree.min : '--';
+  document.getElementById('st-max').textContent = tree.max !== null ? tree.max : '--';
+}
+
+function highlightNode(id, cls) {
+  let el = document.querySelector(`[data-id="${id}"]`);
+  if (el) el.classList.add(cls);
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.veb-node.active,.veb-node.summary-path,.veb-node.cluster-path').forEach(e => {
+    e.classList.remove('active', 'summary-path', 'cluster-path');
+  });
+  document.querySelectorAll('.ucell.highlight').forEach(e => e.classList.remove('highlight'));
+}
+
+function highlightUCell(x) {
+  let el = document.getElementById('u-' + x);
+  if (el) el.classList.add('highlight');
+}
+
+/* ---- Animated Insert ---- */
+async function animInsert(node, x, uSize, fullX) {
+  highlightNode(node.id, 'active');
+  await sleep(delay());
+
+  if (node.min === null) {
+    logStep(`<span class="fn">insert(${fullX})</span> vEB(${uSize}) empty, set min=max=<span class="val">${x}</span>`);
+    node.min = node.max = x;
+    renderTree(); renderUniverse();
+    return;
+  }
+  if (x < node.min) {
+    logStep(`<span class="fn">insert(${fullX})</span> x=${x} < min=${node.min}, swap`);
+    let t = x; x = node.min; node.min = t;
+    renderTree();
+    await sleep(delay());
+  }
+  if (uSize > 2) {
+    let h = node.high(x), l = node.low(x);
+    logStep(`<span class="fn">insert</span> high(${x})=${h}, low(${x})=${l} in vEB(${uSize})`);
+    highlightNode(node.cluster[h].id, 'cluster-path');
+    await sleep(delay());
+    if (node.cluster[h].min === null) {
+      logStep(`<span class="fn">insert</span> cluster[${h}] empty, update summary`);
+      highlightNode(node.summary.id, 'summary-path');
+      await sleep(delay());
+      await animInsert(node.summary, h, node.sqrtU, fullX);
+      node.cluster[h].min = node.cluster[h].max = l;
+      renderTree();
+    } else {
+      await animInsert(node.cluster[h], l, node.sqrtU, fullX);
+    }
+  }
+  if (x > node.max) node.max = x;
+  renderTree(); renderUniverse();
+}
+
+async function doInsert() {
+  if (animating) return;
+  let x = getVal();
+  if (x === null) { setStatus('rdy', 'Enter a valid number 0-15.'); return; }
+  if (tree.member(x)) { setStatus('done', `${x} is already in the tree.`); return; }
+  animating = true;
+  setStatus('ins', `Inserting ${x}...`);
+  showDecomp(x, 16);
+  clearHighlights();
+  await animInsert(tree, x, 16, x);
+  hideDecomp();
+  setStatus('done', `Inserted ${x}. Elements: [${tree.elements().sort((a,b)=>a-b).join(', ')}]`);
+  animating = false;
+}
+
+/* ---- Animated Delete ---- */
+async function animDelete(node, x, uSize, fullX) {
+  highlightNode(node.id, 'active');
+  await sleep(delay());
+
+  if (node.min === node.max) {
+    logStep(`<span class="fn">delete(${fullX})</span> only element in vEB(${uSize}), clear`);
+    node.min = node.max = null;
+    renderTree(); renderUniverse();
+    return;
+  }
+  if (uSize === 2) {
+    node.min = (x === 0) ? 1 : 0;
+    node.max = node.min;
+    logStep(`<span class="fn">delete</span> base case vEB(2), remaining=${node.min}`);
+    renderTree(); renderUniverse();
+    return;
+  }
+  if (x === node.min) {
+    let fc = node.summary.min;
+    logStep(`<span class="fn">delete</span> x=min, replace from cluster[${fc}]`);
+    highlightNode(node.summary.id, 'summary-path');
+    await sleep(delay());
+    x = node.index(fc, node.cluster[fc].min);
+    node.min = x;
+    renderTree();
+    await sleep(delay());
+  }
+  let h = node.high(x), l = node.low(x);
+  logStep(`<span class="fn">delete</span> recurse cluster[${h}] pos ${l}`);
+  highlightNode(node.cluster[h].id, 'cluster-path');
+  await sleep(delay());
+  await animDelete(node.cluster[h], l, node.sqrtU, fullX);
+  if (node.cluster[h].min === null) {
+    logStep(`<span class="fn">delete</span> cluster[${h}] now empty, update summary`);
+    highlightNode(node.summary.id, 'summary-path');
+    await sleep(delay());
+    await animDelete(node.summary, h, node.sqrtU, fullX);
+    if (x === node.max) {
+      let sm = node.summary.max;
+      if (sm === null) node.max = node.min;
+      else node.max = node.index(sm, node.cluster[sm].max);
+    }
+  } else if (x === node.max) {
+    node.max = node.index(h, node.cluster[h].max);
+  }
+  renderTree(); renderUniverse();
+}
+
+async function doDelete() {
+  if (animating) return;
+  let x = getVal();
+  if (x === null) { setStatus('rdy', 'Enter a valid number 0-15.'); return; }
+  if (!tree.member(x)) { setStatus('done', `${x} is not in the tree.`); return; }
+  animating = true;
+  setStatus('del', `Deleting ${x}...`);
+  showDecomp(x, 16);
+  clearHighlights();
+  await animDelete(tree, x, 16, x);
+  hideDecomp();
+  setStatus('done', `Deleted ${x}. Elements: [${tree.elements().sort((a,b)=>a-b).join(', ')}]`);
+  animating = false;
+}
+
+/* ---- Animated Successor ---- */
+async function animSuccessor(node, x, uSize) {
+  highlightNode(node.id, 'active');
+  await sleep(delay());
+
+  if (uSize === 2) {
+    if (x === 0 && node.max === 1) {
+      logStep(`<span class="fn">succ</span> base vEB(2): found 1`);
+      return 1;
+    }
+    logStep(`<span class="fn">succ</span> base vEB(2): no successor`);
+    return null;
+  }
+  if (node.min !== null && x < node.min) {
+    logStep(`<span class="fn">succ(${x})</span> x < min=${node.min}, return min`);
+    return node.min;
+  }
+  let h = node.high(x), l = node.low(x);
+  let maxLow = node.cluster[h].max;
+  if (maxLow !== null && l < maxLow) {
+    logStep(`<span class="fn">succ</span> check cluster[${h}], low(x)=${l} < max=${maxLow}`);
+    highlightNode(node.cluster[h].id, 'cluster-path');
+    await sleep(delay());
+    let offset = await animSuccessor(node.cluster[h], l, node.sqrtU);
+    return node.index(h, offset);
+  } else {
+    logStep(`<span class="fn">succ</span> cluster[${h}] exhausted, check summary`);
+    highlightNode(node.summary.id, 'summary-path');
+    await sleep(delay());
+    let sc = await animSuccessor(node.summary, h, node.sqrtU);
+    if (sc === null) {
+      logStep(`<span class="fn">succ</span> no next cluster`);
+      return null;
+    }
+    logStep(`<span class="fn">succ</span> next cluster=${sc}, take its min`);
+    highlightNode(node.cluster[sc].id, 'cluster-path');
+    await sleep(delay());
+    return node.index(sc, node.cluster[sc].min);
+  }
+}
+
+async function doSuccessor() {
+  if (animating) return;
+  let x = getVal();
+  if (x === null) { setStatus('rdy', 'Enter a valid number 0-15.'); return; }
+  animating = true;
+  setStatus('qry', `Finding successor of ${x}...`);
+  showDecomp(x, 16);
+  clearHighlights();
+  let res = await animSuccessor(tree, x, 16);
+  hideDecomp();
+  if (res !== null) {
+    highlightUCell(res);
+    setStatus('done', `Successor of ${x} is ${res}.`);
+  } else {
+    setStatus('done', `No successor of ${x} found.`);
+  }
+  animating = false;
+}
+
+/* ---- Animated Predecessor ---- */
+async function animPredecessor(node, x, uSize) {
+  highlightNode(node.id, 'active');
+  await sleep(delay());
+
+  if (uSize === 2) {
+    if (x === 1 && node.min === 0) {
+      logStep(`<span class="fn">pred</span> base vEB(2): found 0`);
+      return 0;
+    }
+    logStep(`<span class="fn">pred</span> base vEB(2): no predecessor`);
+    return null;
+  }
+  if (node.max !== null && x > node.max) {
+    logStep(`<span class="fn">pred(${x})</span> x > max=${node.max}, return max`);
+    return node.max;
+  }
+  let h = node.high(x), l = node.low(x);
+  let minLow = node.cluster[h].min;
+  if (minLow !== null && l > minLow) {
+    logStep(`<span class="fn">pred</span> check cluster[${h}], low(x)=${l} > min=${minLow}`);
+    highlightNode(node.cluster[h].id, 'cluster-path');
+    await sleep(delay());
+    let offset = await animPredecessor(node.cluster[h], l, node.sqrtU);
+    return node.index(h, offset);
+  } else {
+    logStep(`<span class="fn">pred</span> cluster[${h}] exhausted, check summary`);
+    highlightNode(node.summary.id, 'summary-path');
+    await sleep(delay());
+    let pc = await animPredecessor(node.summary, h, node.sqrtU);
+    if (pc === null) {
+      if (node.min !== null && x > node.min) {
+        logStep(`<span class="fn">pred</span> fall back to root min=${node.min}`);
+        return node.min;
+      }
+      logStep(`<span class="fn">pred</span> no predecessor`);
+      return null;
+    }
+    logStep(`<span class="fn">pred</span> prev cluster=${pc}, take its max`);
+    highlightNode(node.cluster[pc].id, 'cluster-path');
+    await sleep(delay());
+    return node.index(pc, node.cluster[pc].max);
+  }
+}
+
+async function doPredecessor() {
+  if (animating) return;
+  let x = getVal();
+  if (x === null) { setStatus('rdy', 'Enter a valid number 0-15.'); return; }
+  animating = true;
+  setStatus('qry', `Finding predecessor of ${x}...`);
+  showDecomp(x, 16);
+  clearHighlights();
+  let res = await animPredecessor(tree, x, 16);
+  hideDecomp();
+  if (res !== null) {
+    highlightUCell(res);
+    setStatus('done', `Predecessor of ${x} is ${res}.`);
+  } else {
+    setStatus('done', `No predecessor of ${x} found.`);
+  }
+  animating = false;
+}
+
+/* ---- Member ---- */
+async function animMember(node, x, uSize) {
+  highlightNode(node.id, 'active');
+  await sleep(delay());
+  if (x === node.min || x === node.max) {
+    logStep(`<span class="fn">member(${x})</span> matches min/max in vEB(${uSize})`);
+    return true;
+  }
+  if (uSize <= 2) {
+    logStep(`<span class="fn">member(${x})</span> base case, not found`);
+    return false;
+  }
+  let h = node.high(x), l = node.low(x);
+  logStep(`<span class="fn">member</span> check cluster[${h}] pos ${l}`);
+  highlightNode(node.cluster[h].id, 'cluster-path');
+  await sleep(delay());
+  return await animMember(node.cluster[h], l, node.sqrtU);
+}
+
+async function doMember() {
+  if (animating) return;
+  let x = getVal();
+  if (x === null) { setStatus('rdy', 'Enter a valid number 0-15.'); return; }
+  animating = true;
+  setStatus('qry', `Checking membership of ${x}...`);
+  showDecomp(x, 16);
+  clearHighlights();
+  let res = await animMember(tree, x, 16);
+  hideDecomp();
+  if (res) {
+    highlightUCell(x);
+    setStatus('done', `${x} IS a member.`);
+  } else {
+    setStatus('done', `${x} is NOT a member.`);
+  }
+  animating = false;
+}
+
+/* ---- Reset ---- */
+function doReset() {
+  if (animating) return;
+  VEB._id = 0;
+  tree = new VEB(16);
+  clearHighlights();
+  hideDecomp();
+  renderTree();
+  renderUniverse();
+  document.getElementById('slog').innerHTML = '<div class="step-entry" style="color:var(--muted)">No operations yet.</div>';
+  setStatus('rdy', 'Tree reset. Insert, delete, or query elements.');
+}
+
+/* ---- Init ---- */
+renderTree();
+renderUniverse();
+</script>
+</body>
+</html>
