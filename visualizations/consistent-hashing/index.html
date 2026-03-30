@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consistent Hashing — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--panel:#1a2233;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --ac:#2dd4bf;--ac0:rgba(45,212,191,.15);--ac2:#14b8a6;
+  --good:#34d399;--good0:rgba(52,211,153,.15);
+  --warn:#fb7185;--warn0:rgba(251,113,133,.15);
+  --gold:#fbbf24;--gold0:rgba(251,191,36,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(45,212,191,.10), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(20,184,166,.08), transparent 28%),
+    linear-gradient(180deg, #0d1117 0%, #0b0f15 100%);
+}
+header{
+  position:sticky;top:0;z-index:20;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 24px;background:rgba(13,17,23,.90);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+header h1{font-size:1.05rem;font-weight:700;letter-spacing:.03em}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:6px 12px;border-radius:999px;font-size:.78rem;transition:.18s ease}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:calc(100vh - 58px)}
+@media(max-width:980px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;display:flex;flex-direction:column;gap:16px}
+.sidebar{padding:22px;border-left:1px solid var(--border);background:rgba(22,27,34,.72);display:flex;flex-direction:column;gap:16px;overflow-y:auto;max-height:calc(100vh - 58px);position:sticky;top:58px}
+@media(max-width:980px){.sidebar{border-left:none;border-top:1px solid var(--border);position:static;max-height:none}}
+.panel{
+  background:linear-gradient(180deg, rgba(26,34,51,.94), rgba(22,27,34,.96));
+  border:1px solid var(--border);border-radius:18px;padding:16px;
+  box-shadow:0 18px 40px rgba(0,0,0,.18);
+}
+.section-label,.sidebar h3{
+  font-size:.68rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:700
+}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:.72rem;color:var(--muted);font-weight:600}
+.field input[type=text]{
+  width:100%;padding:9px 12px;border-radius:12px;background:rgba(13,17,23,.92);
+  border:1px solid var(--border);color:var(--text);outline:none;font-size:.9rem
+}
+.field input[type=text]:focus{border-color:var(--ac)}
+.field input[type=range]{accent-color:var(--ac);width:120px}
+button{
+  border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;
+  padding:9px 14px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.18s ease;white-space:nowrap
+}
+button:hover{border-color:var(--ac);color:var(--ac);transform:translateY(-1px)}
+button.primary{background:linear-gradient(135deg, var(--ac), var(--ac2));color:#0d1117;border-color:transparent}
+button.primary:hover{color:#0d1117;opacity:.92}
+button.warn{border-color:var(--warn);color:var(--warn)}
+button.warn:hover{background:var(--warn0)}
+button:disabled{opacity:.4;cursor:default;transform:none}
+.speed-ctrl{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--muted)}
+.stage{border-radius:18px;background:linear-gradient(180deg, rgba(13,17,23,.92), rgba(11,15,20,.96));min-height:480px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.stage svg{display:block}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(13,17,23,.72)}
+.stat .k{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+.stat .v{font-size:1.15rem;font-weight:800;margin-top:5px}
+.log{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto}
+.log-entry{
+  padding:8px 10px;border-radius:12px;background:rgba(13,17,23,.72);border-left:3px solid var(--border);
+  font-size:.78rem;line-height:1.5;color:var(--muted)
+}
+.log-entry.active{border-left-color:var(--ac);background:var(--ac0);color:var(--text)}
+.log-entry.good{border-left-color:var(--good);background:var(--good0);color:var(--good)}
+.log-entry.warn{border-left-color:var(--warn);background:var(--warn0);color:#fecdd3}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted)}
+.swatch{width:12px;height:12px;border-radius:4px;border:1px solid var(--border);flex:none}
+.swatch.diamond{transform:rotate(45deg);border-radius:2px}
+.swatch.vnode{border-style:dashed;border-radius:50%}
+.server-list{display:flex;flex-direction:column;gap:6px}
+.server-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;
+  background:rgba(13,17,23,.7);border:1px solid var(--border);font-size:.8rem
+}
+.server-item .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.server-item .name{flex:1;font-weight:600}
+.server-item .count{color:var(--muted);font-size:.74rem}
+.explain{font-size:.8rem;color:var(--muted);line-height:1.7}
+.footer-note{font-size:.68rem;color:var(--muted);text-align:center;padding-top:8px;border-top:1px solid var(--border)}
+/* tooltip */
+.tooltip{
+  position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:8px 12px;font-size:.78rem;color:var(--text);
+  box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:30;white-space:nowrap;opacity:0;transition:opacity .15s
+}
+.tooltip.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Consistent Hashing</span></h1>
+  <a href="../../index.html">&larr; Back</a>
+</header>
+<div class="layout">
+<div class="main">
+  <!-- Controls -->
+  <div class="panel">
+    <div class="section-label" style="margin-bottom:10px">Controls</div>
+    <div class="controls">
+      <button class="primary" id="btnAddServer">+ Add Server</button>
+      <button class="warn" id="btnRemoveServer">&minus; Remove Server</button>
+      <div class="field" style="min-width:160px">
+        <label>Key name</label>
+        <input type="text" id="keyInput" placeholder="e.g. user:42">
+      </div>
+      <button id="btnAddKey">Add Key</button>
+      <div class="field">
+        <label>Virtual nodes: <strong id="vnodeLabel">3</strong></label>
+        <input type="range" id="vnodeSlider" min="1" max="5" value="3">
+      </div>
+      <div class="field">
+        <label>Speed: <strong id="speedLabel">1x</strong></label>
+        <input type="range" id="speedSlider" min="1" max="5" value="2">
+      </div>
+      <button id="btnReset">Reset</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="k">Servers</div><div class="v" id="statServers">0</div></div>
+    <div class="stat"><div class="k">Virtual Nodes</div><div class="v" id="statVnodes">0</div></div>
+    <div class="stat"><div class="k">Keys</div><div class="v" id="statKeys">0</div></div>
+    <div class="stat"><div class="k">Load Ratio</div><div class="v" id="statLoad">—</div></div>
+  </div>
+
+  <!-- Ring Stage -->
+  <div class="panel stage" id="stage">
+    <svg id="ringSvg" width="560" height="560" viewBox="0 0 560 560"></svg>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+</div>
+
+<div class="sidebar">
+  <!-- Legend -->
+  <div>
+    <h3 style="margin-bottom:10px">Legend</h3>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div class="legend-item"><div class="swatch" style="background:var(--ac);border-color:var(--ac)"></div> Server node</div>
+      <div class="legend-item"><div class="swatch vnode" style="border-color:var(--ac)"></div> Virtual node</div>
+      <div class="legend-item"><div class="swatch diamond" style="background:var(--gold);border-color:var(--gold)"></div> Key</div>
+      <div class="legend-item"><div class="swatch" style="background:none;border:2px dashed var(--muted);border-radius:0"></div> Clockwise walk</div>
+    </div>
+  </div>
+
+  <!-- Server List -->
+  <div>
+    <h3 style="margin-bottom:10px">Servers</h3>
+    <div class="server-list" id="serverList">
+      <div style="font-size:.8rem;color:var(--muted)">No servers yet. Click "Add Server".</div>
+    </div>
+  </div>
+
+  <!-- Step Log -->
+  <div>
+    <h3 style="margin-bottom:10px">Step Log</h3>
+    <div class="log" id="log">
+      <div class="log-entry active">Ready. Add servers and keys to begin.</div>
+    </div>
+  </div>
+
+  <!-- How It Works -->
+  <div>
+    <h3 style="margin-bottom:10px">How It Works</h3>
+    <div class="explain">
+      <strong>Consistent Hashing</strong> maps both servers and keys onto a circular hash space (ring).
+      Each key is assigned to the first server found by walking clockwise from its position.<br><br>
+      <strong>Virtual nodes</strong> give each physical server multiple positions on the ring, improving load balance.<br><br>
+      <strong>Why it matters:</strong> When a server is added or removed, only the keys between it and its predecessor are remapped &mdash; not all keys. This makes consistent hashing ideal for distributed caches, CDNs, and databases.
+    </div>
+  </div>
+
+  <div class="footer-note">Pure HTML/CSS/JS. No dependencies.</div>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ── Constants ── */
+const CX=280, CY=280, R=220, TICK_R=210, INNER_R=195;
+const MAX_HASH=4294967296; // 2^32
+const SERVER_COLORS=["#2dd4bf","#60a5fa","#f472b6","#a78bfa","#fb923c","#34d399","#fbbf24","#f87171"];
+const SERVER_NAMES=["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel"];
+
+/* ── State ── */
+let servers=[], keys=[], nextServerId=0, animSpeed=1;
+let vnodeCount=3;
+
+/* ── DOM refs ── */
+const svg=document.getElementById("ringSvg");
+const NS="http://www.w3.org/2000/svg";
+const $=id=>document.getElementById(id);
+const logEl=$("log"), serverListEl=$("serverList"), tooltip=$("tooltip");
+
+/* ── Hash (FNV-1a 32-bit) ── */
+function fnv1a(str){
+  let h=0x811c9dc5;
+  for(let i=0;i<str.length;i++){
+    h^=str.charCodeAt(i);
+    h=Math.imul(h,0x01000193);
+  }
+  return h>>>0;
+}
+
+/* ── Geometry helpers ── */
+function hashToAngle(h){ return (h/MAX_HASH)*Math.PI*2 - Math.PI/2; }
+function angleToXY(angle,r){ return {x:CX+r*Math.cos(angle), y:CY+r*Math.sin(angle)}; }
+function hashToXY(h,r){ return angleToXY(hashToAngle(h),r||R); }
+
+/* ── SVG helpers ── */
+function svgEl(tag,attrs){
+  const el=document.createElementNS(NS,tag);
+  for(const[k,v] of Object.entries(attrs||{})) el.setAttribute(k,v);
+  return el;
+}
+
+function describeArc(h1,h2,r){
+  // clockwise arc from h1 to h2
+  let a1=hashToAngle(h1), a2=hashToAngle(h2);
+  if(h2<=h1) a2+=Math.PI*2;
+  const p1=angleToXY(a1,r), p2=angleToXY(a2,r);
+  const diff=a2-a1;
+  const large=diff>Math.PI?1:0;
+  return `M${p1.x},${p1.y} A${r},${r} 0 ${large} 1 ${p2.x},${p2.y}`;
+}
+
+/* ── Logging ── */
+function log(msg,cls="active"){
+  const d=document.createElement("div");
+  d.className="log-entry "+(cls||"");
+  d.textContent=msg;
+  logEl.prepend(d);
+  if(logEl.children.length>50) logEl.lastChild.remove();
+}
+
+/* ── Get all vnodes across all servers ── */
+function allVnodes(){
+  const arr=[];
+  for(const s of servers){
+    for(const vn of s.vnodes) arr.push({hash:vn.hash, server:s, label:vn.label});
+  }
+  arr.sort((a,b)=>a.hash-b.hash);
+  return arr;
+}
+
+/* ── Find responsible server for a hash ── */
+function findServer(hash){
+  const vn=allVnodes();
+  if(!vn.length) return null;
+  for(const n of vn){ if(n.hash>=hash) return n; }
+  return vn[0]; // wrap around
+}
+
+/* ── Stats ── */
+function updateStats(){
+  $("statServers").textContent=servers.length;
+  $("statVnodes").textContent=servers.reduce((s,sv)=>s+sv.vnodes.length,0);
+  $("statKeys").textContent=keys.length;
+  if(servers.length===0||keys.length===0){
+    $("statLoad").textContent="—";
+    return;
+  }
+  const counts={};
+  servers.forEach(s=>counts[s.id]=0);
+  keys.forEach(k=>{ if(k.server) counts[k.server.id]=(counts[k.server.id]||0)+1; });
+  const vals=Object.values(counts);
+  const mn=Math.min(...vals), mx=Math.max(...vals);
+  $("statLoad").textContent=mx===0?"—":`${mn}/${mx}`;
+}
+
+/* ── Server list sidebar ── */
+function updateServerList(){
+  if(!servers.length){
+    serverListEl.innerHTML='<div style="font-size:.8rem;color:var(--muted)">No servers yet.</div>';
+    return;
+  }
+  const counts={};
+  servers.forEach(s=>counts[s.id]=0);
+  keys.forEach(k=>{ if(k.server) counts[k.server.id]=(counts[k.server.id]||0)+1; });
+  serverListEl.innerHTML=servers.map(s=>
+    `<div class="server-item"><div class="dot" style="background:${s.color}"></div><span class="name">${s.name}</span><span class="count">${counts[s.id]||0} keys &middot; ${s.vnodes.length} vnodes</span></div>`
+  ).join("");
+}
+
+/* ── Reassign all keys ── */
+function reassignKeys(){
+  for(const k of keys){
+    const found=findServer(k.hash);
+    k.server=found?found.server:null;
+  }
+}
+
+/* ── Draw the ring ── */
+function drawRing(){
+  // Remove previous ring elements
+  svg.querySelectorAll(".ring-base,.ring-tick").forEach(e=>e.remove());
+
+  // Main ring circle
+  const ring=svgEl("circle",{cx:CX,cy:CY,r:R,fill:"none",stroke:"#30363d","stroke-width":2,class:"ring-base"});
+  svg.prepend(ring);
+
+  // Glow ring
+  const glow=svgEl("circle",{cx:CX,cy:CY,r:R,fill:"none",stroke:"rgba(45,212,191,0.08)","stroke-width":12,class:"ring-base"});
+  svg.prepend(glow);
+
+  // Tick marks every 1/32 of the ring
+  for(let i=0;i<32;i++){
+    const angle=(i/32)*Math.PI*2 - Math.PI/2;
+    const p1=angleToXY(angle,TICK_R);
+    const p2=angleToXY(angle,R+6);
+    const tick=svgEl("line",{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:"#30363d","stroke-width":1,class:"ring-tick"});
+    svg.appendChild(tick);
+  }
+
+  // Cardinal labels
+  const labels=[{pos:0,text:"0"},{pos:MAX_HASH/4,text:"2^30"},{pos:MAX_HASH/2,text:"2^31"},{pos:3*MAX_HASH/4,text:"3\u00b72^30"}];
+  for(const lb of labels){
+    const p=hashToXY(lb.pos,R+22);
+    const t=svgEl("text",{x:p.x,y:p.y,fill:"#8b949e","font-size":"10","text-anchor":"middle","dominant-baseline":"middle",class:"ring-tick"});
+    t.textContent=lb.text;
+    svg.appendChild(t);
+  }
+}
+
+/* ── Draw everything ── */
+function drawAll(){
+  // Clear non-base elements
+  svg.querySelectorAll(".node,.vnode,.key-mark,.arc-line,.key-line").forEach(e=>e.remove());
+
+  // Draw virtual node connections and vnodes
+  for(const s of servers){
+    for(const vn of s.vnodes){
+      const p=hashToXY(vn.hash, R);
+      // Dashed line from center-area to ring for virtual node
+      const cp=hashToXY(vn.hash, INNER_R-20);
+      const conn=svgEl("line",{x1:cp.x,y1:cp.y,x2:p.x,y2:p.y,stroke:s.color,"stroke-width":1,"stroke-dasharray":"4,4","stroke-opacity":.35,class:"vnode"});
+      svg.appendChild(conn);
+      // Virtual node circle
+      const c=svgEl("circle",{cx:p.x,cy:p.y,r:5,fill:"none",stroke:s.color,"stroke-width":1.5,"stroke-dasharray":"3,2",class:"vnode",
+        "data-tip":`${s.name} vnode #${vn.idx+1}\nHash: ${vn.hash.toString(16)}`});
+      svg.appendChild(c);
+    }
+  }
+
+  // Draw physical server nodes (at first vnode position, larger)
+  for(const s of servers){
+    if(!s.vnodes.length) continue;
+    const p=hashToXY(s.vnodes[0].hash, R);
+    const c=svgEl("circle",{cx:p.x,cy:p.y,r:10,fill:s.color,stroke:"#0d1117","stroke-width":2.5,class:"node",
+      "data-tip":`Server: ${s.name}\nVnodes: ${s.vnodes.length}`});
+    svg.appendChild(c);
+    // Label
+    const lp=hashToXY(s.vnodes[0].hash, R+36);
+    const t=svgEl("text",{x:lp.x,y:lp.y,fill:s.color,"font-size":"11","font-weight":"700","text-anchor":"middle","dominant-baseline":"middle",class:"node"});
+    t.textContent=s.name;
+    svg.appendChild(t);
+  }
+
+  // Draw keys
+  for(const k of keys){
+    const p=hashToXY(k.hash, R);
+    // Diamond marker
+    const d=svgEl("rect",{x:p.x-5,y:p.y-5,width:10,height:10,rx:1.5,fill:k.server?k.server.color:"#fbbf24",stroke:"#0d1117","stroke-width":2,
+      transform:`rotate(45,${p.x},${p.y})`,class:"key-mark",
+      "data-tip":`Key: "${k.name}"\nHash: ${k.hash.toString(16)}\nServer: ${k.server?k.server.name:'none'}`});
+    svg.appendChild(d);
+
+    // Line from key to its server's nearest vnode
+    if(k.server){
+      const found=findServer(k.hash);
+      if(found){
+        const sp=hashToXY(found.hash, R);
+        // Small arc along the ring
+        const arc=svgEl("path",{d:describeArc(k.hash,found.hash,R+14),fill:"none",stroke:k.server.color,"stroke-width":1.5,"stroke-dasharray":"5,3","stroke-opacity":.5,class:"key-line"});
+        svg.appendChild(arc);
+      }
+    }
+  }
+}
+
+/* ── Animate placing nodes on ring ── */
+function animateNode(hash, color, duration){
+  return new Promise(resolve=>{
+    const p=hashToXY(hash, R);
+    const pulse=svgEl("circle",{cx:p.x,cy:p.y,r:0,fill:"none",stroke:color,"stroke-width":2,"stroke-opacity":1,class:"node"});
+    svg.appendChild(pulse);
+    let start=null;
+    function step(ts){
+      if(!start) start=ts;
+      const t=Math.min((ts-start)/duration,1);
+      const r=30*t;
+      pulse.setAttribute("r",r);
+      pulse.setAttribute("stroke-opacity",1-t);
+      if(t<1) requestAnimationFrame(step);
+      else { pulse.remove(); resolve(); }
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* ── Animate clockwise walk ── */
+function animateClockwiseWalk(fromHash, toHash, color, duration){
+  return new Promise(resolve=>{
+    const arcR=R+14;
+    // Create arc path
+    const pathD=describeArc(fromHash, toHash, arcR);
+    const path=svgEl("path",{d:pathD,fill:"none",stroke:color,"stroke-width":3,"stroke-opacity":.9,class:"arc-line"});
+    svg.appendChild(path);
+    const len=path.getTotalLength();
+    path.setAttribute("stroke-dasharray",len);
+    path.setAttribute("stroke-dashoffset",len);
+
+    // Arrow head
+    const arrow=svgEl("circle",{cx:0,cy:0,r:4,fill:color,class:"arc-line"});
+    svg.appendChild(arrow);
+
+    let start=null;
+    function step(ts){
+      if(!start) start=ts;
+      const t=Math.min((ts-start)/duration,1);
+      const eased=t<0.5?2*t*t:(1-Math.pow(-2*t+2,2)/2); // easeInOutQuad
+      path.setAttribute("stroke-dashoffset", len*(1-eased));
+      // Move arrow along path
+      if(len>0){
+        const pt=path.getPointAtLength(len*eased);
+        arrow.setAttribute("cx",pt.x);
+        arrow.setAttribute("cy",pt.y);
+      }
+      if(t<1) requestAnimationFrame(step);
+      else {
+        // Fade out arc
+        setTimeout(()=>{
+          path.setAttribute("stroke-opacity","0.3");
+          arrow.remove();
+        },300/animSpeed);
+        resolve();
+      }
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* ── Animation speed ── */
+function baseDur(ms){ return ms/animSpeed; }
+
+/* ── Add Server ── */
+async function addServer(){
+  if(servers.length>=8){ log("Maximum 8 servers reached.","warn"); return; }
+  const id=nextServerId++;
+  const idx=servers.length;
+  const color=SERVER_COLORS[idx%SERVER_COLORS.length];
+  const name=SERVER_NAMES[idx%SERVER_NAMES.length];
+  const s={id,name,color,vnodes:[]};
+
+  // Create vnodes
+  for(let i=0;i<vnodeCount;i++){
+    const label=`${name}#${i}`;
+    const hash=fnv1a(label);
+    s.vnodes.push({hash,idx:i,label});
+  }
+  s.vnodes.sort((a,b)=>a.hash-b.hash);
+
+  servers.push(s);
+  log(`Added server "${name}" with ${vnodeCount} virtual node(s).`,"good");
+
+  // Collect keys that will be remapped
+  const oldAssign=keys.map(k=>k.server?k.server.id:null);
+  reassignKeys();
+  const remapped=keys.filter((k,i)=>(k.server?k.server.id:null)!==oldAssign[i]);
+  if(remapped.length) log(`${remapped.length} key(s) remapped to ${name}.`,"active");
+
+  drawAll();
+  updateStats();
+  updateServerList();
+
+  // Animate vnodes
+  for(const vn of s.vnodes){
+    await animateNode(vn.hash, color, baseDur(400));
+  }
+}
+
+/* ── Remove Server ── */
+async function removeServer(){
+  if(!servers.length){ log("No servers to remove.","warn"); return; }
+  const s=servers.pop();
+  log(`Removed server "${s.name}".`,"warn");
+
+  const oldAssign=keys.map(k=>k.server?k.server.id:null);
+  reassignKeys();
+  const remapped=keys.filter((k,i)=>(k.server?k.server.id:null)!==oldAssign[i]);
+  if(remapped.length) log(`${remapped.length} key(s) remapped after removing ${s.name}.`,"active");
+
+  drawAll();
+  updateStats();
+  updateServerList();
+
+  // Flash effect at removed positions
+  for(const vn of s.vnodes){
+    animateNode(vn.hash, "#fb7185", baseDur(500));
+  }
+}
+
+/* ── Add Key ── */
+async function addKey(){
+  const input=$("keyInput");
+  let name=input.value.trim();
+  if(!name){
+    name="key-"+Math.floor(Math.random()*10000);
+  }
+  if(keys.find(k=>k.name===name)){ log(`Key "${name}" already exists.`,"warn"); return; }
+
+  const hash=fnv1a(name);
+  const found=findServer(hash);
+  const k={name,hash,server:found?found.server:null};
+  keys.push(k);
+
+  input.value="";
+  log(`Added key "${name}" (hash: ${hash.toString(16)})${k.server?` → ${k.server.name}`:''}`,k.server?"good":"active");
+
+  drawAll();
+  updateStats();
+  updateServerList();
+
+  // Animate clockwise walk
+  if(found){
+    await animateClockwiseWalk(hash, found.hash, found.server.color, baseDur(800));
+  }
+  // Pulse at key position
+  await animateNode(hash, "#fbbf24", baseDur(350));
+}
+
+/* ── Reset ── */
+function reset(){
+  servers=[];
+  keys=[];
+  nextServerId=0;
+  svg.querySelectorAll(".node,.vnode,.key-mark,.arc-line,.key-line").forEach(e=>e.remove());
+  logEl.innerHTML='<div class="log-entry active">Reset. Ready to begin.</div>';
+  updateStats();
+  updateServerList();
+}
+
+/* ── Vnode slider change ── */
+function onVnodeChange(){
+  vnodeCount=parseInt($("vnodeSlider").value);
+  $("vnodeLabel").textContent=vnodeCount;
+  // Rebuild all server vnodes
+  for(const s of servers){
+    s.vnodes=[];
+    for(let i=0;i<vnodeCount;i++){
+      const label=`${s.name}#${i}`;
+      s.vnodes.push({hash:fnv1a(label),idx:i,label});
+    }
+    s.vnodes.sort((a,b)=>a.hash-b.hash);
+  }
+  reassignKeys();
+  drawAll();
+  updateStats();
+  updateServerList();
+  log(`Virtual nodes per server set to ${vnodeCount}.`,"active");
+}
+
+/* ── Speed slider ── */
+function onSpeedChange(){
+  const v=parseInt($("speedSlider").value);
+  const speeds=[0.25,0.5,1,2,4];
+  animSpeed=speeds[v-1]||1;
+  $("speedLabel").textContent=animSpeed+"x";
+}
+
+/* ── Tooltip ── */
+function showTooltip(e){
+  const tip=e.target.getAttribute("data-tip");
+  if(!tip) return;
+  tooltip.textContent=tip;
+  tooltip.classList.add("show");
+  const rect=$("stage").getBoundingClientRect();
+  const ex=e.clientX-rect.left, ey=e.clientY-rect.top;
+  tooltip.style.left=(ex+14)+"px";
+  tooltip.style.top=(ey-10)+"px";
+}
+function hideTooltip(){
+  tooltip.classList.remove("show");
+}
+
+/* ── Init ── */
+drawRing();
+updateStats();
+
+/* ── Event listeners ── */
+$("btnAddServer").addEventListener("click",addServer);
+$("btnRemoveServer").addEventListener("click",removeServer);
+$("btnAddKey").addEventListener("click",addKey);
+$("btnReset").addEventListener("click",reset);
+$("vnodeSlider").addEventListener("input",onVnodeChange);
+$("speedSlider").addEventListener("input",onSpeedChange);
+$("keyInput").addEventListener("keydown",e=>{ if(e.key==="Enter") addKey(); });
+
+svg.addEventListener("mousemove",showTooltip);
+svg.addEventListener("mouseleave",hideTooltip);
+
+// Initialize speed
+onSpeedChange();
+
+})();
+</script>
+</body>
+</html>
