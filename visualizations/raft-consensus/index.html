@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raft Consensus — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+  --ac:#58a6ff;--gr:#3fb950;--orange:#d29922;--red:#f85149;--gray:#484f58;
+  --ac0:rgba(88,166,255,.15);--gr0:rgba(63,185,80,.15);--or0:rgba(210,153,34,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at top left,rgba(88,166,255,.08),transparent 30%),
+    radial-gradient(circle at bottom right,rgba(63,185,80,.06),transparent 30%),
+    var(--bg);
+}
+header{
+  position:sticky;top:0;z-index:50;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 24px;background:rgba(13,17,23,.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+header h1{font-size:1.05rem;font-weight:700;letter-spacing:.03em}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:6px 12px;border-radius:999px;font-size:.78rem;transition:.2s}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:calc(100vh - 54px)}
+@media(max-width:980px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:20px;border-left:1px solid var(--border);background:rgba(22,27,34,.8);display:flex;flex-direction:column;gap:14px;overflow-y:auto;max-height:calc(100vh - 54px);position:sticky;top:54px}
+@media(max-width:980px){.sidebar{border-left:none;border-top:1px solid var(--border);max-height:none;position:static}}
+.panel{
+  background:linear-gradient(180deg,rgba(22,27,34,.95),rgba(13,17,23,.98));
+  border:1px solid var(--border);border-radius:14px;padding:16px;
+}
+.sidebar h3{
+  font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px
+}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{
+  padding:8px 16px;border-radius:10px;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;
+  font-weight:600;transition:.15s;white-space:nowrap;
+}
+button:hover{border-color:var(--ac);background:var(--ac0)}
+button:active{transform:scale(.97)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+button.primary:hover{opacity:.85}
+button.danger{border-color:var(--red);color:var(--red)}
+button.danger:hover{background:rgba(248,81,73,.15)}
+button.success{border-color:var(--gr);color:var(--gr)}
+button.success:hover{background:var(--gr0)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.toggle-row{display:flex;align-items:center;gap:8px;font-size:.82rem}
+.toggle{
+  width:40px;height:22px;border-radius:12px;background:var(--gray);cursor:pointer;
+  position:relative;transition:.2s;border:none;padding:0;
+}
+.toggle.on{background:var(--ac)}
+.toggle::after{
+  content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;
+  border-radius:50%;background:#fff;transition:.2s;
+}
+.toggle.on::after{left:21px}
+svg text{font-family:inherit}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-bottom:4px}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.legend-line{width:20px;height:3px;border-radius:2px;flex-shrink:0}
+.status-grid{display:grid;gap:4px;font-size:.75rem}
+.status-row{display:grid;grid-template-columns:32px 70px 40px 40px 36px;gap:4px;align-items:center;padding:3px 6px;border-radius:6px;background:rgba(22,27,34,.6)}
+.status-row.header{color:var(--muted);font-weight:700;background:none}
+.state-badge{
+  padding:2px 6px;border-radius:4px;font-size:.65rem;font-weight:700;text-transform:uppercase;
+  text-align:center;
+}
+.state-follower{background:var(--ac0);color:var(--ac)}
+.state-candidate{background:var(--or0);color:var(--orange)}
+.state-leader{background:var(--gr0);color:var(--gr)}
+.state-dead{background:rgba(72,79,88,.3);color:var(--gray)}
+#step-log{
+  max-height:200px;overflow-y:auto;font-size:.72rem;color:var(--muted);
+  display:flex;flex-direction:column;gap:2px;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+#step-log .log-entry{padding:3px 6px;border-radius:4px;border-left:3px solid var(--border);background:rgba(22,27,34,.5)}
+#step-log .log-entry.vote{border-left-color:var(--orange)}
+#step-log .log-entry.leader{border-left-color:var(--gr)}
+#step-log .log-entry.append{border-left-color:var(--ac)}
+#step-log .log-entry.commit{border-left-color:var(--gr)}
+#step-log .log-entry.kill{border-left-color:var(--red)}
+.how-it-works{font-size:.75rem;color:var(--muted);line-height:1.6}
+.how-it-works strong{color:var(--text)}
+.footer-note{font-size:.68rem;color:var(--gray);text-align:center;padding-top:8px;border-top:1px solid var(--border)}
+
+@keyframes pulse{
+  0%,100%{transform:scale(1);opacity:1}
+  50%{transform:scale(1.08);opacity:.8}
+}
+@keyframes heartbeat-ring{
+  0%{r:42;opacity:.6}
+  100%{r:60;opacity:0}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Raft Consensus</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button id="btn-election" class="primary">Start Election</button>
+      <button id="btn-request" class="success">Client Request</button>
+      <button id="btn-kill" class="danger">Kill Node</button>
+      <button id="btn-revive">Revive Node</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+      <div class="slider-row" style="flex:1;min-width:180px">
+        <span>Speed</span>
+        <input type="range" id="speed-slider" min="1" max="10" value="5">
+        <span id="speed-label">5x</span>
+      </div>
+      <div class="toggle-row">
+        <button class="toggle" id="auto-toggle"></button>
+        <span>Auto Mode</span>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted)">Click a node to select it for Kill/Election</div>
+    </div>
+  </div>
+  <div class="panel" style="flex:1;min-height:480px;position:relative;overflow:hidden">
+    <svg id="raft-svg" width="100%" height="100%" style="min-height:460px"></svg>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Legend</h3>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--ac)"></div>Follower</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>Candidate</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gr)"></div>Leader</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gray)"></div>Dead / Offline</div>
+    <div style="margin-top:6px">
+      <div class="legend-item"><div class="legend-line" style="background:var(--orange)"></div>RequestVote RPC</div>
+      <div class="legend-item"><div class="legend-line" style="background:var(--ac)"></div>AppendEntries / Heartbeat</div>
+      <div class="legend-item"><div class="legend-line" style="background:var(--gr)"></div>Vote Granted</div>
+    </div>
+  </div>
+  <div>
+    <h3>Cluster Status</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.8rem">
+      <div style="color:var(--muted)">Current Term</div><div id="cs-term" style="font-weight:700">0</div>
+      <div style="color:var(--muted)">Leader</div><div id="cs-leader" style="font-weight:700;color:var(--gr)">None</div>
+      <div style="color:var(--muted)">Committed</div><div id="cs-committed" style="font-weight:700">0</div>
+      <div style="color:var(--muted)">Live Nodes</div><div id="cs-live" style="font-weight:700">5</div>
+    </div>
+  </div>
+  <div>
+    <h3>Node Status</h3>
+    <div class="status-grid">
+      <div class="status-row header"><span>ID</span><span>State</span><span>Term</span><span>Log</span><span>Votes</span></div>
+      <div id="node-status-rows"></div>
+    </div>
+  </div>
+  <div>
+    <h3>Event Log</h3>
+    <div id="step-log"></div>
+  </div>
+  <div>
+    <h3>How It Works</h3>
+    <div class="how-it-works">
+      <p><strong>Leader Election:</strong> Nodes begin as followers. When a follower's election timeout fires, it becomes a candidate, increments its term, votes for itself, and sends RequestVote RPCs. A majority of votes wins the election.</p>
+      <p style="margin-top:6px"><strong>Log Replication:</strong> The leader accepts client requests, appends entries to its log, then sends AppendEntries RPCs to all followers. Once a majority acknowledge, the entry is committed.</p>
+      <p style="margin-top:6px"><strong>Terms:</strong> Raft divides time into terms with monotonically increasing numbers. Each term has at most one leader. Terms act as a logical clock to detect stale information.</p>
+    </div>
+  </div>
+  <div class="footer-note">Pure HTML/CSS/JS. No dependencies.</div>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const NODE_COUNT = 5;
+const COLORS = {
+  follower:'#58a6ff', candidate:'#d29922', leader:'#3fb950', dead:'#484f58',
+  followerBg:'rgba(88,166,255,.12)', candidateBg:'rgba(210,153,34,.12)',
+  leaderBg:'rgba(63,185,80,.12)', deadBg:'rgba(72,79,88,.12)',
+  voteReq:'#d29922', voteRes:'#3fb950', append:'#58a6ff', heartbeat:'#58a6ff',
+  committed:'#3fb950', uncommitted:'#d29922'
+};
+
+let speed = 5;
+let autoMode = false;
+let autoTimer = null;
+let selectedNode = 0;
+let animId = 0;
+let messages = [];
+let logEntries = [];
+const stepLog = document.getElementById('step-log');
+
+class Node {
+  constructor(id){
+    this.id = id;
+    this.state = 'follower'; // follower, candidate, leader, dead
+    this.term = 0;
+    this.log = []; // [{term, value, committed}]
+    this.votedFor = null;
+    this.votesReceived = new Set();
+    this.alive = true;
+  }
+}
+
+let nodes = [];
+function initNodes(){
+  nodes = [];
+  for(let i=0;i<NODE_COUNT;i++) nodes.push(new Node(i));
+  messages = [];
+  logEntries = [];
+  selectedNode = 0;
+  clearLog();
+  addLog('Cluster initialized with 5 follower nodes','');
+}
+initNodes();
+
+// SVG setup
+const svg = document.getElementById('raft-svg');
+const NS = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs={}){
+  const e = document.createElementNS(NS, tag);
+  for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);
+  return e;
+}
+
+function getNodePositions(){
+  const rect = svg.getBoundingClientRect();
+  const cx = rect.width/2, cy = rect.height/2;
+  const r = Math.min(cx,cy) * 0.62;
+  const pos = [];
+  for(let i=0;i<NODE_COUNT;i++){
+    const angle = -Math.PI/2 + (2*Math.PI*i)/NODE_COUNT;
+    pos.push({x: cx + r*Math.cos(angle), y: cy + r*Math.sin(angle)});
+  }
+  return pos;
+}
+
+function stateColor(s){ return COLORS[s] || COLORS.dead; }
+function stateBg(s){ return COLORS[s+'Bg'] || COLORS.deadBg; }
+
+function render(){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const defs = el('defs');
+  // glow filter
+  const filter = el('filter',{id:'glow',x:'-50%',y:'-50%',width:'200%',height:'200%'});
+  const gb = el('feGaussianBlur',{in:'SourceGraphic',stdDeviation:'4',result:'blur'});
+  const merge = el('feMerge');
+  const m1 = el('feMergeNode',{in:'blur'});
+  const m2 = el('feMergeNode',{in:'SourceGraphic'});
+  merge.appendChild(m1); merge.appendChild(m2);
+  filter.appendChild(gb); filter.appendChild(merge);
+  defs.appendChild(filter);
+
+  // arrow marker for messages
+  for(const [name,color] of [['arrow-vote',COLORS.voteReq],['arrow-append',COLORS.append],['arrow-grant',COLORS.voteRes]]){
+    const marker = el('marker',{id:name,markerWidth:'8',markerHeight:'6',refX:'8',refY:'3',orient:'auto'});
+    const path = el('path',{d:'M0,0 L8,3 L0,6 Z',fill:color});
+    marker.appendChild(path);
+    defs.appendChild(marker);
+  }
+  svg.appendChild(defs);
+
+  const pos = getNodePositions();
+
+  // Draw message animations
+  for(const msg of messages){
+    drawMessage(msg, pos);
+  }
+
+  // Draw nodes
+  for(let i=0;i<NODE_COUNT;i++){
+    const n = nodes[i];
+    const p = pos[i];
+    const g = el('g',{transform:`translate(${p.x},${p.y})`,cursor:'pointer',class:'node-group'});
+
+    // Selection ring
+    if(i === selectedNode){
+      const sel = el('circle',{r:'50',fill:'none',stroke:'#e6edf3',strokeWidth:'2',strokeDasharray:'4 4',opacity:'.5'});
+      g.appendChild(sel);
+    }
+
+    // Heartbeat ring for leader
+    if(n.state === 'leader' && n.alive){
+      const hb = el('circle',{r:'42',fill:'none',stroke:COLORS.leader,strokeWidth:'2',opacity:'0'});
+      hb.innerHTML = `<animate attributeName="r" from="42" to="62" dur="${1.2/speed}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="${1.2/speed}s" repeatCount="indefinite"/>`;
+      g.appendChild(hb);
+    }
+
+    // Outer glow
+    const glow = el('circle',{r:'42',fill:stateBg(n.alive?n.state:'dead'),stroke:stateColor(n.alive?n.state:'dead'),strokeWidth:'2',filter:'url(#glow)'});
+    g.appendChild(glow);
+
+    // Main circle
+    const main = el('circle',{r:'38',fill:stateBg(n.alive?n.state:'dead'),stroke:stateColor(n.alive?n.state:'dead'),strokeWidth:'2.5'});
+    g.appendChild(main);
+
+    // Node label
+    const label = el('text',{y:'-10',textAnchor:'middle',fill:'#fff',fontSize:'13',fontWeight:'700'});
+    label.textContent = `N${i}`;
+    g.appendChild(label);
+
+    // State label
+    const stLabel = el('text',{y:'5',textAnchor:'middle',fill:stateColor(n.alive?n.state:'dead'),fontSize:'10',fontWeight:'600'});
+    stLabel.textContent = n.alive ? n.state.toUpperCase() : 'DEAD';
+    g.appendChild(stLabel);
+
+    // Term
+    const termLabel = el('text',{y:'19',textAnchor:'middle',fill:COLORS.dead === stateColor(n.alive?n.state:'dead') ? '#666' : '#ccc',fontSize:'9'});
+    termLabel.textContent = `T:${n.term}`;
+    g.appendChild(termLabel);
+
+    // Vote count (for candidates)
+    if(n.state === 'candidate' && n.alive){
+      const vc = el('text',{y:'-24',textAnchor:'middle',fill:COLORS.candidate,fontSize:'10',fontWeight:'700'});
+      vc.textContent = `Votes:${n.votesReceived.size}/${Math.floor(NODE_COUNT/2)+1}`;
+      g.appendChild(vc);
+    }
+
+    // Log entries (small colored bars)
+    const logStartX = -Math.min(n.log.length * 7, 32);
+    for(let j=0;j<n.log.length;j++){
+      const entry = n.log[j];
+      const lx = logStartX + j * 7;
+      const bar = el('rect',{x:lx,y:'26',width:'5',height:'8',rx:'1.5',
+        fill: entry.committed ? COLORS.committed : COLORS.uncommitted,
+        opacity: entry.committed ? '1' : '.7'
+      });
+      g.appendChild(bar);
+    }
+
+    g.addEventListener('click',()=>{
+      selectedNode = i;
+      render();
+    });
+
+    svg.appendChild(g);
+  }
+
+  updateStatusDisplay();
+}
+
+function drawMessage(msg, pos){
+  const from = pos[msg.from];
+  const to = pos[msg.to];
+  const progress = msg.progress || 0;
+
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const nx = dx/dist, ny = dy/dist;
+
+  // Shorten line to not overlap circles
+  const sx = from.x + nx*42;
+  const sy = from.y + ny*42;
+  const ex = to.x - nx*42;
+  const ey = to.y - ny*42;
+
+  const color = msg.type === 'requestVote' ? COLORS.voteReq :
+                msg.type === 'voteGranted' ? COLORS.voteRes :
+                COLORS.append;
+  const markerRef = msg.type === 'requestVote' ? 'arrow-vote' :
+                    msg.type === 'voteGranted' ? 'arrow-grant' : 'arrow-append';
+
+  // Trail line
+  const trail = el('line',{
+    x1:sx, y1:sy,
+    x2: sx + (ex-sx)*progress,
+    y2: sy + (ey-sy)*progress,
+    stroke:color, strokeWidth:'1.5', opacity:'.3',
+    strokeDasharray: msg.type === 'heartbeat' ? '4 3' : 'none'
+  });
+  svg.appendChild(trail);
+
+  // Moving dot
+  const dotX = sx + (ex-sx)*progress;
+  const dotY = sy + (ey-sy)*progress;
+
+  const dotGlow = el('circle',{cx:dotX,cy:dotY,r:'6',fill:color,opacity:'.25'});
+  svg.appendChild(dotGlow);
+  const dot = el('circle',{cx:dotX,cy:dotY,r:'3.5',fill:color});
+  svg.appendChild(dot);
+
+  // Label on dot
+  const lbl = el('text',{x:dotX,y:dotY-10,textAnchor:'middle',fill:color,fontSize:'8',fontWeight:'700'});
+  lbl.textContent = msg.type === 'requestVote' ? 'ReqVote' :
+                    msg.type === 'voteGranted' ? 'Vote' :
+                    msg.type === 'heartbeat' ? 'HB' :
+                    msg.type === 'appendEntries' ? 'Append' :
+                    msg.type === 'appendAck' ? 'ACK' : '';
+  svg.appendChild(lbl);
+}
+
+// Animation loop
+let lastTime = 0;
+function animate(ts){
+  if(!lastTime) lastTime = ts;
+  const dt = (ts - lastTime) / 1000;
+  lastTime = ts;
+
+  let needsRender = false;
+  const baseSpeed = 0.6 + speed * 0.18;
+
+  for(let i = messages.length-1; i>=0; i--){
+    const m = messages[i];
+    m.progress += dt * baseSpeed;
+    needsRender = true;
+    if(m.progress >= 1){
+      messages.splice(i,1);
+      if(m.onArrive) m.onArrive();
+    }
+  }
+
+  if(needsRender) render();
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+// Raft logic
+function getLeader(){
+  return nodes.find(n => n.state === 'leader' && n.alive);
+}
+
+function majority(){ return Math.floor(NODE_COUNT/2)+1; }
+
+function sendMessage(from, to, type, data={}, onArrive){
+  messages.push({from, to, type, progress:0, data, onArrive});
+}
+
+function startElection(nodeId){
+  const n = nodes[nodeId];
+  if(!n.alive || n.state === 'leader') return;
+
+  n.term++;
+  n.state = 'candidate';
+  n.votedFor = nodeId;
+  n.votesReceived = new Set([nodeId]);
+
+  addLog(`N${nodeId} starts election for term ${n.term}`, 'vote');
+  render();
+
+  // Send RequestVote to all other alive nodes
+  for(let i=0;i<NODE_COUNT;i++){
+    if(i === nodeId) continue;
+    const target = nodes[i];
+    sendMessage(nodeId, i, 'requestVote', {term:n.term, candidateId:nodeId}, ()=>{
+      handleRequestVote(i, nodeId, n.term);
+    });
+  }
+}
+
+function handleRequestVote(receiverId, candidateId, term){
+  const receiver = nodes[receiverId];
+  const candidate = nodes[candidateId];
+  if(!receiver.alive) return;
+  if(!candidate.alive || candidate.state !== 'candidate') return;
+
+  if(term < receiver.term) {
+    addLog(`N${receiverId} rejects vote for N${candidateId} (stale term)`, 'vote');
+    return;
+  }
+
+  if(term > receiver.term){
+    receiver.term = term;
+    receiver.state = 'follower';
+    receiver.votedFor = null;
+  }
+
+  if(receiver.votedFor === null || receiver.votedFor === candidateId){
+    receiver.votedFor = candidateId;
+    addLog(`N${receiverId} grants vote to N${candidateId} for term ${term}`, 'vote');
+
+    sendMessage(receiverId, candidateId, 'voteGranted', {term}, ()=>{
+      handleVoteGranted(candidateId, receiverId, term);
+    });
+  } else {
+    addLog(`N${receiverId} rejects vote for N${candidateId} (already voted for N${receiver.votedFor})`, 'vote');
+  }
+  render();
+}
+
+function handleVoteGranted(candidateId, voterId, term){
+  const candidate = nodes[candidateId];
+  if(!candidate.alive || candidate.state !== 'candidate' || candidate.term !== term) return;
+
+  candidate.votesReceived.add(voterId);
+  addLog(`N${candidateId} received vote from N${voterId} (${candidate.votesReceived.size}/${majority()})`, 'vote');
+
+  if(candidate.votesReceived.size >= majority()){
+    candidate.state = 'leader';
+    addLog(`N${candidateId} becomes LEADER for term ${term}`, 'leader');
+
+    // Reset other nodes
+    for(let i=0;i<NODE_COUNT;i++){
+      if(i !== candidateId && nodes[i].alive){
+        if(nodes[i].term <= term){
+          nodes[i].state = 'follower';
+          nodes[i].term = term;
+          nodes[i].votedFor = null;
+        }
+      }
+    }
+
+    // Send initial heartbeat
+    sendHeartbeats(candidateId);
+  }
+  render();
+}
+
+function sendHeartbeats(leaderId){
+  const leader = nodes[leaderId];
+  if(!leader.alive || leader.state !== 'leader') return;
+
+  for(let i=0;i<NODE_COUNT;i++){
+    if(i === leaderId || !nodes[i].alive) continue;
+    sendMessage(leaderId, i, 'heartbeat', {term:leader.term}, ()=>{
+      if(nodes[i].alive && leader.term >= nodes[i].term){
+        nodes[i].term = leader.term;
+        nodes[i].state = 'follower';
+        nodes[i].votedFor = leaderId;
+      }
+    });
+  }
+  addLog(`N${leaderId} sends heartbeats`, 'append');
+}
+
+let entryCounter = 0;
+function clientRequest(){
+  const leader = getLeader();
+  if(!leader){
+    addLog('No leader available. Start an election first.', 'kill');
+    return;
+  }
+
+  entryCounter++;
+  const entry = {term: leader.term, value: entryCounter, committed: false};
+  leader.log.push({...entry});
+  addLog(`Leader N${leader.id} appends entry #${entryCounter} (term ${leader.term})`, 'append');
+
+  let ackCount = 1; // leader counts itself
+  const needed = majority();
+
+  for(let i=0;i<NODE_COUNT;i++){
+    if(i === leader.id || !nodes[i].alive) continue;
+    sendMessage(leader.id, i, 'appendEntries', {entry, term:leader.term}, ()=>{
+      handleAppendEntries(i, leader.id, entry, leader.term, ()=>{
+        ackCount++;
+        addLog(`Leader N${leader.id} received ACK from N${i} (${ackCount}/${needed})`, 'append');
+        if(ackCount >= needed){
+          commitEntry(leader.id, entry.value);
+        }
+      });
+    });
+  }
+  render();
+}
+
+function handleAppendEntries(followerId, leaderId, entry, term, onAck){
+  const follower = nodes[followerId];
+  if(!follower.alive) return;
+
+  if(term >= follower.term){
+    follower.term = term;
+    follower.state = 'follower';
+    follower.votedFor = leaderId;
+    // Add entry to follower log if not already there
+    if(!follower.log.find(e => e.value === entry.value)){
+      follower.log.push({...entry});
+    }
+    addLog(`N${followerId} appends entry #${entry.value}`, 'append');
+
+    // Send ACK back
+    sendMessage(followerId, leaderId, 'appendAck', {term}, ()=>{
+      if(onAck) onAck();
+    });
+  }
+  render();
+}
+
+function commitEntry(leaderId, value){
+  const leader = nodes[leaderId];
+  // Mark committed on leader
+  const leaderEntry = leader.log.find(e => e.value === value);
+  if(leaderEntry && !leaderEntry.committed){
+    leaderEntry.committed = true;
+    addLog(`Entry #${value} COMMITTED by majority`, 'commit');
+
+    // Mark committed on all followers
+    for(let i=0;i<NODE_COUNT;i++){
+      if(i === leaderId) continue;
+      const fe = nodes[i].log.find(e => e.value === value);
+      if(fe) fe.committed = true;
+    }
+  }
+  render();
+}
+
+function killNode(id){
+  if(!nodes[id].alive) return;
+  nodes[id].alive = false;
+  nodes[id].state = 'dead';
+  addLog(`N${id} has been KILLED`, 'kill');
+
+  // Remove any pending messages from/to this node
+  messages = messages.filter(m => m.from !== id && m.to !== id);
+  render();
+}
+
+function reviveNode(id){
+  if(nodes[id].alive) return;
+  nodes[id].alive = true;
+  nodes[id].state = 'follower';
+  nodes[id].votedFor = null;
+  nodes[id].votesReceived = new Set();
+  addLog(`N${id} has been REVIVED as follower (term ${nodes[id].term})`, 'leader');
+  render();
+}
+
+// Step log
+function addLog(text, cls){
+  const div = document.createElement('div');
+  div.className = 'log-entry ' + (cls||'');
+  div.textContent = text;
+  stepLog.appendChild(div);
+  stepLog.scrollTop = stepLog.scrollHeight;
+  // Limit log entries
+  while(stepLog.children.length > 80) stepLog.removeChild(stepLog.firstChild);
+}
+function clearLog(){ stepLog.innerHTML = ''; }
+
+// Status display
+function updateStatusDisplay(){
+  const leader = getLeader();
+  document.getElementById('cs-term').textContent = Math.max(...nodes.map(n=>n.term));
+  document.getElementById('cs-leader').textContent = leader ? `N${leader.id}` : 'None';
+  document.getElementById('cs-leader').style.color = leader ? COLORS.leader : COLORS.dead;
+
+  let committed = 0;
+  if(leader){
+    committed = leader.log.filter(e=>e.committed).length;
+  }
+  document.getElementById('cs-committed').textContent = committed;
+  document.getElementById('cs-live').textContent = nodes.filter(n=>n.alive).length;
+
+  // Node status rows
+  const container = document.getElementById('node-status-rows');
+  container.innerHTML = '';
+  for(const n of nodes){
+    const row = document.createElement('div');
+    row.className = 'status-row';
+    const st = n.alive ? n.state : 'dead';
+    row.innerHTML = `
+      <span style="font-weight:700;color:${stateColor(st)}">N${n.id}</span>
+      <span class="state-badge state-${st}">${st}</span>
+      <span>${n.term}</span>
+      <span>${n.log.length}</span>
+      <span>${n.state==='candidate'?n.votesReceived.size:'-'}</span>
+    `;
+    if(n.id === selectedNode) row.style.outline = '1px solid #e6edf3';
+    container.appendChild(row);
+  }
+}
+
+// Button handlers
+document.getElementById('btn-election').addEventListener('click',()=>{
+  startElection(selectedNode);
+});
+
+document.getElementById('btn-request').addEventListener('click',()=>{
+  clientRequest();
+});
+
+document.getElementById('btn-kill').addEventListener('click',()=>{
+  killNode(selectedNode);
+  render();
+});
+
+document.getElementById('btn-revive').addEventListener('click',()=>{
+  reviveNode(selectedNode);
+  render();
+});
+
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  initNodes();
+  entryCounter = 0;
+  messages = [];
+  render();
+});
+
+document.getElementById('speed-slider').addEventListener('input',function(){
+  speed = +this.value;
+  document.getElementById('speed-label').textContent = speed + 'x';
+});
+
+const autoToggle = document.getElementById('auto-toggle');
+autoToggle.addEventListener('click',function(){
+  autoMode = !autoMode;
+  this.classList.toggle('on', autoMode);
+  if(autoMode) startAutoMode();
+  else stopAutoMode();
+});
+
+function startAutoMode(){
+  stopAutoMode();
+  autoTimer = setInterval(()=>{
+    const leader = getLeader();
+    if(leader){
+      // Send heartbeats periodically
+      if(Math.random() < 0.5){
+        sendHeartbeats(leader.id);
+      } else {
+        clientRequest();
+      }
+    } else {
+      // No leader, trigger election on a random alive follower
+      const followers = nodes.filter(n => n.alive && n.state !== 'leader');
+      if(followers.length > 0){
+        const f = followers[Math.floor(Math.random()*followers.length)];
+        startElection(f.id);
+      }
+    }
+  }, Math.max(800, 3000 / speed));
+}
+
+function stopAutoMode(){
+  if(autoTimer){ clearInterval(autoTimer); autoTimer = null; }
+}
+
+// Handle resize
+window.addEventListener('resize', ()=> render());
+
+// Initial render
+render();
+
+})();
+</script>
+</body>
+</html>
