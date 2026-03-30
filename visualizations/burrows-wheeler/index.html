@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burrows-Wheeler Transform — visual-cs</title>
+<style>
+:root{
+  --bg:#0b1020;--surface:#11192d;--panel:#16233d;--panel2:#1c2b49;--border:#2e4268;
+  --text:#e8eefc;--muted:#93a4c7;--accent:#7dd3fc;--accent0:rgba(125,211,252,.15);
+  --good:#34d399;--good0:rgba(52,211,153,.15);--gold:#fbbf24;--gold0:rgba(251,191,36,.14);
+  --warn:#fb7185;--warn0:rgba(251,113,133,.15);--violet:#c084fc;--violet0:rgba(192,132,252,.14);
+  --first:#34d399;--first0:rgba(52,211,153,.18);--last:#c084fc;--last0:rgba(192,132,252,.18);
+  --sentinel:#fbbf24;--sentinel0:rgba(251,191,36,.2);
+  --highlight:#58a6ff;--highlight0:rgba(88,166,255,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(125,211,252,.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(192,132,252,.12), transparent 24%),
+    linear-gradient(180deg, #09101d 0%, #0b1020 100%);
+}
+header{
+  position:sticky;top:0;z-index:20;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 24px;background:rgba(11,16,32,.88);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+header h1{font-size:1.05rem;font-weight:700;letter-spacing:.03em}
+header h1 span{color:var(--accent)}
+header a{color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:6px 12px;border-radius:999px;font-size:.78rem}
+header a:hover{color:var(--text);border-color:var(--accent)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:calc(100vh - 58px)}
+@media (max-width:980px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;display:flex;flex-direction:column;gap:16px}
+.sidebar{padding:22px;border-left:1px solid var(--border);background:rgba(17,25,45,.72);display:flex;flex-direction:column;gap:16px}
+@media (max-width:980px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.hero{
+  padding:18px 20px;border:1px solid var(--border);border-radius:20px;
+  background:linear-gradient(135deg, rgba(125,211,252,.12), rgba(192,132,252,.08) 55%, rgba(52,211,153,.08));
+}
+.hero h2{font-size:1.55rem;margin-bottom:8px}
+.hero p{color:var(--muted);line-height:1.65;max-width:72ch}
+.panel{
+  background:linear-gradient(180deg, rgba(22,35,61,.94), rgba(17,25,45,.96));
+  border:1px solid var(--border);border-radius:18px;padding:16px;
+  box-shadow:0 18px 40px rgba(0,0,0,.18);
+}
+.section-label,.sidebar h3{
+  font-size:.68rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:700
+}
+.controls{display:flex;flex-direction:column;gap:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:.72rem;color:var(--muted);font-weight:600}
+.field input{
+  width:100%;padding:10px 12px;border-radius:12px;background:rgba(12,18,34,.92);
+  border:1px solid var(--border);color:var(--text);outline:none;font-size:.95rem;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.field input:focus{border-color:var(--accent)}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{
+  border:1px solid var(--border);background:#10192e;color:var(--text);border-radius:999px;
+  padding:9px 14px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.18s ease
+}
+button:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+button.primary{background:linear-gradient(135deg, var(--accent), #38bdf8);color:#08111e;border-color:transparent}
+button.primary:hover{color:#08111e;opacity:.92}
+button.violet{background:linear-gradient(135deg, var(--violet), #a855f7);color:#08111e;border-color:transparent}
+button.violet:hover{color:#08111e;opacity:.92}
+button:disabled{opacity:.4;cursor:default;transform:none}
+.speed{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.78rem}
+.speed input{accent-color:var(--accent)}
+.stage{
+  padding:16px;border-radius:18px;
+  background:linear-gradient(180deg, rgba(9,14,29,.92), rgba(11,16,32,.96));
+  border:1px solid var(--border);min-height:200px;overflow-x:auto;
+}
+.stage-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:10px}
+.matrix{display:inline-grid;gap:2px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.matrix .cell{
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border-radius:6px;font-size:.88rem;font-weight:600;
+  background:rgba(12,18,34,.8);border:1px solid var(--border);
+  transition:all .25s ease;position:relative;
+}
+.cell.first-col{background:var(--first0);border-color:var(--first);color:var(--first)}
+.cell.last-col{background:var(--last0);border-color:var(--violet);color:var(--violet)}
+.cell.sentinel{background:var(--sentinel0);border-color:var(--sentinel);color:var(--sentinel)}
+.cell.highlight{background:var(--highlight0);border-color:var(--highlight);color:var(--highlight)}
+.cell.active{background:var(--accent0);border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px rgba(125,211,252,.3)}
+.cell.reconstructed{background:var(--good0);border-color:var(--good);color:var(--good)}
+.row-marker{
+  width:22px;height:32px;display:flex;align-items:center;justify-content:center;
+  font-size:.62rem;color:var(--muted);font-weight:700;
+}
+.row-highlight{background:rgba(88,166,255,.08);border-radius:8px}
+.result-bar{
+  display:flex;gap:2px;flex-wrap:wrap;margin-top:12px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.result-bar .cell{width:36px;height:36px;font-size:.95rem}
+.arrow-cell{
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:.9rem;
+}
+.inverse-grid{display:grid;grid-template-columns:auto auto 40px auto auto 40px auto;gap:2px;align-items:center}
+.col-header{font-size:.62rem;color:var(--muted);text-align:center;font-weight:700;text-transform:uppercase;padding-bottom:4px}
+.mapping-arrow{color:var(--accent);font-size:.78rem;text-align:center}
+.recon-trail{
+  display:flex;gap:2px;flex-wrap:wrap;margin-top:10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+.stat{border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(12,18,34,.72)}
+.stat .k{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+.stat .v{font-size:1.15rem;font-weight:800;margin-top:5px;word-break:break-all}
+.log{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto}
+.log-entry{
+  padding:8px 10px;border-radius:12px;background:#0b1327;border-left:3px solid var(--border);
+  font-size:.78rem;line-height:1.5;color:var(--muted)
+}
+.log-entry.active{border-left-color:var(--accent);background:var(--accent0);color:var(--text)}
+.log-entry.good{border-left-color:var(--good);background:var(--good0);color:var(--good)}
+.log-entry.warn{border-left-color:var(--warn);background:var(--warn0);color:#fecdd3}
+.log-entry.violet{border-left-color:var(--violet);background:var(--violet0);color:var(--violet)}
+.legend{display:flex;flex-wrap:wrap;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted)}
+.swatch{width:12px;height:12px;border-radius:4px;border:1px solid var(--border);flex:none}
+.explain{font-size:.8rem;color:var(--muted);line-height:1.7}
+.explain code{background:#0b1327;padding:2px 5px;border-radius:6px;color:var(--accent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.explain h4{color:var(--text);margin:8px 0 4px;font-size:.82rem}
+.footer-note{font-size:.76rem;color:var(--muted)}
+.mini-cards{display:flex;flex-direction:column;gap:8px}
+.mini{
+  padding:10px 12px;border-radius:14px;background:rgba(10,16,31,.7);border:1px solid var(--border);
+  font-size:.78rem;color:var(--muted);line-height:1.5
+}
+.mini strong{color:var(--text);display:block;margin-bottom:4px}
+.mini code{background:#0b1327;padding:1px 4px;border-radius:4px;color:var(--accent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem}
+.input-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .3s ease forwards}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 rgba(125,211,252,0)}50%{box-shadow:0 0 16px rgba(125,211,252,.4)}}
+.pulse{animation:pulse .8s ease}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Burrows-Wheeler Transform</span></h1>
+  <a href="../../index.html">&larr; Back</a>
+</header>
+
+<div class="layout">
+  <main class="main">
+    <section class="hero">
+      <h2>BWT: rearrange characters so repeated patterns cluster together.</h2>
+      <p>The Burrows-Wheeler Transform reorders a string so that characters from similar contexts group together, making subsequent compression (like run-length encoding or move-to-front) far more effective. Used in bzip2 and bioinformatics sequence alignment.</p>
+    </section>
+
+    <section class="panel controls">
+      <div class="section-label">Interactive Demo</div>
+      <div class="input-row">
+        <div class="field">
+          <label>Input String</label>
+          <input id="textInput" type="text" value="banana" maxlength="16" spellcheck="false" placeholder="Enter a string (max 16 chars)">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="primary" id="forwardBtn">Forward BWT</button>
+        <button class="violet" id="inverseBtn">Inverse BWT</button>
+        <button id="stepBtn">Step</button>
+        <button id="resetBtn">Reset</button>
+        <div class="speed">
+          <span>Speed</span>
+          <input id="speedInput" type="range" min="1" max="10" value="5">
+          <span id="speedLabel">5</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage" id="forwardStage" style="display:none">
+      <div class="stage-label" id="forwardLabel">Forward Transform</div>
+      <div id="forwardContent"></div>
+    </section>
+
+    <section class="stage" id="inverseStage" style="display:none">
+      <div class="stage-label" id="inverseLabel">Inverse Transform</div>
+      <div id="inverseContent"></div>
+    </section>
+
+    <section id="resultSection" style="display:none">
+      <div class="stats" id="statsGrid"></div>
+    </section>
+  </main>
+
+  <aside class="sidebar">
+    <div>
+      <h3>Legend</h3>
+      <div class="legend" style="margin-top:8px">
+        <div class="legend-item"><div class="swatch" style="background:var(--first)"></div>First Column (F)</div>
+        <div class="legend-item"><div class="swatch" style="background:var(--violet)"></div>Last Column (L / BWT)</div>
+        <div class="legend-item"><div class="swatch" style="background:var(--sentinel)"></div>Sentinel ($)</div>
+        <div class="legend-item"><div class="swatch" style="background:var(--highlight)"></div>Current Row</div>
+        <div class="legend-item"><div class="swatch" style="background:var(--accent)"></div>Active Cell</div>
+        <div class="legend-item"><div class="swatch" style="background:var(--good)"></div>Reconstructed</div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Statistics</h3>
+      <div id="sidebarStats" class="mini-cards" style="margin-top:8px">
+        <div class="mini">Enter a string and click <strong>Forward BWT</strong> to begin.</div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Step Log</h3>
+      <div id="log" class="log" style="margin-top:8px">
+        <div class="log-entry">Waiting for input...</div>
+      </div>
+    </div>
+
+    <div>
+      <h3>How It Works</h3>
+      <div class="explain" style="margin-top:8px">
+        <h4>Forward Transform</h4>
+        <p>1. Append sentinel <code>$</code> (sorts before all letters).<br>
+        2. Generate all rotations of the string.<br>
+        3. Sort rotations lexicographically.<br>
+        4. The last column of the sorted matrix is the BWT output.</p>
+        <h4>Inverse Transform</h4>
+        <p>1. The BWT string is the last column (L).<br>
+        2. Sorting L gives the first column (F).<br>
+        3. Build LF-mapping: <code>LF[i]</code> maps row i in L to the corresponding row in F.<br>
+        4. Follow the mapping from the sentinel row to reconstruct the original.</p>
+        <h4>Why It Helps Compression</h4>
+        <p>Characters from similar contexts cluster in the BWT output. For <code>banana$</code>, the BWT is <code>annb$aa</code> &mdash; note the grouped <code>a</code>'s and <code>n</code>'s. Run-length encoding then compresses these runs efficiently.</p>
+      </div>
+    </div>
+
+    <div>
+      <h3>Complexity</h3>
+      <div class="mini-cards" style="margin-top:8px">
+        <div class="mini"><strong>Forward BWT</strong> <code>O(n&sup2; log n)</code> naive &mdash; <code>O(n)</code> with suffix array</div>
+        <div class="mini"><strong>Inverse BWT</strong> <code>O(n)</code></div>
+        <div class="mini"><strong>Space</strong> <code>O(n&sup2;)</code> for rotation matrix display</div>
+      </div>
+    </div>
+
+    <p class="footer-note">Pure HTML/CSS/JS. No dependencies.</p>
+  </aside>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const textInput = $('#textInput');
+  const speedInput = $('#speedInput');
+  const speedLabel = $('#speedLabel');
+  const forwardStage = $('#forwardStage');
+  const inverseStage = $('#inverseStage');
+  const forwardContent = $('#forwardContent');
+  const inverseContent = $('#inverseContent');
+  const forwardLabel = $('#forwardLabel');
+  const inverseLabel = $('#inverseLabel');
+  const resultSection = $('#resultSection');
+  const statsGrid = $('#statsGrid');
+  const sidebarStats = $('#sidebarStats');
+  const logEl = $('#log');
+
+  let animQueue = [];
+  let animTimer = null;
+  let stepping = false;
+  let paused = false;
+  let bwtResult = '';
+  let originalStr = '';
+  let sortedMatrix = [];
+
+  speedInput.addEventListener('input', () => { speedLabel.textContent = speedInput.value; });
+
+  function getDelay(){ return Math.max(80, 800 - (parseInt(speedInput.value) - 1) * 80); }
+
+  function clearLog(){ logEl.innerHTML = ''; }
+  function addLog(msg, cls=''){
+    const d = document.createElement('div');
+    d.className = 'log-entry' + (cls ? ' '+cls : '');
+    d.innerHTML = msg;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function updateSidebarStats(input, bwt){
+    const s = input + '$';
+    sidebarStats.innerHTML = `
+      <div class="mini"><strong>Input</strong> <code>${escHtml(input)}</code></div>
+      <div class="mini"><strong>With Sentinel</strong> <code>${escHtml(s)}</code></div>
+      <div class="mini"><strong>Length</strong> ${s.length} characters</div>
+      <div class="mini"><strong>Rotations</strong> ${s.length}</div>
+      ${bwt ? `<div class="mini"><strong>BWT Output</strong> <code>${escHtml(bwt)}</code></div>` : ''}
+    `;
+  }
+
+  function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function stopAnim(){
+    if(animTimer) clearTimeout(animTimer);
+    animTimer = null;
+    animQueue = [];
+    paused = false;
+    stepping = false;
+  }
+
+  function runQueue(){
+    if(paused || animQueue.length === 0){ return; }
+    const fn = animQueue.shift();
+    fn();
+    if(stepping){ paused = true; return; }
+    animTimer = setTimeout(runQueue, getDelay());
+  }
+
+  function enqueue(fn){ animQueue.push(fn); }
+
+  $('#stepBtn').addEventListener('click', () => {
+    if(animQueue.length === 0) return;
+    stepping = true;
+    paused = false;
+    runQueue();
+  });
+
+  $('#resetBtn').addEventListener('click', () => {
+    stopAnim();
+    forwardStage.style.display = 'none';
+    inverseStage.style.display = 'none';
+    resultSection.style.display = 'none';
+    clearLog();
+    addLog('Reset. Ready for new input.');
+    sidebarStats.innerHTML = '<div class="mini">Enter a string and click <strong>Forward BWT</strong> to begin.</div>';
+  });
+
+  // ===================== FORWARD BWT =====================
+
+  $('#forwardBtn').addEventListener('click', () => {
+    stopAnim();
+    const raw = textInput.value.replace(/\$/g, '').trim();
+    if(!raw){ addLog('Please enter a non-empty string.','warn'); return; }
+    originalStr = raw;
+    const s = raw + '$';
+    const n = s.length;
+
+    forwardStage.style.display = '';
+    inverseStage.style.display = 'none';
+    resultSection.style.display = 'none';
+    forwardContent.innerHTML = '';
+    clearLog();
+    updateSidebarStats(raw, '');
+
+    // Generate rotations
+    const rotations = [];
+    for(let i = 0; i < n; i++){
+      rotations.push(s.slice(i) + s.slice(0, i));
+    }
+
+    // Phase 1: show rotations being generated
+    enqueue(() => {
+      addLog('Phase 1: Generating all rotations of "' + escHtml(s) + '"', 'active');
+      forwardLabel.textContent = 'Forward Transform - Generating Rotations';
+    });
+
+    const unsortedDiv = document.createElement('div');
+    forwardContent.appendChild(unsortedDiv);
+
+    for(let i = 0; i < n; i++){
+      const idx = i;
+      enqueue(() => {
+        addLog(`Rotation ${idx}: <code>${escHtml(rotations[idx])}</code>`);
+        renderMatrix(unsortedDiv, rotations.slice(0, idx+1), n, {highlightRow: idx, phase: 'generate'});
+      });
+    }
+
+    // Phase 2: sort
+    const sorted = rotations.slice().sort();
+    sortedMatrix = sorted;
+
+    enqueue(() => {
+      addLog('Phase 2: Sorting rotations lexicographically...', 'active');
+      forwardLabel.textContent = 'Forward Transform - Sorting Rotations';
+    });
+
+    enqueue(() => {
+      renderMatrix(unsortedDiv, sorted, n, {phase: 'sorted', showFirstLast: true});
+      addLog('Rotations sorted. First column (F) highlighted green, last column (L) highlighted purple.', 'good');
+    });
+
+    // Phase 3: highlight last column row by row
+    const bwtChars = [];
+    for(let i = 0; i < n; i++){
+      bwtChars.push(sorted[i][n-1]);
+    }
+    bwtResult = bwtChars.join('');
+
+    for(let i = 0; i < n; i++){
+      const idx = i;
+      enqueue(() => {
+        renderMatrix(unsortedDiv, sorted, n, {phase: 'extract', showFirstLast: true, extractUpTo: idx});
+        addLog(`Row ${idx}: last char = <code>${escHtml(bwtChars[idx])}</code>`);
+      });
+    }
+
+    // Phase 4: show result
+    enqueue(() => {
+      forwardLabel.textContent = 'Forward Transform - Complete';
+      addLog(`BWT output: <code>${escHtml(bwtResult)}</code>`, 'good');
+      updateSidebarStats(raw, bwtResult);
+
+      resultSection.style.display = '';
+      statsGrid.innerHTML = `
+        <div class="stat"><div class="k">Input</div><div class="v" style="color:var(--accent)">${escHtml(s)}</div></div>
+        <div class="stat"><div class="k">BWT Output</div><div class="v" style="color:var(--violet)">${escHtml(bwtResult)}</div></div>
+        <div class="stat"><div class="k">Sentinel Row</div><div class="v">${sorted.indexOf(s)}</div></div>
+      `;
+
+      // Render result bar
+      const bar = document.createElement('div');
+      bar.className = 'result-bar fade-in';
+      bar.innerHTML = '<div style="width:100%;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:4px">BWT Result</div>';
+      const row = document.createElement('div');
+      row.style.display = 'flex'; row.style.gap = '2px'; row.style.flexWrap = 'wrap';
+      for(const ch of bwtResult){
+        const c = document.createElement('div');
+        c.className = 'cell last-col' + (ch === '$' ? ' sentinel' : '');
+        c.style.width = '36px'; c.style.height = '36px'; c.style.fontSize = '.95rem';
+        c.textContent = ch;
+        row.appendChild(c);
+      }
+      bar.appendChild(row);
+      forwardContent.appendChild(bar);
+    });
+
+    stepping = false;
+    paused = false;
+    runQueue();
+  });
+
+  function renderMatrix(container, rows, cols, opts = {}){
+    const {highlightRow, phase, showFirstLast, extractUpTo} = opts;
+    let html = `<div class="matrix" style="grid-template-columns:24px repeat(${cols}, 32px);gap:2px">`;
+
+    for(let r = 0; r < rows.length; r++){
+      const isHL = (highlightRow !== undefined && r === highlightRow);
+      // Row number
+      html += `<div class="row-marker">${r}</div>`;
+      for(let c = 0; c < cols; c++){
+        const ch = rows[r][c];
+        let cls = 'cell';
+        if(ch === '$') cls += ' sentinel';
+        if(showFirstLast && c === 0 && ch !== '$') cls += ' first-col';
+        if(showFirstLast && c === 0 && ch === '$') cls += ' sentinel';
+        if(showFirstLast && c === cols-1) cls += ' last-col';
+        if(phase === 'extract' && c === cols-1 && extractUpTo !== undefined && r <= extractUpTo) cls += ' active';
+        if(isHL) cls += ' highlight';
+        html += `<div class="${cls}">${escHtml(ch)}</div>`;
+      }
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  // ===================== INVERSE BWT =====================
+
+  $('#inverseBtn').addEventListener('click', () => {
+    stopAnim();
+    // Use bwtResult if we have one, otherwise compute from input
+    let bwtStr = bwtResult;
+    if(!bwtStr){
+      const raw = textInput.value.replace(/\$/g,'').trim();
+      if(!raw){ addLog('Please enter a string or run Forward BWT first.','warn'); return; }
+      const s = raw + '$';
+      const n = s.length;
+      const rots = [];
+      for(let i = 0; i < n; i++) rots.push(s.slice(i) + s.slice(0, i));
+      rots.sort();
+      bwtStr = rots.map(r => r[r.length-1]).join('');
+      originalStr = raw;
+    }
+
+    const L = bwtStr.split('');
+    const n = L.length;
+    const F = L.slice().sort();
+
+    inverseStage.style.display = '';
+    forwardStage.style.display = forwardStage.style.display; // keep if shown
+    inverseContent.innerHTML = '';
+    clearLog();
+
+    enqueue(() => {
+      addLog('Inverse BWT: reconstructing original from <code>' + escHtml(bwtStr) + '</code>', 'active');
+      inverseLabel.textContent = 'Inverse Transform - Building L and F columns';
+    });
+
+    // Build LF mapping
+    // For each char in L, we need stable rank
+    const lRanks = [];
+    const lCount = {};
+    for(let i = 0; i < n; i++){
+      const ch = L[i];
+      lCount[ch] = (lCount[ch]||0) + 1;
+      lRanks.push(lCount[ch]);
+    }
+    const fRanks = [];
+    const fCount = {};
+    for(let i = 0; i < n; i++){
+      const ch = F[i];
+      fCount[ch] = (fCount[ch]||0) + 1;
+      fRanks.push(fCount[ch]);
+    }
+
+    // LF mapping: for row i in L, find the row in F with same char and same rank
+    const lfMap = new Array(n);
+    for(let i = 0; i < n; i++){
+      const ch = L[i];
+      const rank = lRanks[i];
+      for(let j = 0; j < n; j++){
+        if(F[j] === ch && fRanks[j] === rank){ lfMap[i] = j; break; }
+      }
+    }
+
+    // Phase 1: Show L and F columns
+    enqueue(() => {
+      renderInverseColumns(L, F, lfMap, n, {phase:'columns'});
+      addLog('L column (BWT output) and F column (sorted L) displayed.', 'good');
+    });
+
+    // Phase 2: Show LF mapping
+    enqueue(() => {
+      addLog('Building LF-mapping: each row in L maps to a row in F with the same character occurrence.', 'active');
+      inverseLabel.textContent = 'Inverse Transform - LF Mapping';
+    });
+
+    for(let i = 0; i < n; i++){
+      const idx = i;
+      enqueue(() => {
+        renderInverseColumns(L, F, lfMap, n, {phase:'mapping', mappingUpTo: idx});
+        addLog(`LF[${idx}]: L[${idx}]='<code>${escHtml(L[idx])}</code>' maps to F[${lfMap[idx]}]`);
+      });
+    }
+
+    // Phase 3: Reconstruction
+    enqueue(() => {
+      addLog('Phase 3: Reconstruct original by following LF-mapping from sentinel row.', 'active');
+      inverseLabel.textContent = 'Inverse Transform - Reconstruction';
+    });
+
+    // Find sentinel row in F (F is sorted, so $ is at index 0)
+    let currentRow = F.indexOf('$');
+    const reconstructed = [];
+    const trailRows = [];
+
+    for(let step = 0; step < n; step++){
+      const row = currentRow;
+      const ch = F[row];
+      const nextRow = lfMap[row];
+      enqueue(((r, c, nr, st, recon) => () => {
+        recon.push(c);
+        trailRows.push(r);
+        renderInverseColumns(L, F, lfMap, n, {
+          phase:'reconstruct',
+          currentRow: r,
+          nextRow: nr,
+          trailRows: trailRows.slice(),
+          reconstructed: recon.slice()
+        });
+        if(c === '$'){
+          addLog(`Step ${st}: at row ${r}, read '<code>${escHtml(c)}</code>' (sentinel) &rarr; follow to row ${nr}`, 'violet');
+        } else {
+          addLog(`Step ${st}: at row ${r}, read '<code>${escHtml(c)}</code>' &rarr; follow LF to row ${nr}`, 'active');
+        }
+      })(row, ch, nextRow, step, reconstructed));
+
+      reconstructed.push(ch);
+      trailRows.push(row);
+      currentRow = nextRow;
+    }
+
+    // Final result
+    const finalStr = F[F.indexOf('$')] + reconstructed.slice(1).join('');
+    enqueue(() => {
+      const orig = reconstructed.join('');
+      addLog(`Reconstruction complete: <code>${escHtml(orig)}</code>`, 'good');
+      inverseLabel.textContent = 'Inverse Transform - Complete';
+
+      // Show reconstructed trail
+      const trail = document.createElement('div');
+      trail.className = 'recon-trail fade-in';
+      trail.innerHTML = '<div style="width:100%;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:6px;margin-top:14px">Reconstructed String</div>';
+      const row = document.createElement('div');
+      row.style.display = 'flex'; row.style.gap = '2px'; row.style.flexWrap = 'wrap';
+      for(const ch of orig){
+        const c = document.createElement('div');
+        c.className = 'cell reconstructed' + (ch === '$' ? ' sentinel' : '');
+        c.style.width = '36px'; c.style.height = '36px'; c.style.fontSize = '.95rem';
+        c.textContent = ch;
+        row.appendChild(c);
+      }
+      trail.appendChild(row);
+      inverseContent.appendChild(trail);
+    });
+
+    stepping = false;
+    paused = false;
+    runQueue();
+  });
+
+  function renderInverseColumns(L, F, lfMap, n, opts={}){
+    const {phase, mappingUpTo, currentRow, nextRow, trailRows, reconstructed} = opts;
+    let html = '<div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">';
+
+    // L and F columns side by side
+    html += '<div>';
+    html += '<div style="display:grid;grid-template-columns:24px 32px 40px 32px 60px;gap:2px;align-items:center">';
+    // Header
+    html += '<div class="col-header">#</div>';
+    html += '<div class="col-header" style="color:var(--first)">F</div>';
+    html += '<div class="col-header"></div>';
+    html += '<div class="col-header" style="color:var(--violet)">L</div>';
+    html += '<div class="col-header" style="color:var(--accent);font-size:.58rem">LF&rarr;</div>';
+
+    for(let i = 0; i < n; i++){
+      const isTrail = trailRows && trailRows.includes(i);
+      const isCurrent = currentRow !== undefined && i === currentRow;
+      const isNext = nextRow !== undefined && i === nextRow;
+
+      // Row number
+      html += `<div class="row-marker" style="${isCurrent ? 'color:var(--accent);font-weight:800' : ''}">${i}</div>`;
+
+      // F column
+      let fCls = 'cell first-col';
+      if(F[i] === '$') fCls = 'cell sentinel';
+      if(isCurrent) fCls += ' active';
+      if(isTrail && phase==='reconstruct') fCls += ' reconstructed';
+      html += `<div class="${fCls}" style="width:32px;height:32px">${escHtml(F[i])}</div>`;
+
+      // Arrow
+      const showMapping = phase === 'mapping' && mappingUpTo !== undefined && i <= mappingUpTo;
+      const showRecon = phase === 'reconstruct';
+      if(showMapping || showRecon){
+        html += `<div class="mapping-arrow">&harr;</div>`;
+      } else {
+        html += `<div style="width:40px"></div>`;
+      }
+
+      // L column
+      let lCls = 'cell last-col';
+      if(L[i] === '$') lCls = 'cell sentinel';
+      if(isNext && phase==='reconstruct') lCls += ' active';
+      html += `<div class="${lCls}" style="width:32px;height:32px">${escHtml(L[i])}</div>`;
+
+      // LF target
+      if(showMapping || showRecon){
+        html += `<div style="font-size:.65rem;color:var(--muted);text-align:center">&rarr;F[${lfMap[i]}]</div>`;
+      } else {
+        html += `<div></div>`;
+      }
+    }
+    html += '</div></div>';
+
+    // Reconstructed so far (during reconstruct phase)
+    if(phase === 'reconstruct' && reconstructed && reconstructed.length > 0){
+      html += '<div style="align-self:flex-start">';
+      html += '<div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:6px">Building String</div>';
+      html += '<div style="display:flex;gap:2px;flex-wrap:wrap">';
+      for(let i = 0; i < reconstructed.length; i++){
+        const ch = reconstructed[i];
+        let cls = 'cell reconstructed';
+        if(ch === '$') cls += ' sentinel';
+        if(i === reconstructed.length - 1) cls += ' pulse';
+        html += `<div class="${cls}" style="width:32px;height:32px">${escHtml(ch)}</div>`;
+      }
+      html += '</div></div>';
+    }
+
+    html += '</div>';
+
+    // Keep any existing trail div
+    const existing = inverseContent.querySelector('.recon-trail');
+    const trailHtml = existing ? existing.outerHTML : '';
+    inverseContent.innerHTML = html + trailHtml;
+  }
+
+})();
+</script>
+</body>
+</html>
