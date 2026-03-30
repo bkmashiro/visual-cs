@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paxos Consensus — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+  --ac:#f59e0b;--ac0:rgba(245,158,11,.15);--bl:#58a6ff;--bl0:rgba(88,166,255,.15);
+  --gr:#3fb950;--gr0:rgba(63,185,80,.15);--warn:#f85149;--warn0:rgba(248,81,73,.15);
+  --violet:#bc8cff;--violet0:rgba(188,140,255,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(245,158,11,.08), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(63,185,80,.06), transparent 28%),
+    linear-gradient(180deg, #0d1117 0%, #0a0e14 100%);
+}
+header{
+  position:sticky;top:0;z-index:50;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 24px;background:rgba(13,17,23,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+header h1{font-size:1.05rem;font-weight:700;letter-spacing:.03em}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:6px 12px;border-radius:999px;font-size:.78rem;transition:.18s}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:calc(100vh - 58px)}
+@media(max-width:1020px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;display:flex;flex-direction:column;gap:16px}
+.sidebar{padding:22px;border-left:1px solid var(--border);background:rgba(22,27,34,.72);display:flex;flex-direction:column;gap:16px;overflow-y:auto;max-height:calc(100vh - 58px);position:sticky;top:58px}
+@media(max-width:1020px){.sidebar{border-left:none;border-top:1px solid var(--border);max-height:none;position:static}}
+.panel{
+  background:linear-gradient(180deg, rgba(22,27,34,.96), rgba(13,17,23,.98));
+  border:1px solid var(--border);border-radius:16px;padding:16px;
+  box-shadow:0 12px 30px rgba(0,0,0,.25);
+}
+.section-label,.sidebar h3{
+  font-size:.68rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:700;margin-bottom:8px
+}
+button{
+  border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;
+  padding:8px 14px;font-size:.82rem;font-weight:600;cursor:pointer;transition:.18s ease;white-space:nowrap
+}
+button:hover{border-color:var(--ac);color:var(--ac);transform:translateY(-1px)}
+button.primary{background:linear-gradient(135deg,var(--ac),#d97706);color:#0d1117;border-color:transparent}
+button.primary:hover{opacity:.88;color:#0d1117}
+button:disabled{opacity:.35;cursor:default;transform:none}
+button.danger{border-color:var(--warn);color:var(--warn)}
+button.danger:hover{background:var(--warn0)}
+button.success{border-color:var(--gr);color:var(--gr)}
+button.success:hover{background:var(--gr0)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.speed{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.78rem}
+.speed input[type=range]{accent-color:var(--ac);width:100px}
+input[type=text]{
+  padding:7px 10px;border-radius:10px;background:rgba(13,17,23,.9);
+  border:1px solid var(--border);color:var(--text);outline:none;font-size:.88rem;width:90px
+}
+input[type=text]:focus{border-color:var(--ac)}
+
+/* Canvas area */
+.canvas-wrap{position:relative;width:100%;min-height:520px;overflow:hidden}
+#paxosCanvas{width:100%;height:100%;min-height:520px}
+svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+
+/* Node grid */
+.node-grid{
+  display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:12px;
+  width:100%;padding:20px 10px;position:relative;z-index:5;min-height:460px
+}
+.node-col{display:flex;flex-direction:column;gap:14px;align-items:center}
+.col-label{
+  font-size:.7rem;text-transform:uppercase;letter-spacing:.16em;font-weight:700;
+  margin-bottom:6px;text-align:center
+}
+.col-label.proposer{color:var(--ac)}
+.col-label.acceptor{color:var(--bl)}
+.col-label.learner{color:var(--gr)}
+
+.node{
+  border:2px solid var(--border);border-radius:14px;padding:12px 14px;
+  background:var(--surface);width:160px;text-align:center;position:relative;
+  transition:.3s ease;cursor:default
+}
+.node .role{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:4px}
+.node .id{font-size:1rem;font-weight:700;margin-bottom:4px}
+.node .state{font-size:.72rem;color:var(--muted);line-height:1.5}
+.node .state b{color:var(--text);font-weight:600}
+.node.proposer{border-color:rgba(245,158,11,.4)}
+.node.proposer .role{color:var(--ac)}
+.node.acceptor{border-color:rgba(88,166,255,.35)}
+.node.acceptor .role{color:var(--bl)}
+.node.learner{border-color:rgba(63,185,80,.35)}
+.node.learner .role{color:var(--gr)}
+.node.dead{opacity:.35;border-style:dashed}
+.node.dead::after{
+  content:"OFFLINE";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:.7rem;font-weight:800;color:var(--warn);letter-spacing:.15em;
+  background:rgba(13,17,23,.85);padding:4px 10px;border-radius:6px
+}
+.node .propose-row{display:flex;gap:4px;margin-top:6px;justify-content:center}
+.node .propose-row input{width:60px;font-size:.76rem;padding:5px 6px}
+.node .propose-row button{padding:5px 10px;font-size:.72rem}
+.node .kill-btn{
+  position:absolute;top:6px;right:8px;border:none;background:transparent;
+  color:var(--muted);font-size:.9rem;padding:2px 4px;border-radius:6px
+}
+.node .kill-btn:hover{color:var(--warn);background:var(--warn0);transform:none}
+.node.dead .kill-btn{color:var(--gr)}
+.node.dead .kill-btn:hover{color:var(--gr);background:var(--gr0)}
+
+.node.chosen{
+  box-shadow:0 0 20px rgba(63,185,80,.3),0 0 40px rgba(63,185,80,.1);
+  border-color:var(--gr) !important
+}
+
+/* Arrows / messages */
+.msg-arrow{
+  position:absolute;z-index:15;pointer-events:none;
+  transition:opacity .2s
+}
+.msg-label{
+  position:absolute;z-index:20;pointer-events:none;
+  font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:8px;
+  white-space:nowrap;opacity:0;transition:opacity .15s
+}
+.msg-label.prepare{background:var(--ac0);color:var(--ac)}
+.msg-label.promise{background:var(--bl0);color:var(--bl)}
+.msg-label.accept{background:var(--violet0);color:var(--violet)}
+.msg-label.accepted{background:var(--gr0);color:var(--gr)}
+.msg-label.nack{background:var(--warn0);color:var(--warn)}
+
+/* Sidebar sections */
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.78rem;margin-bottom:6px}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-line{width:20px;height:3px;border-radius:2px;flex-shrink:0}
+.phase-indicator{
+  padding:10px;border-radius:10px;border:1px solid var(--border);font-size:.82rem;
+  background:var(--surface)
+}
+.phase-indicator .phase-name{font-weight:700;font-size:.95rem;margin-bottom:2px}
+.phase-indicator .phase-desc{color:var(--muted);font-size:.74rem}
+.consensus-box{
+  padding:12px;border-radius:10px;text-align:center;font-weight:700;
+  border:1px solid var(--border);font-size:.95rem
+}
+.consensus-box.pending{background:var(--surface);color:var(--muted)}
+.consensus-box.reached{background:var(--gr0);color:var(--gr);border-color:var(--gr)}
+.state-list{font-size:.76rem;line-height:1.7}
+.state-list .s-node{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(48,54,61,.4)}
+.state-list .s-label{color:var(--muted)}
+.state-list .s-val{font-weight:600}
+.log-box{
+  max-height:200px;overflow-y:auto;font-size:.72rem;line-height:1.6;
+  padding:8px;border-radius:8px;background:rgba(13,17,23,.6);border:1px solid var(--border);
+  font-family:"SF Mono",Monaco,Consolas,monospace
+}
+.log-box .log-entry{padding:2px 0;border-bottom:1px solid rgba(48,54,61,.3)}
+.log-box .log-entry .lt{color:var(--muted);margin-right:4px}
+.log-box .log-entry.prepare{color:var(--ac)}
+.log-box .log-entry.promise{color:var(--bl)}
+.log-box .log-entry.accept{color:var(--violet)}
+.log-box .log-entry.accepted{color:var(--gr)}
+.log-box .log-entry.nack{color:var(--warn)}
+.log-box .log-entry.info{color:var(--muted)}
+
+.howit{font-size:.76rem;color:var(--muted);line-height:1.65}
+.howit h4{color:var(--text);font-size:.82rem;margin:8px 0 4px}
+.howit p{margin-bottom:6px}
+.footer-note{font-size:.68rem;color:var(--muted);text-align:center;padding-top:8px;border-top:1px solid var(--border)}
+
+/* Keyframes for message particles */
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.node{animation:fadeIn .4s ease both}
+.node:nth-child(2){animation-delay:.05s}
+.node:nth-child(3){animation-delay:.1s}
+.node:nth-child(4){animation-delay:.15s}
+.node:nth-child(5){animation-delay:.2s}
+.node:nth-child(6){animation-delay:.25s}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Paxos</span></h1>
+  <a href="../../index.html">&#8592; Home</a>
+</header>
+
+<div class="layout">
+<div class="main">
+  <!-- Controls -->
+  <div class="panel">
+    <div class="section-label">Controls</div>
+    <div class="controls" style="margin-top:6px">
+      <button class="primary" id="conflictBtn">Conflict Scenario</button>
+      <button id="resetBtn">Reset</button>
+      <button id="stepBtn">Step &rarr;</button>
+      <div class="speed">
+        <label>Speed</label>
+        <input type="range" id="speedSlider" min="1" max="10" value="5">
+        <span id="speedVal">5</span>
+      </div>
+      <label style="font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="stepMode"> Step mode
+      </label>
+    </div>
+  </div>
+
+  <!-- Main visualization -->
+  <div class="panel canvas-wrap" id="canvasWrap">
+    <svg id="arrowSvg">
+      <defs>
+        <marker id="ah-prepare" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#f59e0b"/>
+        </marker>
+        <marker id="ah-promise" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#58a6ff"/>
+        </marker>
+        <marker id="ah-accept" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#bc8cff"/>
+        </marker>
+        <marker id="ah-accepted" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#3fb950"/>
+        </marker>
+        <marker id="ah-nack" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#f85149"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="node-grid" id="nodeGrid">
+      <!-- Proposers -->
+      <div class="node-col" id="proposerCol">
+        <div class="col-label proposer">Proposers</div>
+      </div>
+      <!-- Acceptors -->
+      <div class="node-col" id="acceptorCol">
+        <div class="col-label acceptor">Acceptors</div>
+      </div>
+      <!-- Learners -->
+      <div class="node-col" id="learnerCol">
+        <div class="col-label learner">Learners</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div>
+    <h3>Legend</h3>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--ac)"></div> Proposer</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--bl)"></div> Acceptor</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gr)"></div> Learner</div>
+    <div style="height:6px"></div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--ac)"></div> Prepare (Phase 1a)</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--bl)"></div> Promise (Phase 1b)</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--violet)"></div> Accept (Phase 2a)</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--gr)"></div> Accepted (Phase 2b)</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--warn)"></div> NACK (rejected)</div>
+  </div>
+
+  <div>
+    <h3>Current Phase</h3>
+    <div class="phase-indicator" id="phaseBox">
+      <div class="phase-name" id="phaseName">Idle</div>
+      <div class="phase-desc" id="phaseDesc">Click "Propose" on a proposer or use a preset.</div>
+    </div>
+  </div>
+
+  <div>
+    <h3>Consensus Status</h3>
+    <div class="consensus-box pending" id="consensusBox">No consensus yet</div>
+  </div>
+
+  <div>
+    <h3>Node States</h3>
+    <div class="state-list" id="stateList"></div>
+  </div>
+
+  <div>
+    <h3>Message Log</h3>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <div>
+    <h3>How It Works</h3>
+    <div class="howit">
+      <h4>Phase 1a &mdash; Prepare</h4>
+      <p>A proposer selects a unique proposal number <b>n</b> and sends <b>Prepare(n)</b> to a majority of acceptors.</p>
+      <h4>Phase 1b &mdash; Promise</h4>
+      <p>An acceptor receiving Prepare(n) promises not to accept any proposal less than n. It replies with any previously accepted value.</p>
+      <h4>Phase 2a &mdash; Accept</h4>
+      <p>If the proposer receives promises from a majority, it sends <b>Accept(n, v)</b> where v is the highest-numbered value from the promises, or its own value.</p>
+      <h4>Phase 2b &mdash; Accepted</h4>
+      <p>Acceptors accept if they have not promised a higher number. They notify all learners.</p>
+      <h4>Consensus</h4>
+      <p>When a learner sees a majority of acceptors have accepted the same proposal, the value is <b>chosen</b>.</p>
+    </div>
+  </div>
+
+  <div class="footer-note">Pure HTML/CSS/JS. No dependencies.</div>
+</div>
+</div>
+
+<script>
+// ============================================================
+// Paxos Consensus Algorithm Visualization
+// ============================================================
+
+const PROPOSER_COUNT = 3, ACCEPTOR_COUNT = 5, LEARNER_COUNT = 2;
+const MAJORITY = Math.floor(ACCEPTOR_COUNT / 2) + 1;
+
+// ---- State ----
+let proposers = [], acceptors = [], learners = [];
+let messageQueue = [];
+let animatingMessages = [];
+let chosenValue = null;
+let globalProposalCounter = 0;
+let running = false;
+let stepMode = false;
+let waitingForStep = false;
+let animSpeed = 5;
+
+const speedSlider = document.getElementById('speedSlider');
+const speedVal = document.getElementById('speedVal');
+const stepModeCheck = document.getElementById('stepMode');
+const arrowSvg = document.getElementById('arrowSvg');
+const logBox = document.getElementById('logBox');
+const phaseNameEl = document.getElementById('phaseName');
+const phaseDescEl = document.getElementById('phaseDesc');
+const consensusBox = document.getElementById('consensusBox');
+const stateList = document.getElementById('stateList');
+const canvasWrap = document.getElementById('canvasWrap');
+
+speedSlider.oninput = () => { animSpeed = +speedSlider.value; speedVal.textContent = animSpeed; };
+stepModeCheck.onchange = () => { stepMode = stepModeCheck.checked; if (!stepMode && waitingForStep) { waitingForStep = false; processNextMessage(); } };
+
+const VALUES = ['A', 'B', 'C', 'D', 'E', 'X', 'Y', 'Z'];
+
+function initState() {
+  chosenValue = null;
+  globalProposalCounter = 0;
+  messageQueue = [];
+  animatingMessages = [];
+  running = false;
+  waitingForStep = false;
+
+  proposers = [];
+  for (let i = 0; i < PROPOSER_COUNT; i++) {
+    proposers.push({
+      id: `P${i+1}`, type: 'proposer', alive: true,
+      proposalNum: 0, value: VALUES[i],
+      promisesReceived: [], phase: 'idle',
+      highestAcceptedN: 0, highestAcceptedV: null
+    });
+  }
+  acceptors = [];
+  for (let i = 0; i < ACCEPTOR_COUNT; i++) {
+    acceptors.push({
+      id: `A${i+1}`, type: 'acceptor', alive: true,
+      highestPromised: 0,
+      acceptedN: 0, acceptedV: null
+    });
+  }
+  learners = [];
+  for (let i = 0; i < LEARNER_COUNT; i++) {
+    learners.push({
+      id: `L${i+1}`, type: 'learner', alive: true,
+      accepted: {}, chosenValue: null
+    });
+  }
+}
+
+// ---- DOM ----
+function buildNodes() {
+  const pCol = document.getElementById('proposerCol');
+  const aCol = document.getElementById('acceptorCol');
+  const lCol = document.getElementById('learnerCol');
+  pCol.innerHTML = '<div class="col-label proposer">Proposers</div>';
+  aCol.innerHTML = '<div class="col-label acceptor">Acceptors</div>';
+  lCol.innerHTML = '<div class="col-label learner">Learners</div>';
+
+  proposers.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = `node proposer${p.alive ? '' : ' dead'}`;
+    div.id = `node-${p.id}`;
+    div.innerHTML = `
+      <button class="kill-btn" data-id="${p.id}" title="Toggle offline">${p.alive ? '&#x2715;' : '&#x21bb;'}</button>
+      <div class="role">Proposer</div>
+      <div class="id">${p.id}</div>
+      <div class="state">N: <b>${p.proposalNum || '&mdash;'}</b><br>Phase: <b>${p.phase}</b></div>
+      <div class="propose-row">
+        <input type="text" value="${p.value}" id="val-${p.id}" placeholder="val">
+        <button class="primary" data-propose="${i}" ${p.alive && !running ? '' : 'disabled'}>Propose</button>
+      </div>`;
+    pCol.appendChild(div);
+  });
+  acceptors.forEach(a => {
+    const div = document.createElement('div');
+    div.className = `node acceptor${a.alive ? '' : ' dead'}`;
+    div.id = `node-${a.id}`;
+    div.innerHTML = `
+      <button class="kill-btn" data-id="${a.id}" title="Toggle offline">${a.alive ? '&#x2715;' : '&#x21bb;'}</button>
+      <div class="role">Acceptor</div>
+      <div class="id">${a.id}</div>
+      <div class="state">Promised: <b>${a.highestPromised || '&mdash;'}</b><br>Accepted: <b>${a.acceptedN ? `(${a.acceptedN}, ${a.acceptedV})` : '&mdash;'}</b></div>`;
+    aCol.appendChild(div);
+  });
+  learners.forEach(l => {
+    const isChosen = l.chosenValue != null;
+    const div = document.createElement('div');
+    div.className = `node learner${l.alive ? '' : ' dead'}${isChosen ? ' chosen' : ''}`;
+    div.id = `node-${l.id}`;
+    div.innerHTML = `
+      <button class="kill-btn" data-id="${l.id}" title="Toggle offline">${l.alive ? '&#x2715;' : '&#x21bb;'}</button>
+      <div class="role">Learner</div>
+      <div class="id">${l.id}</div>
+      <div class="state">${isChosen ? `Chosen: <b style="color:var(--gr)">${l.chosenValue}</b>` : 'Waiting...'}</div>`;
+    lCol.appendChild(div);
+  });
+
+  // Event listeners
+  document.querySelectorAll('.kill-btn').forEach(btn => {
+    btn.onclick = () => toggleAlive(btn.dataset.id);
+  });
+  document.querySelectorAll('[data-propose]').forEach(btn => {
+    btn.onclick = () => {
+      const idx = +btn.dataset.propose;
+      const valInput = document.getElementById(`val-${proposers[idx].id}`);
+      proposers[idx].value = valInput.value || VALUES[idx];
+      startProposal(idx);
+    };
+  });
+}
+
+function toggleAlive(id) {
+  const all = [...proposers, ...acceptors, ...learners];
+  const node = all.find(n => n.id === id);
+  if (node) { node.alive = !node.alive; renderAll(); }
+}
+
+function renderAll() {
+  buildNodes();
+  updateSidebar();
+}
+
+function updateSidebar() {
+  // State list
+  let html = '';
+  proposers.forEach(p => {
+    html += `<div class="s-node"><span class="s-label" style="color:var(--ac)">${p.id}</span><span class="s-val">${p.alive ? `N=${p.proposalNum||'-'} ${p.phase}` : 'OFFLINE'}</span></div>`;
+  });
+  acceptors.forEach(a => {
+    html += `<div class="s-node"><span class="s-label" style="color:var(--bl)">${a.id}</span><span class="s-val">${a.alive ? `P=${a.highestPromised||'-'} Acc=${a.acceptedN ? a.acceptedN+','+a.acceptedV : '-'}` : 'OFFLINE'}</span></div>`;
+  });
+  learners.forEach(l => {
+    html += `<div class="s-node"><span class="s-label" style="color:var(--gr)">${l.id}</span><span class="s-val">${l.alive ? (l.chosenValue ? 'Chosen='+l.chosenValue : 'waiting') : 'OFFLINE'}</span></div>`;
+  });
+  stateList.innerHTML = html;
+
+  // Consensus
+  if (chosenValue) {
+    consensusBox.className = 'consensus-box reached';
+    consensusBox.innerHTML = `Consensus: <span style="font-size:1.1em">${chosenValue}</span>`;
+  } else {
+    consensusBox.className = 'consensus-box pending';
+    consensusBox.textContent = 'No consensus yet';
+  }
+}
+
+function setPhase(name, desc) {
+  phaseNameEl.textContent = name;
+  phaseDescEl.textContent = desc;
+}
+
+function addLog(text, cls = 'info') {
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${cls}`;
+  entry.innerHTML = `<span class="lt">[${new Date().toLocaleTimeString()}]</span> ${text}`;
+  logBox.prepend(entry);
+  if (logBox.children.length > 100) logBox.removeChild(logBox.lastChild);
+}
+
+// ---- Get element center positions ----
+function getNodeCenter(id) {
+  const el = document.getElementById(`node-${id}`);
+  if (!el) return { x: 0, y: 0 };
+  const wrap = canvasWrap.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return {
+    x: r.left - wrap.left + r.width / 2,
+    y: r.top - wrap.top + r.height / 2
+  };
+}
+
+// ---- Animate message arrow ----
+function animateMessage(fromId, toId, type, label, duration) {
+  return new Promise(resolve => {
+    const from = getNodeCenter(fromId);
+    const to = getNodeCenter(toId);
+    if (!from.x && !to.x) { resolve(); return; }
+
+    const colors = {
+      prepare: '#f59e0b', promise: '#58a6ff', accept: '#bc8cff',
+      accepted: '#3fb950', nack: '#f85149'
+    };
+    const color = colors[type] || '#8b949e';
+
+    // SVG animated line
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', from.x); line.setAttribute('y1', from.y);
+    line.setAttribute('x2', from.x); line.setAttribute('y2', from.y);
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', '2.5');
+    line.setAttribute('stroke-dasharray', '6,4');
+    line.setAttribute('marker-end', `url(#ah-${type})`);
+    line.setAttribute('opacity', '0.85');
+    arrowSvg.appendChild(line);
+
+    // Floating label
+    const lbl = document.createElement('div');
+    lbl.className = `msg-label ${type}`;
+    lbl.textContent = label;
+    canvasWrap.appendChild(lbl);
+
+    // Glowing particle
+    const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    particle.setAttribute('r', '5');
+    particle.setAttribute('fill', color);
+    particle.setAttribute('cx', from.x);
+    particle.setAttribute('cy', from.y);
+    particle.setAttribute('opacity', '1');
+    // Glow filter
+    const filterId = `glow-${Date.now()}-${Math.random()}`;
+    const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    filter.setAttribute('id', filterId);
+    filter.innerHTML = `<feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>`;
+    arrowSvg.querySelector('defs').appendChild(filter);
+    particle.setAttribute('filter', `url(#${filterId})`);
+    arrowSvg.appendChild(particle);
+
+    const start = performance.now();
+    const dur = duration;
+
+    function tick(now) {
+      const t = Math.min((now - start) / dur, 1);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      const cx = from.x + (to.x - from.x) * ease;
+      const cy = from.y + (to.y - from.y) * ease;
+
+      line.setAttribute('x2', cx);
+      line.setAttribute('y2', cy);
+      particle.setAttribute('cx', cx);
+      particle.setAttribute('cy', cy);
+
+      // Position label above particle
+      const wrapR = canvasWrap.getBoundingClientRect();
+      lbl.style.left = cx + 'px';
+      lbl.style.top = (cy - 22) + 'px';
+      lbl.style.transform = 'translateX(-50%)';
+      lbl.style.opacity = t > 0.1 && t < 0.95 ? '1' : '0';
+
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        // Brief hold then cleanup
+        setTimeout(() => {
+          line.remove();
+          particle.remove();
+          filter.remove();
+          lbl.remove();
+          resolve();
+        }, 120);
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+function msgDuration() {
+  return Math.max(250, 1200 - animSpeed * 90);
+}
+
+// ---- Paxos Protocol ----
+function startProposal(proposerIdx) {
+  const p = proposers[proposerIdx];
+  if (!p.alive) return;
+  if (chosenValue) { addLog('Consensus already reached.', 'info'); return; }
+
+  globalProposalCounter++;
+  p.proposalNum = globalProposalCounter * 10 + proposerIdx + 1;
+  p.phase = 'prepare';
+  p.promisesReceived = [];
+  p.highestAcceptedN = 0;
+  p.highestAcceptedV = null;
+
+  addLog(`${p.id} starts Prepare(n=${p.proposalNum}) for value "${p.value}"`, 'prepare');
+  setPhase('Phase 1a: Prepare', `${p.id} sends Prepare(${p.proposalNum}) to all acceptors`);
+  renderAll();
+
+  // Enqueue Prepare messages
+  const msgs = acceptors.map(a => ({
+    type: 'prepare', from: p.id, to: a.id,
+    proposalNum: p.proposalNum, proposerIdx
+  }));
+  messageQueue.push(...msgs);
+
+  if (!running) {
+    running = true;
+    processNextMessage();
+  }
+}
+
+async function processNextMessage() {
+  if (messageQueue.length === 0) {
+    running = false;
+    if (!chosenValue) setPhase('Idle', 'All messages processed. Propose a new value or try a preset.');
+    return;
+  }
+
+  if (stepMode && !waitingForStep) {
+    waitingForStep = true;
+    return;
+  }
+  waitingForStep = false;
+
+  const msg = messageQueue.shift();
+  await handleMessage(msg);
+
+  renderAll();
+
+  if (messageQueue.length > 0) {
+    processNextMessage();
+  } else {
+    running = false;
+    if (!chosenValue) setPhase('Idle', 'All messages processed.');
+    renderAll();
+  }
+}
+
+async function handleMessage(msg) {
+  const dur = msgDuration();
+
+  if (msg.type === 'prepare') {
+    const a = acceptors.find(x => x.id === msg.to);
+    if (!a || !a.alive) {
+      addLog(`${msg.to} is offline, Prepare(${msg.proposalNum}) dropped`, 'nack');
+      return;
+    }
+    await animateMessage(msg.from, msg.to, 'prepare', `Prepare(${msg.proposalNum})`, dur);
+
+    if (msg.proposalNum > a.highestPromised) {
+      a.highestPromised = msg.proposalNum;
+      const prevN = a.acceptedN, prevV = a.acceptedV;
+      addLog(`${a.id} promises n=${msg.proposalNum}${prevN ? ` (prev accepted: ${prevN},${prevV})` : ''}`, 'promise');
+
+      // Send Promise back
+      messageQueue.unshift({
+        type: 'promise', from: a.id, to: msg.from,
+        proposalNum: msg.proposalNum,
+        acceptedN: prevN, acceptedV: prevV,
+        proposerIdx: msg.proposerIdx
+      });
+    } else {
+      addLog(`${a.id} rejects Prepare(${msg.proposalNum}) — already promised ${a.highestPromised}`, 'nack');
+      await animateMessage(a.id, msg.from, 'nack', `NACK(${a.highestPromised})`, dur * 0.7);
+    }
+  }
+
+  else if (msg.type === 'promise') {
+    const p = proposers[msg.proposerIdx];
+    if (!p || !p.alive || p.phase !== 'prepare') return;
+    await animateMessage(msg.from, msg.to, 'promise',
+      `Promise(${msg.proposalNum}${msg.acceptedN ? `,prev=${msg.acceptedN}:${msg.acceptedV}` : ''})`, dur);
+
+    p.promisesReceived.push(msg);
+    // Track highest previously accepted
+    if (msg.acceptedN && msg.acceptedN > p.highestAcceptedN) {
+      p.highestAcceptedN = msg.acceptedN;
+      p.highestAcceptedV = msg.acceptedV;
+    }
+
+    if (p.promisesReceived.length >= MAJORITY && p.phase === 'prepare') {
+      p.phase = 'accept';
+      const val = p.highestAcceptedV || p.value;
+      addLog(`${p.id} got majority promises! Sends Accept(${p.proposalNum}, "${val}")`, 'accept');
+      setPhase('Phase 2a: Accept', `${p.id} sends Accept(${p.proposalNum}, "${val}") to all acceptors`);
+
+      // Enqueue Accept messages
+      const acceptMsgs = acceptors.map(a => ({
+        type: 'accept_req', from: p.id, to: a.id,
+        proposalNum: p.proposalNum, value: val,
+        proposerIdx: msg.proposerIdx
+      }));
+      // Insert at front so accept phase completes before other prepares
+      messageQueue.unshift(...acceptMsgs);
+    }
+  }
+
+  else if (msg.type === 'accept_req') {
+    const a = acceptors.find(x => x.id === msg.to);
+    if (!a || !a.alive) {
+      addLog(`${msg.to} is offline, Accept dropped`, 'nack');
+      return;
+    }
+    await animateMessage(msg.from, msg.to, 'accept', `Accept(${msg.proposalNum},"${msg.value}")`, dur);
+
+    if (msg.proposalNum >= a.highestPromised) {
+      a.highestPromised = msg.proposalNum;
+      a.acceptedN = msg.proposalNum;
+      a.acceptedV = msg.value;
+      addLog(`${a.id} accepts (${msg.proposalNum}, "${msg.value}")`, 'accepted');
+
+      // Notify learners
+      learners.forEach(l => {
+        messageQueue.unshift({
+          type: 'accepted', from: a.id, to: l.id,
+          proposalNum: msg.proposalNum, value: msg.value
+        });
+      });
+    } else {
+      addLog(`${a.id} rejects Accept(${msg.proposalNum}) — promised ${a.highestPromised}`, 'nack');
+      await animateMessage(a.id, msg.from, 'nack', `NACK(${a.highestPromised})`, dur * 0.7);
+    }
+  }
+
+  else if (msg.type === 'accepted') {
+    const l = learners.find(x => x.id === msg.to);
+    if (!l || !l.alive) return;
+    await animateMessage(msg.from, msg.to, 'accepted', `Accepted(${msg.proposalNum},"${msg.value}")`, dur);
+
+    const key = `${msg.proposalNum}:${msg.value}`;
+    if (!l.accepted[key]) l.accepted[key] = new Set();
+    l.accepted[key].add(msg.from);
+
+    if (l.accepted[key].size >= MAJORITY && !l.chosenValue) {
+      l.chosenValue = msg.value;
+      addLog(`${l.id} learned consensus: "${msg.value}"!`, 'accepted');
+      if (!chosenValue) {
+        chosenValue = msg.value;
+        setPhase('Consensus Reached!', `Value "${chosenValue}" has been chosen by Paxos.`);
+        addLog(`CONSENSUS REACHED: "${chosenValue}"`, 'accepted');
+      }
+    }
+  }
+}
+
+// ---- Step button ----
+document.getElementById('stepBtn').onclick = () => {
+  if (!stepMode) {
+    stepModeCheck.checked = true;
+    stepMode = true;
+  }
+  if (waitingForStep) {
+    waitingForStep = false;
+    processNextMessage();
+  }
+};
+
+// ---- Reset ----
+document.getElementById('resetBtn').onclick = () => {
+  messageQueue = [];
+  running = false;
+  waitingForStep = false;
+  // Clear SVG arrows
+  arrowSvg.querySelectorAll('line,circle').forEach(e => e.remove());
+  // Clear floating labels
+  canvasWrap.querySelectorAll('.msg-label').forEach(e => e.remove());
+  // Clear extra glow filters
+  arrowSvg.querySelectorAll('defs filter').forEach(f => f.remove());
+  logBox.innerHTML = '';
+  initState();
+  setPhase('Idle', 'Click "Propose" on a proposer or use a preset.');
+  renderAll();
+  addLog('System reset.', 'info');
+};
+
+// ---- Conflict Scenario ----
+document.getElementById('conflictBtn').onclick = () => {
+  // Reset first
+  document.getElementById('resetBtn').click();
+
+  // Kill one acceptor for drama
+  acceptors[4].alive = false;
+  addLog('Conflict scenario: A5 taken offline.', 'info');
+
+  // P1 proposes "X"
+  proposers[0].value = 'X';
+  startProposal(0);
+
+  // P2 proposes "Y" nearly simultaneously
+  setTimeout(() => {
+    proposers[1].value = 'Y';
+    startProposal(1);
+  }, 300);
+};
+
+// ---- Init ----
+initState();
+renderAll();
+setPhase('Idle', 'Click "Propose" on a proposer or use a preset.');
+addLog('Paxos visualization ready. Propose a value or try the Conflict Scenario.', 'info');
+</script>
+</body>
+</html>
