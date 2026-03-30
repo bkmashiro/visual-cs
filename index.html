@@ -1076,10 +1076,112 @@
     </div>
     <a class="view-btn" style="background:#7dd3fc;color:#08111e" href="./visualizations/rope/index.html">View →</a>
   </div>
+
+  <div class="card" style="--card-accent: #c084fc;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Burrows-Wheeler Transform</div>
+        <span class="tag search">String</span>
+      </div>
+      <div class="card-icon">🔄</div>
+    </div>
+    <div class="card-desc">Watch the BWT build all rotations, sort them lexicographically, and extract the last column. Then reconstruct the original via LF-mapping inverse transform.</div>
+    <div class="card-meta">
+      <span>📋 Rotation matrix</span>
+      <span>🔀 LF-mapping</span>
+      <span>⏱ Step mode</span>
+    </div>
+    <a class="view-btn" style="background:#c084fc;color:#0d1117" href="./visualizations/burrows-wheeler/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #2dd4bf;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Consistent Hashing</div>
+        <span class="tag" style="background:#1a3a2a;color:#3fb950;">Distributed</span>
+      </div>
+      <div class="card-icon">💍</div>
+    </div>
+    <div class="card-desc">A hash ring with servers, virtual nodes, and keys. Add or remove servers and watch only nearby keys get remapped. Clockwise walk animation shows key-to-server assignment.</div>
+    <div class="card-meta">
+      <span>🔵 Virtual nodes</span>
+      <span>📊 Load balance</span>
+      <span>⏱ Animated</span>
+    </div>
+    <a class="view-btn" style="background:#2dd4bf;color:#0d1117" href="./visualizations/consistent-hashing/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #58a6ff;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Raft Consensus</div>
+        <span class="tag" style="background:#1a3a2a;color:#3fb950;">Distributed</span>
+      </div>
+      <div class="card-icon">🗳️</div>
+    </div>
+    <div class="card-desc">5-node Raft cluster with animated leader election, log replication, and heartbeat RPCs. Kill nodes to trigger re-election and watch the term system advance.</div>
+    <div class="card-meta">
+      <span>🔵 Leader election</span>
+      <span>📋 Log replication</span>
+      <span>💀 Node failure</span>
+    </div>
+    <a class="view-btn" style="background:#58a6ff;color:#0d1117" href="./visualizations/raft-consensus/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #f59e0b;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Paxos</div>
+        <span class="tag" style="background:#1a3a2a;color:#3fb950;">Distributed</span>
+      </div>
+      <div class="card-icon">🤝</div>
+    </div>
+    <div class="card-desc">Single-decree Paxos with 3 proposers, 5 acceptors, and 2 learners. Animated Prepare/Promise/Accept/Accepted message flow with conflict scenarios and node failures.</div>
+    <div class="card-meta">
+      <span>📨 Message phases</span>
+      <span>⚔ Conflict preset</span>
+      <span>⏱ Step mode</span>
+    </div>
+    <a class="view-btn" style="background:#f59e0b;color:#0d1117" href="./visualizations/paxos/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #f78166;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Cuckoo Hashing</div>
+        <span class="tag" style="background:#1f3a5f;color:#58a6ff;">Data Structure</span>
+      </div>
+      <div class="card-icon">🐦</div>
+    </div>
+    <div class="card-desc">Two hash tables with O(1) worst-case lookup. Insert keys and watch the eviction chain as displaced elements hop between tables. Cycle detection triggers rehash.</div>
+    <div class="card-meta">
+      <span>🔵 Two tables</span>
+      <span>🔗 Eviction chain</span>
+      <span>🔄 Auto rehash</span>
+    </div>
+    <a class="view-btn" style="background:#f78166;color:#0d1117" href="./visualizations/cuckoo-hashing/index.html">View →</a>
+  </div>
+
+  <div class="card" style="--card-accent: #a371f7;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">van Emde Boas Tree</div>
+        <span class="tag" style="background:#1f3a5f;color:#58a6ff;">Data Structure</span>
+      </div>
+      <div class="card-icon">🌲</div>
+    </div>
+    <div class="card-desc">Recursive √U decomposition achieving O(log log U) predecessor queries. Nested box visualization shows summary and cluster structure for universe U=16.</div>
+    <div class="card-meta">
+      <span>🔢 Universe display</span>
+      <span>📦 Nested structure</span>
+      <span>🔍 Successor query</span>
+    </div>
+    <a class="view-btn" style="background:#a371f7;color:#0d1117" href="./visualizations/van-emde-boas/index.html">View →</a>
+  </div>
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-value">49</div><div class="stat-label">Visualizations</div></div>
+  <div class="stat"><div class="stat-value">55</div><div class="stat-label">Visualizations</div></div>
   <div class="stat"><div class="stat-value">0</div><div class="stat-label">Dependencies</div></div>
   <div class="stat"><div class="stat-value">∞</div><div class="stat-label">Fun</div></div>
 </div>

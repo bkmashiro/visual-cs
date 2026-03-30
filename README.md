@@ -55,6 +55,12 @@
 | [B-Tree](./visualizations/b-tree/) | Data Structure | Order-4 B-tree with search, insert, and delete — watch splits, merges, and borrow operations |
 | [LRU Cache](./visualizations/lru-cache/) | Data Structure | Doubly linked list + hash map with animated get/put, MRU/LRU reordering, and tail eviction |
 | [Bloom Filter](./visualizations/bloom-filter/) | Probabilistic | Bit-array filter with k hash functions, animated membership checks, and live false-positive rate |
+| [Burrows-Wheeler](./visualizations/burrows-wheeler/) | String | Forward BWT via rotation matrix sorting and last-column extraction, inverse via LF-mapping reconstruction |
+| [Consistent Hashing](./visualizations/consistent-hashing/) | Distributed | Hash ring with virtual nodes; add/remove servers and watch minimal key remapping with clockwise walk |
+| [Raft Consensus](./visualizations/raft-consensus/) | Distributed | 5-node cluster with leader election, log replication, heartbeat RPCs, and node failure simulation |
+| [Paxos](./visualizations/paxos/) | Distributed | Single-decree Synod Paxos with proposers, acceptors, learners; animated Prepare/Promise/Accept phases |
+| [Cuckoo Hashing](./visualizations/cuckoo-hashing/) | Data Structure | Two hash tables with O(1) worst-case lookup, animated eviction chains, and automatic rehash on cycles |
+| [van Emde Boas Tree](./visualizations/van-emde-boas/) | Data Structure | Recursive √U decomposition with O(log log U) predecessor queries, nested box visualization for U=16 |
 
 ---
 

@@ -55,6 +55,12 @@
 | [B 树](./visualizations/b-tree/) | 数据结构 | 4 阶 B 树的查找、插入与删除，展示节点分裂、合并与借位操作 |
 | [LRU 缓存](./visualizations/lru-cache/) | 数据结构 | 双向链表 + 哈希表，动画展示 get/put 操作、MRU/LRU 重排与尾部淘汰 |
 | [布隆过滤器](./visualizations/bloom-filter/) | 概率型 | 位数组过滤器，k 个哈希函数动画、成员查询与实时假阳性率统计 |
+| [Burrows-Wheeler 变换](./visualizations/burrows-wheeler/) | 字符串 | 正向 BWT 旋转矩阵排序与末列提取，逆向 LF 映射重建原串 |
+| [一致性哈希](./visualizations/consistent-hashing/) | 分布式 | 哈希环 + 虚拟节点，增删服务器时仅重映射少量键，顺时针查找动画 |
+| [Raft 共识](./visualizations/raft-consensus/) | 分布式 | 5 节点集群，领导者选举、日志复制、心跳 RPC 与节点故障模拟 |
+| [Paxos 共识](./visualizations/paxos/) | 分布式 | 单次决议 Synod Paxos，提议者/接受者/学习者角色，动画展示各阶段消息流 |
+| [布谷鸟哈希](./visualizations/cuckoo-hashing/) | 数据结构 | 双哈希表 O(1) 最坏查找，动画驱逐链，检测环时自动重建 |
+| [van Emde Boas 树](./visualizations/van-emde-boas/) | 数据结构 | 递归 √U 分解，O(log log U) 前驱查询，U=16 嵌套方框可视化 |
 
 ---
 

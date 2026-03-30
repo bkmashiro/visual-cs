@@ -1,9 +1,14 @@
 # Visual-CS Todo Queue
 
 ## Upcoming
-- burrows-wheeler — Burrows-Wheeler Transform (BWT for data compression, forward/inverse transform visualization)
 
 ## Done
+- van-emde-boas — van Emde Boas Tree (O(log log U) predecessor queries, recursive √U structure) ✅ 2026-03-30
+- cuckoo-hashing — Cuckoo Hashing (O(1) worst-case lookup, two hash tables, eviction chain) ✅ 2026-03-30
+- paxos — Paxos (distributed consensus, proposer/acceptor/learner roles, Synod protocol) ✅ 2026-03-30
+- raft-consensus — Raft Consensus (leader election, log replication, term-based state machine) ✅ 2026-03-30
+- consistent-hashing — Consistent Hashing (ring topology, virtual nodes, minimal key remapping) ✅ 2026-03-30
+- burrows-wheeler — Burrows-Wheeler Transform (BWT for data compression, forward/inverse transform visualization) ✅ 2026-03-30
 - lru-cache — LRU Cache (doubly linked list + hashmap, O(1) get/put with MRU/LRU eviction) ✅ 2026-03-30
 - rope — Rope (string data structure, binary tree for efficient concatenation/split/index operations) ✅ 2026-03-29
 - topological-sort — Topological Sort / Kahn's Algorithm (BFS, in-degree, queue, cycle detection) ✅ 2026-03-29
