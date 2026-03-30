@@ -52,6 +52,9 @@
 | [Levenshtein 编辑距离](./visualizations/levenshtein-distance/) | 动态规划 | DP 表格逐格填充，按操作类型着色（匹配/删除/插入/替换），并追踪最优对齐路径 |
 | [环检测](./visualizations/cycle-detection/) | 链表 | Floyd 龟兔算法三阶段演示：检测环、定位环起点 μ、测量环长 λ，支持自定义尾长和环长 |
 | [Rope 字符串树](./visualizations/rope/) | 字符串 | 分块二叉字符串树，展示节点权重、按索引查找路径、分裂与拼接 |
+| [B 树](./visualizations/b-tree/) | 数据结构 | 4 阶 B 树的查找、插入与删除，展示节点分裂、合并与借位操作 |
+| [LRU 缓存](./visualizations/lru-cache/) | 数据结构 | 双向链表 + 哈希表，动画展示 get/put 操作、MRU/LRU 重排与尾部淘汰 |
+| [布隆过滤器](./visualizations/bloom-filter/) | 概率型 | 位数组过滤器，k 个哈希函数动画、成员查询与实时假阳性率统计 |
 
 ---
 

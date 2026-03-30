@@ -52,6 +52,9 @@
 | [Levenshtein Distance](./visualizations/levenshtein-distance/) | Dynamic Programming | DP table fill with color-coded match/delete/insert/replace cells and optimal alignment path trace |
 | [Cycle Detection](./visualizations/cycle-detection/) | Linked List | Floyd's Tortoise & Hare — 3-phase detection, cycle start μ, and cycle length λ on a configurable list |
 | [Rope](./visualizations/rope/) | String | Chunked binary string tree with node weights, animated index traversal, split, and concat |
+| [B-Tree](./visualizations/b-tree/) | Data Structure | Order-4 B-tree with search, insert, and delete — watch splits, merges, and borrow operations |
+| [LRU Cache](./visualizations/lru-cache/) | Data Structure | Doubly linked list + hash map with animated get/put, MRU/LRU reordering, and tail eviction |
+| [Bloom Filter](./visualizations/bloom-filter/) | Probabilistic | Bit-array filter with k hash functions, animated membership checks, and live false-positive rate |
 
 ---
 
