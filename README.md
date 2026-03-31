@@ -9,7 +9,7 @@
 
 **English** | [中文](README.zh.md)
 
-> See algorithms run, step by step, in your browser. **58 visualizations** and counting.
+> See algorithms run, step by step, in your browser. **59 visualizations** and counting.
 
 **[→ Browse All Visualizations](https://bkmashiro.github.io/visual-cs)**
 
@@ -132,6 +132,12 @@
 | Name | Description |
 |:-----|:------------|
 | [Game of Life](./visualizations/game-of-life/) | Conway's cellular automaton |
+
+### Number Theory (1)
+
+| Name | Description |
+|:-----|:------------|
+| [Sieve of Eratosthenes](./visualizations/sieve-of-eratosthenes/) | Grid visualization of prime sieving — watch composites get crossed out in O(n log log n) |
 
 ---
 

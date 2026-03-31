@@ -9,7 +9,7 @@
 
 [English](README.md) | **中文**
 
-> 在浏览器中直观理解算法运行过程。已收录 **58 个可视化**，持续更新中。
+> 在浏览器中直观理解算法运行过程。已收录 **59 个可视化**，持续更新中。
 
 **[→ 浏览所有可视化](https://bkmashiro.github.io/visual-cs)**
 
@@ -132,6 +132,12 @@
 | 名称 | 说明 |
 |:-----|:-----|
 | [生命游戏](./visualizations/game-of-life/) | Conway 元胞自动机 |
+
+### 数论 (1)
+
+| 名称 | 说明 |
+|:-----|:-----|
+| [埃拉托斯特尼筛法](./visualizations/sieve-of-eratosthenes/) | 质数筛选网格可视化 — 每个质数扫过其倍数，O(n log log n) 生成质数 |
 
 ---
 

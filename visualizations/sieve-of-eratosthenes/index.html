@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sieve of Eratosthenes — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --prime: #fbbf24;
+  --prime-glow: #fbbf2440;
+  --current: #22d3ee;
+  --composite: #f87171;
+  --composite-dim: #7f1d1d;
+  --unmarked: #374151;
+  --sweep: #f59e0b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header h1 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+header h1 span { color: var(--prime); }
+header a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+header a:hover { color: var(--text); border-color: var(--prime); }
+
+.controls {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+}
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.control-group label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+button {
+  background: var(--prime);
+  color: #0d1117;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+button:hover { opacity: 0.85; transform: scale(1.02); }
+button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+button.secondary {
+  background: var(--border);
+  color: var(--text);
+}
+input[type="range"] {
+  width: 100px;
+  accent-color: var(--prime);
+}
+input[type="number"] {
+  width: 70px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.stats-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-label { color: var(--text-muted); }
+.stat-value { 
+  font-weight: 700; 
+  color: var(--prime);
+  font-variant-numeric: tabular-nums;
+}
+.stat-value.cyan { color: var(--current); }
+.stat-value.green { color: #3fb950; }
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.grid-container {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  max-width: 100%;
+  overflow: auto;
+}
+
+.cell {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  background: var(--unmarked);
+  color: var(--text);
+}
+.cell:hover {
+  transform: scale(1.15);
+  z-index: 10;
+}
+.cell.current-prime {
+  background: var(--current);
+  color: #0d1117;
+  box-shadow: 0 0 20px var(--current), 0 0 40px var(--current);
+  animation: pulse 0.8s ease-in-out infinite;
+}
+.cell.prime {
+  background: linear-gradient(135deg, var(--prime), #f59e0b);
+  color: #0d1117;
+  box-shadow: 0 0 12px var(--prime-glow);
+}
+.cell.composite {
+  background: var(--composite-dim);
+  color: #fca5a5;
+  opacity: 0.7;
+}
+.cell.sweeping {
+  background: var(--sweep);
+  color: #0d1117;
+  animation: sweep 0.3s ease-out;
+}
+.cell.marking {
+  background: var(--composite);
+  color: #0d1117;
+  animation: mark 0.4s ease-out;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--current), 0 0 40px var(--current); }
+  50% { box-shadow: 0 0 30px var(--current), 0 0 60px var(--current); }
+}
+@keyframes sweep {
+  0% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+@keyframes mark {
+  0% { transform: scale(1.4); background: var(--composite); }
+  100% { transform: scale(1); background: var(--composite-dim); }
+}
+
+.tooltip {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 250px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  display: none;
+}
+.tooltip.visible { display: block; }
+.tooltip-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+.tooltip-status {
+  color: var(--prime);
+  font-weight: 600;
+}
+.tooltip-status.composite { color: var(--composite); }
+.tooltip-factors {
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-size: 0.8rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 20px;
+  font-size: 0.85rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+.legend-box.unmarked { background: var(--unmarked); }
+.legend-box.current { background: var(--current); box-shadow: 0 0 8px var(--current); }
+.legend-box.prime { background: var(--prime); }
+.legend-box.composite { background: var(--composite-dim); }
+
+.info {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+  max-width: 700px;
+  line-height: 1.7;
+}
+.info h3 {
+  color: var(--prime);
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+.info p {
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.info code {
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 0.85em;
+}
+
+footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+footer a { color: var(--prime); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sieve of <span>Eratosthenes</span></h1>
+  <a href="../../index.html">← Back to Index</a>
+</header>
+
+<div class="controls">
+  <div class="control-group">
+    <button id="playPause">▶ Play</button>
+    <button id="step" class="secondary">Step</button>
+    <button id="reset" class="secondary">Reset</button>
+  </div>
+  <div class="control-group">
+    <label>Speed:</label>
+    <input type="range" id="speed" min="1" max="100" value="50">
+    <span id="speedValue">50ms</span>
+  </div>
+  <div class="control-group">
+    <label>N:</label>
+    <input type="number" id="maxN" min="10" max="300" value="200">
+    <button id="applyN" class="secondary">Apply</button>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat">
+    <span class="stat-label">Current Prime:</span>
+    <span class="stat-value cyan" id="currentPrime">—</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Primes Found:</span>
+    <span class="stat-value" id="primesFound">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Numbers Processed:</span>
+    <span class="stat-value green" id="processed">0</span>
+    <span class="stat-label">/ <span id="totalNumbers">200</span></span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Prime Density (π(n) ≈ n/ln(n)):</span>
+    <span class="stat-value" id="density">—</span>
+  </div>
+</div>
+
+<main>
+  <div class="grid-container" id="grid"></div>
+  
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box unmarked"></div>
+      <span>Unmarked</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box current"></div>
+      <span>Current Prime</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box prime"></div>
+      <span>Confirmed Prime</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box composite"></div>
+      <span>Composite (crossed out)</span>
+    </div>
+  </div>
+
+  <div class="info">
+    <h3>🔢 Sieve of Eratosthenes</h3>
+    <p>An ancient algorithm for finding all prime numbers up to a given limit N. Starting from 2, mark all multiples of each prime as composite. Numbers that survive all sweeps are prime.</p>
+    <p><strong>Time Complexity:</strong> <code>O(n log log n)</code> — nearly linear, extremely efficient.</p>
+    <p><strong>Space Complexity:</strong> <code>O(n)</code> — one boolean per number.</p>
+    <p><strong>Key Insight:</strong> We only need to check primes up to √N, because any composite ≤ N must have a factor ≤ √N.</p>
+  </div>
+</main>
+
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-title" id="tooltipTitle">42</div>
+  <div class="tooltip-status" id="tooltipStatus">Prime</div>
+  <div class="tooltip-factors" id="tooltipFactors"></div>
+</div>
+
+<footer>
+  <p><a href="https://github.com/bkmashiro/visual-cs">visual-cs</a> — Pure HTML/CSS/JS</p>
+</footer>
+
+<script>
+const grid = document.getElementById('grid');
+const tooltip = document.getElementById('tooltip');
+const tooltipTitle = document.getElementById('tooltipTitle');
+const tooltipStatus = document.getElementById('tooltipStatus');
+const tooltipFactors = document.getElementById('tooltipFactors');
+
+const playPauseBtn = document.getElementById('playPause');
+const stepBtn = document.getElementById('step');
+const resetBtn = document.getElementById('reset');
+const speedSlider = document.getElementById('speed');
+const speedValue = document.getElementById('speedValue');
+const maxNInput = document.getElementById('maxN');
+const applyNBtn = document.getElementById('applyN');
+
+const currentPrimeEl = document.getElementById('currentPrime');
+const primesFoundEl = document.getElementById('primesFound');
+const processedEl = document.getElementById('processed');
+const totalNumbersEl = document.getElementById('totalNumbers');
+const densityEl = document.getElementById('density');
+
+let N = 200;
+let isPrime = [];
+let cells = [];
+let currentPrime = 2;
+let currentMultiple = 0;
+let phase = 'idle'; // 'idle', 'sweeping', 'done'
+let isPlaying = false;
+let animationId = null;
+let lastTime = 0;
+let delay = 50;
+let primesCount = 0;
+let processedCount = 0;
+
+function init() {
+  N = Math.max(10, Math.min(300, parseInt(maxNInput.value) || 200));
+  isPrime = new Array(N + 1).fill(true);
+  isPrime[0] = isPrime[1] = false;
+  cells = [];
+  currentPrime = 2;
+  currentMultiple = 0;
+  phase = 'idle';
+  primesCount = 0;
+  processedCount = 0;
+  
+  // Calculate grid columns based on N
+  const cols = Math.ceil(Math.sqrt(N - 1));
+  grid.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
+  grid.innerHTML = '';
+  
+  for (let i = 2; i <= N; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.textContent = i;
+    cell.dataset.num = i;
+    
+    cell.addEventListener('mouseenter', (e) => showTooltip(e, i));
+    cell.addEventListener('mouseleave', hideTooltip);
+    cell.addEventListener('click', () => showCellInfo(i));
+    
+    grid.appendChild(cell);
+    cells[i] = cell;
+  }
+  
+  totalNumbersEl.textContent = N - 1;
+  updateStats();
+}
+
+function showTooltip(e, num) {
+  tooltipTitle.textContent = num;
+  
+  if (isPrime[num] === true && phase === 'done') {
+    tooltipStatus.textContent = '✨ Prime';
+    tooltipStatus.className = 'tooltip-status';
+    tooltipFactors.textContent = '';
+  } else if (isPrime[num] === false) {
+    tooltipStatus.textContent = '✗ Composite';
+    tooltipStatus.className = 'tooltip-status composite';
+    const factors = getFactors(num);
+    tooltipFactors.textContent = `Factors: ${factors.join(', ')}`;
+  } else {
+    tooltipStatus.textContent = 'Not yet processed';
+    tooltipStatus.className = 'tooltip-status';
+    tooltipFactors.textContent = '';
+  }
+  
+  tooltip.style.left = e.clientX + 15 + 'px';
+  tooltip.style.top = e.clientY + 15 + 'px';
+  tooltip.classList.add('visible');
+}
+
+function hideTooltip() {
+  tooltip.classList.remove('visible');
+}
+
+function showCellInfo(num) {
+  // Flash effect on click
+  const cell = cells[num];
+  cell.style.transform = 'scale(1.3)';
+  setTimeout(() => {
+    cell.style.transform = '';
+  }, 200);
+}
+
+function getFactors(num) {
+  const factors = [];
+  for (let i = 2; i <= Math.sqrt(num); i++) {
+    while (num % i === 0) {
+      factors.push(i);
+      num /= i;
+    }
+  }
+  if (num > 1) factors.push(num);
+  return factors;
+}
+
+function updateStats() {
+  currentPrimeEl.textContent = phase === 'done' ? 'Done' : (currentPrime || '—');
+  primesFoundEl.textContent = primesCount;
+  processedEl.textContent = processedCount;
+  
+  if (primesCount > 0) {
+    const actual = primesCount;
+    const approx = Math.round(N / Math.log(N));
+    densityEl.textContent = `${actual} (≈${approx})`;
+  } else {
+    densityEl.textContent = '—';
+  }
+}
+
+function step() {
+  if (phase === 'done') return false;
+  
+  if (phase === 'idle') {
+    // Find the next unmarked number >= currentPrime
+    while (currentPrime <= N && !isPrime[currentPrime]) {
+      currentPrime++;
+    }
+    
+    if (currentPrime > Math.sqrt(N)) {
+      // All remaining unmarked are prime
+      finishSieve();
+      return false;
+    }
+    
+    if (currentPrime > N) {
+      finishSieve();
+      return false;
+    }
+    
+    // Highlight current prime
+    cells[currentPrime].classList.remove('unmarked');
+    cells[currentPrime].classList.add('current-prime');
+    currentMultiple = currentPrime * currentPrime;
+    phase = 'sweeping';
+    processedCount++;
+    primesCount++;
+    updateStats();
+    return true;
+  }
+  
+  if (phase === 'sweeping') {
+    if (currentMultiple <= N) {
+      // Mark this multiple as composite
+      if (isPrime[currentMultiple]) {
+        isPrime[currentMultiple] = false;
+        const cell = cells[currentMultiple];
+        cell.classList.remove('unmarked');
+        cell.classList.add('marking');
+        setTimeout(() => {
+          cell.classList.remove('marking');
+          cell.classList.add('composite');
+        }, 300);
+      }
+      currentMultiple += currentPrime;
+      return true;
+    } else {
+      // Done sweeping this prime
+      cells[currentPrime].classList.remove('current-prime');
+      cells[currentPrime].classList.add('prime');
+      currentPrime++;
+      phase = 'idle';
+      return step(); // Continue to next prime
+    }
+  }
+  
+  return false;
+}
+
+function finishSieve() {
+  phase = 'done';
+  
+  // Mark all remaining unmarked as prime
+  for (let i = 2; i <= N; i++) {
+    const cell = cells[i];
+    if (isPrime[i]) {
+      if (!cell.classList.contains('prime') && !cell.classList.contains('current-prime')) {
+        cell.classList.remove('unmarked');
+        cell.classList.add('prime');
+        primesCount++;
+        processedCount++;
+      }
+    }
+  }
+  
+  // Clear any current-prime styling
+  for (let i = 2; i <= N; i++) {
+    cells[i].classList.remove('current-prime');
+    if (isPrime[i]) {
+      cells[i].classList.add('prime');
+    }
+  }
+  
+  updateStats();
+  stopAnimation();
+}
+
+function animate(time) {
+  if (!isPlaying) return;
+  
+  if (time - lastTime >= delay) {
+    lastTime = time;
+    if (!step()) {
+      stopAnimation();
+      return;
+    }
+  }
+  
+  animationId = requestAnimationFrame(animate);
+}
+
+function startAnimation() {
+  if (phase === 'done') {
+    init();
+  }
+  isPlaying = true;
+  playPauseBtn.textContent = '⏸ Pause';
+  stepBtn.disabled = true;
+  lastTime = performance.now();
+  animationId = requestAnimationFrame(animate);
+}
+
+function stopAnimation() {
+  isPlaying = false;
+  playPauseBtn.textContent = '▶ Play';
+  stepBtn.disabled = false;
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+}
+
+playPauseBtn.addEventListener('click', () => {
+  if (isPlaying) {
+    stopAnimation();
+  } else {
+    startAnimation();
+  }
+});
+
+stepBtn.addEventListener('click', () => {
+  if (phase === 'done') {
+    init();
+  }
+  step();
+});
+
+resetBtn.addEventListener('click', () => {
+  stopAnimation();
+  init();
+});
+
+speedSlider.addEventListener('input', () => {
+  delay = 101 - speedSlider.value;
+  speedValue.textContent = delay + 'ms';
+});
+
+applyNBtn.addEventListener('click', () => {
+  stopAnimation();
+  init();
+});
+
+maxNInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    stopAnimation();
+    init();
+  }
+});
+
+// Initialize on load
+init();
+</script>
+</body>
+</html>
