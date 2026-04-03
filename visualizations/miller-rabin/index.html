@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Miller-Rabin Primality Test — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #fbbf24;
+    --green: #3fb950;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --purple: #a371f7;
+    --orange: #f0883e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 1.25rem; font-weight: 700; color: var(--accent); }
+  header .sub { color: var(--muted); font-size: 0.85rem; flex: 1; }
+  header a { color: var(--muted); font-size: 0.82rem; text-decoration: none; }
+  header a:hover { color: var(--text); }
+
+  .app {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Panel */
+  .panel {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+  }
+  .panel h2 { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .input-group { display: flex; flex-direction: column; gap: 5px; }
+  .input-group label { font-size: 0.8rem; color: var(--muted); }
+  .input-row { display: flex; gap: 7px; }
+  input[type=number] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: monospace;
+    flex: 1;
+    outline: none;
+  }
+  input[type=number]:focus { border-color: var(--accent); }
+  button {
+    background: var(--accent);
+    color: #0d1117;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:hover { opacity: .85; }
+  button.secondary { background: var(--border); color: var(--text); }
+  button.danger { background: var(--red); color: #fff; }
+
+  .verdict {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-align: center;
+    border: 2px solid var(--border);
+    color: var(--muted);
+    transition: all .3s;
+  }
+  .verdict.prime   { background: #0d2818; border-color: var(--green); color: var(--green); }
+  .verdict.probably { background: #1a2a0d; border-color: var(--accent); color: var(--accent); }
+  .verdict.composite { background: #2d0a0a; border-color: var(--red); color: var(--red); }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; }
+  .preset-btn {
+    background: var(--bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    font-family: monospace;
+  }
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .ctrl-row { display: flex; gap: 7px; }
+  .ctrl-row button { flex: 1; }
+
+  .speed-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); }
+  input[type=range] { flex: 1; accent-color: var(--accent); }
+
+  .witness-list { display: flex; flex-direction: column; gap: 5px; }
+  .wi-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+  .wi-item.pass { border-color: var(--green); }
+  .wi-item.fail { border-color: var(--red); }
+  .wi-item.testing { border-color: var(--accent); }
+  .wi-item .wh { font-weight: 700; margin-bottom: 2px; }
+  .wi-item .wt { font-size: 0.74rem; color: var(--muted); }
+  .wi-item.pass .wt { color: var(--green); }
+  .wi-item.fail .wt { color: var(--red); }
+  .wi-item.testing .wt { color: var(--accent); }
+
+  /* Right side */
+  .right {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .canvas-wrap {
+    flex: 1;
+    padding: 16px;
+    min-height: 0;
+  }
+  canvas {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: block;
+    width: 100%;
+  }
+  .step-log {
+    height: 130px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: monospace;
+    font-size: 0.8rem;
+  }
+  .step-log .e { padding: 1px 0; }
+  .e.info   { color: var(--blue); }
+  .e.ok     { color: var(--green); }
+  .e.fail   { color: var(--red); }
+  .e.phase  { color: var(--accent); font-weight: 700; }
+  .e.math   { color: var(--purple); }
+  .e.note   { color: var(--muted); }
+
+  .theory {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    font-size: 0.79rem;
+    color: var(--muted);
+  }
+  .theory h3 { color: var(--text); font-size: 0.82rem; margin-bottom: 5px; }
+  .theory .box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
+  .theory code { color: var(--accent); font-family: monospace; }
+  .theory p { line-height: 1.5; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔢 Miller-Rabin Primality Test</h1>
+  <span class="sub">Probabilistic primality testing — O(k · log²n) per witness</span>
+  <a href="../../index.html">← All Visualizations</a>
+</header>
+
+<div class="app">
+  <!-- Left panel -->
+  <div class="panel">
+    <h2>Input</h2>
+    <div class="input-group">
+      <label>Number to test (n)</label>
+      <div class="input-row">
+        <input type="number" id="nInput" value="561" min="2">
+        <button onclick="startTest()">Test</button>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Rounds (k)</label>
+      <input type="number" id="kInput" value="5" min="1" max="15">
+    </div>
+
+    <div class="input-group">
+      <label>Presets</label>
+      <div class="presets" id="presets"></div>
+    </div>
+
+    <div class="input-group">
+      <label>Speed</label>
+      <div class="speed-row">
+        <span>Slow</span>
+        <input type="range" id="speedSlider" min="1" max="10" value="5">
+        <span>Fast</span>
+      </div>
+    </div>
+
+    <div class="ctrl-row">
+      <button class="secondary" onclick="stepForward()">Step ▶</button>
+      <button id="playBtn" onclick="togglePlay()">Play ▶</button>
+      <button class="danger" onclick="resetViz()">Reset</button>
+    </div>
+
+    <div class="verdict" id="verdictBox">—</div>
+
+    <h2>Witnesses</h2>
+    <div class="witness-list" id="witnessList"></div>
+  </div>
+
+  <!-- Right side -->
+  <div class="right">
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="step-log" id="stepLog">
+      <div class="e note">Enter a number and press Test to begin.</div>
+    </div>
+    <div class="theory">
+      <div class="box">
+        <h3>⚙️ Decompose n−1</h3>
+        <p>Write <code>n−1 = 2ˢ·d</code> (d odd). This exposes the 2-adic structure needed for squaring.</p>
+        <p id="sdDisplay" style="font-family:monospace;color:var(--accent)">—</p>
+      </div>
+      <div class="box">
+        <h3>🎯 Witness Test</h3>
+        <p>For witness <code>a</code>: compute <code>x = aᵈ mod n</code>. Square up to s times. Must hit <code>1</code> or <code>n−1</code> at the right step — otherwise → <strong style="color:var(--red)">COMPOSITE</strong>.</p>
+      </div>
+      <div class="box">
+        <h3>📊 Accuracy</h3>
+        <p>Each round catches composites with prob ≥ 3/4 (Rabin). After k=5 rounds: error ≤ 4⁻⁵ &lt; 0.1%. Used in RSA key generation.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── BigInt modular exponentiation ───
+function bigPow(base, exp, mod) {
+  if (mod === 1n) return 0n;
+  let r = 1n;
+  base = base % mod;
+  while (exp > 0n) {
+    if (exp & 1n) r = r * base % mod;
+    exp >>= 1n;
+    base = base * base % mod;
+  }
+  return r;
+}
+
+function factorTwo(n) {
+  let s = 0, d = n;
+  while (d % 2n === 0n) { d >>= 1n; s++; }
+  return { s, d };
+}
+
+// ─── Step builder ───
+function buildSteps(n, k) {
+  const steps = [];
+  if (n < 2n) return [{ kind:'verdict', result:'composite', msg:`${n} < 2, not prime` }];
+  if (n === 2n || n === 3n) return [{ kind:'verdict', result:'prime', msg:`${n} is trivially prime` }];
+  if (n % 2n === 0n) return [{ kind:'verdict', result:'composite', msg:`${n} is even → composite` }];
+
+  const { s, d } = factorTwo(n - 1n);
+  steps.push({ kind:'decompose', s, d, n });
+
+  const bases = [2n,3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n];
+  const witnesses = [];
+  for (let i = 0; i < k; i++) {
+    const a = bases[i % bases.length];
+    if (a < n - 1n && !witnesses.includes(a)) witnesses.push(a);
+  }
+
+  for (let wi = 0; wi < witnesses.length; wi++) {
+    const a = witnesses[wi];
+    steps.push({ kind:'witness-start', a, wi, total: witnesses.length });
+
+    let x = bigPow(a, d, n);
+    steps.push({ kind:'init-x', a, d, n, x });
+
+    if (x === 1n || x === n - 1n) {
+      steps.push({ kind:'pass-trivial', a, x, n });
+      continue;
+    }
+
+    let found = false;
+    for (let r = 0; r < s - 1; r++) {
+      const prev = x;
+      x = x * x % n;
+      steps.push({ kind:'square', a, r, prev, x, n });
+      if (x === n - 1n) {
+        steps.push({ kind:'pass-neg1', a, r, x, n });
+        found = true;
+        break;
+      }
+      if (x === 1n) {
+        steps.push({ kind:'fail-one', a, r, x, n });
+        steps.push({ kind:'verdict', result:'composite', msg:`${n} is COMPOSITE (witness a=${a})` });
+        return steps;
+      }
+    }
+    if (!found) {
+      steps.push({ kind:'fail-never', a, n });
+      steps.push({ kind:'verdict', result:'composite', msg:`${n} is COMPOSITE (witness a=${a})` });
+      return steps;
+    }
+  }
+
+  const big = n > 3215031751n;
+  steps.push({
+    kind:'verdict',
+    result: big ? 'probably' : 'prime',
+    msg: big
+      ? `${n} is PROBABLY PRIME (k=${witnesses.length}, error ≤ 4⁻${witnesses.length})`
+      : `${n} is PRIME (deterministically verified)`
+  });
+  return steps;
+}
+
+// ─── State ───
+let steps = [], stepIdx = 0, playing = false, timer = null;
+let vs = { n:null, s:0, d:0n, squares:[], activeIdx:-1, verdict:null, currentA:null };
+let witnessUI = {};
+
+function resetViz() {
+  clearInterval(timer); timer = null; playing = false;
+  document.getElementById('playBtn').textContent = 'Play ▶';
+  steps = []; stepIdx = 0;
+  vs = { n:null, s:0, d:0n, squares:[], activeIdx:-1, verdict:null, currentA:null };
+  witnessUI = {};
+  document.getElementById('witnessList').innerHTML = '';
+  document.getElementById('verdictBox').className = 'verdict';
+  document.getElementById('verdictBox').textContent = '—';
+  document.getElementById('sdDisplay').textContent = '—';
+  clearLog();
+  log('Reset.', 'note');
+  drawState();
+}
+
+function startTest() {
+  resetViz();
+  const n = BigInt(document.getElementById('nInput').value);
+  const k = parseInt(document.getElementById('kInput').value) || 5;
+  vs.n = n;
+  steps = buildSteps(n, k);
+  stepIdx = 0;
+  log(`Testing n = ${n} with k = ${k} witnesses`, 'info');
+  drawState();
+}
+
+function applyStep(i) {
+  if (i >= steps.length) return false;
+  const s = steps[i];
+  switch (s.kind) {
+    case 'decompose':
+      vs.s = s.s; vs.d = s.d;
+      document.getElementById('sdDisplay').textContent = `n−1 = 2^${s.s} × ${s.d}`;
+      log(`n−1 = ${s.n-1n} = 2^${s.s} × ${s.d}`, 'phase');
+      break;
+    case 'witness-start':
+      vs.currentA = s.a; vs.squares = []; vs.activeIdx = -1;
+      log(`── Witness a = ${s.a} (${s.wi+1}/${s.total}) ──`, 'phase');
+      addWitnessUI(s.a, 'testing', '...');
+      break;
+    case 'init-x':
+      vs.squares = [{ val: s.x, label:'a^d mod n' }]; vs.activeIdx = 0;
+      log(`a^d mod n = ${s.a}^${s.d} mod ${s.n} = ${s.x}`, 'math');
+      break;
+    case 'square':
+      vs.squares.push({ val: s.x, label:`r=${s.r+1}` }); vs.activeIdx = vs.squares.length - 1;
+      log(`  r=${s.r+1}: ${s.prev}² mod n = ${s.x}`, 'math');
+      break;
+    case 'pass-trivial':
+      log(`✓ a=${s.a} passes immediately (${s.x===1n?'≡1':'≡n−1'})`, 'ok');
+      updateWitnessUI(s.a, 'pass', s.x===1n ? 'a^d ≡ 1' : 'a^d ≡ n−1');
+      break;
+    case 'pass-neg1':
+      log(`✓ a=${s.a} passes — hit n−1 at r=${s.r+1}`, 'ok');
+      updateWitnessUI(s.a, 'pass', `n−1 at r=${s.r+1}`);
+      break;
+    case 'fail-one':
+      log(`✗ a=${s.a}: hit 1 at r=${s.r+1} without n−1 → COMPOSITE`, 'fail');
+      updateWitnessUI(s.a, 'fail', `1 at r=${s.r+1} w/o n−1`);
+      break;
+    case 'fail-never':
+      log(`✗ a=${s.a}: never reached n−1 → COMPOSITE`, 'fail');
+      updateWitnessUI(s.a, 'fail', 'never hit n−1');
+      break;
+    case 'verdict':
+      vs.verdict = s.result;
+      const box = document.getElementById('verdictBox');
+      box.className = 'verdict ' + s.result;
+      box.textContent = s.result === 'prime' ? '✓ PRIME' :
+                        s.result === 'probably' ? '✓ PROBABLY PRIME' :
+                        '✗ COMPOSITE';
+      log('▶ ' + s.msg, s.result === 'composite' ? 'fail' : 'ok');
+      break;
+  }
+  return true;
+}
+
+function stepForward() {
+  if (stepIdx < steps.length) {
+    applyStep(stepIdx++);
+    drawState();
+  }
+}
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('playBtn').textContent = playing ? 'Pause ⏸' : 'Play ▶';
+  if (playing) {
+    const tick = () => {
+      if (!playing || stepIdx >= steps.length) { playing = false; document.getElementById('playBtn').textContent = 'Play ▶'; return; }
+      applyStep(stepIdx++);
+      drawState();
+      const speed = parseInt(document.getElementById('speedSlider').value);
+      const delay = Math.round(1200 / speed);
+      timer = setTimeout(tick, delay);
+    };
+    tick();
+  } else {
+    clearTimeout(timer);
+  }
+}
+
+// ─── Witness UI ───
+function addWitnessUI(a, state, msg) {
+  const el = document.createElement('div');
+  el.className = `wi-item ${state}`;
+  el.id = `wi-${a}`;
+  el.innerHTML = `<div class="wh">a = ${a}</div><div class="wt">${msg}</div>`;
+  document.getElementById('witnessList').appendChild(el);
+  witnessUI[String(a)] = el;
+}
+function updateWitnessUI(a, state, msg) {
+  const el = witnessUI[String(a)];
+  if (!el) return;
+  el.className = `wi-item ${state}`;
+  el.querySelector('.wt').textContent = msg;
+}
+
+// ─── Log ───
+function log(msg, cls='note') {
+  const div = document.getElementById('stepLog');
+  const e = document.createElement('div');
+  e.className = `e ${cls}`;
+  e.textContent = msg;
+  div.appendChild(e);
+  div.scrollTop = div.scrollHeight;
+}
+function clearLog() {
+  document.getElementById('stepLog').innerHTML = '';
+}
+
+// ─── Canvas drawing ───
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  const W = wrap.clientWidth - 32;
+  const H = Math.max(300, window.innerHeight - 450);
+  canvas.width = W;
+  canvas.height = H;
+  drawState();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function drawState() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+
+  if (!vs.n) {
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '15px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Enter a number and press Test to begin.', W/2, H/2);
+    return;
+  }
+
+  const n = vs.n;
+
+  // ── Title ──
+  ctx.fillStyle = '#e6edf3';
+  ctx.font = 'bold 17px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`n = ${n}`, W/2, 34);
+
+  if (vs.s > 0) {
+    ctx.font = '13px monospace';
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillText(`n − 1  =  2^${vs.s}  ×  ${vs.d}`, W/2, 56);
+  }
+
+  // ── Squaring chain ──
+  if (vs.squares.length > 0) {
+    drawChain(W, H);
+  }
+
+  // ── d binary ──
+  if (vs.d > 0n) {
+    drawDBinary(W, H);
+  }
+
+  // ── Verdict glow ──
+  if (vs.verdict) {
+    drawVerdictGlow(W, H);
+  }
+}
+
+function drawChain(W, H) {
+  const sq = vs.squares;
+  const n = vs.n;
+  const count = sq.length;
+  const bW = Math.min(120, Math.max(60, (W - 80) / (count + 0.5)));
+  const bH = 56;
+  const gap = 16;
+  const total = count * bW + (count - 1) * gap;
+  const startX = (W - total) / 2;
+  const y = 80;
+
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#8b949e';
+  ctx.textAlign = 'left';
+  ctx.fillText('Squaring chain (a^d → a^(2d) → … → a^(2^s·d)) mod n:', startX, y - 10);
+
+  for (let i = 0; i < count; i++) {
+    const box = sq[i];
+    const bx = startX + i * (bW + gap);
+    const by = y;
+
+    // Arrow
+    if (i > 0) {
+      const ax = bx - gap + 2;
+      ctx.strokeStyle = '#8b949e';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(ax - 4, by + bH/2);
+      ctx.lineTo(bx - 2, by + bH/2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx - 7, by + bH/2 - 4);
+      ctx.lineTo(bx - 2, by + bH/2);
+      ctx.lineTo(bx - 7, by + bH/2 + 4);
+      ctx.stroke();
+    }
+
+    // Determine color
+    let bg = '#161b22', border = '#30363d', fg = '#e6edf3';
+    const isActive = (i === vs.activeIdx);
+    if (box.val === 1n && i === 0) { bg='#0d2818'; border='#3fb950'; fg='#3fb950'; }
+    else if (box.val === n - 1n) { bg='#2a1600'; border='#f0883e'; fg='#f0883e'; }
+    else if (isActive) { bg='#1a1400'; border='#fbbf24'; fg='#fbbf24'; }
+
+    // Box
+    ctx.fillStyle = bg;
+    ctx.strokeStyle = border;
+    ctx.lineWidth = isActive ? 2.5 : 1;
+    roundRect(bx, by, bW, bH, 7);
+    ctx.fill(); ctx.stroke();
+
+    // Value text
+    ctx.fillStyle = fg;
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    const vs2 = box.val.toString();
+    const disp = vs2.length > 15 ? vs2.slice(0,7)+'…'+vs2.slice(-4) : vs2;
+    ctx.fillText(disp, bx + bW/2, by + 22);
+
+    // Label
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '9px monospace';
+    ctx.fillText(box.label, bx + bW/2, by + 37);
+
+    // Bottom annotation
+    ctx.font = 'bold 9px monospace';
+    if (box.val === 1n && i === 0) {
+      ctx.fillStyle = '#3fb950';
+      ctx.fillText('≡ 1 (pass)', bx + bW/2, by + bH + 12);
+    } else if (box.val === n - 1n) {
+      ctx.fillStyle = '#f0883e';
+      ctx.fillText('≡ n−1 (pass)', bx + bW/2, by + bH + 12);
+    } else if (box.val === 1n && i > 0) {
+      ctx.fillStyle = '#f85149';
+      ctx.fillText('≡ 1 FAIL!', bx + bW/2, by + bH + 12);
+    }
+  }
+}
+
+function drawDBinary(W, H) {
+  const d = vs.d;
+  if (!d) return;
+  const bin = d.toString(2);
+  const cellSize = Math.min(26, Math.max(16, (W - 120) / bin.length));
+  const total = bin.length * cellSize;
+  const startX = (W - total) / 2;
+  const y = H - 90;
+
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`d = ${d} in binary (exponent for a^d):`, W/2, y - 8);
+
+  for (let i = 0; i < bin.length; i++) {
+    const bx = startX + i * cellSize;
+    const isOne = bin[i] === '1';
+    ctx.fillStyle = isOne ? '#1f3a5f' : '#161b22';
+    ctx.strokeStyle = isOne ? '#58a6ff' : '#30363d';
+    ctx.lineWidth = 1;
+    roundRect(bx + 1, y, cellSize - 2, cellSize - 2, 3);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = isOne ? '#58a6ff' : '#8b949e';
+    ctx.font = `bold ${Math.max(9, cellSize - 8)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText(bin[i], bx + cellSize/2, y + cellSize/2 + 4);
+  }
+
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${d.toString(2).length}-bit odd exponent — used in fast modular exponentiation`, W/2, y + cellSize + 12);
+}
+
+function drawVerdictGlow(W, H) {
+  const colors = { prime: '#3fb950', probably: '#fbbf24', composite: '#f85149' };
+  const c = colors[vs.verdict];
+  if (!c) return;
+  ctx.save();
+  const grad = ctx.createRadialGradient(W/2, H/2, 10, W/2, H/2, W*0.55);
+  grad.addColorStop(0, c + '10');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+// ─── Presets ───
+const PRESETS = [
+  { n: 2n, label: '2 (prime)' },
+  { n: 7n, label: '7 (prime)' },
+  { n: 97n, label: '97 (prime)' },
+  { n: 561n, label: '561 (Carmichael)' },
+  { n: 1729n, label: '1729 (Carmichael)' },
+  { n: 104729n, label: '104729 (prime)' },
+  { n: 999983n, label: '999983 (prime)' },
+  { n: 15n, label: '15 (=3×5)' },
+  { n: 341n, label: '341 (psp-2)' },
+];
+
+function buildPresets() {
+  const container = document.getElementById('presets');
+  PRESETS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.textContent = p.label;
+    btn.onclick = () => {
+      document.getElementById('nInput').value = String(p.n);
+      startTest();
+    };
+    container.appendChild(btn);
+  });
+}
+
+// ─── Init ───
+buildPresets();
+resizeCanvas();
+drawState();
+</script>
+</body>
+</html>

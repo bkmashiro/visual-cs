@@ -3,6 +3,7 @@
 ## Upcoming
 
 ## Done
+- miller-rabin — Miller-Rabin Primality Test (probabilistic primality, witness squaring chains, Carmichael numbers) ✅ 2026-04-03
 - sieve-of-eratosthenes — Sieve of Eratosthenes (prime number sieve, mark composites step by step, O(n log log n)) ✅ 2026-03-31
 - van-emde-boas — van Emde Boas Tree (O(log log U) predecessor queries, recursive √U structure) ✅ 2026-03-30
 - cuckoo-hashing — Cuckoo Hashing (O(1) worst-case lookup, two hash tables, eviction chain) ✅ 2026-03-30
