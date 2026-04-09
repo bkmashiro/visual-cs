@@ -2,6 +2,49 @@
 
 ## Upcoming
 
+### Strings & Compression
+- [ ] boyer-moore — Boyer-Moore String Search (bad character + good suffix heuristics, right-to-left scan)
+- [ ] z-algorithm — Z-Algorithm (Z-array linear string matching, prefix vs suffix comparison)
+- [ ] suffix-automaton — Suffix Automaton (SAM, online construction, endpos sets)
+- [ ] suffix-tree — Suffix Tree (Ukkonen's algorithm, compact trie, O(n) construction)
+- [ ] arithmetic-coding — Arithmetic Coding (interval subdivision, encoder + decoder)
+
+### Graphs
+- [ ] edmonds-blossom — Edmonds' Blossom (maximum matching, blossom contraction)
+- [ ] karger-mincut — Karger's Min Cut (randomized contraction, edge collapse)
+- [ ] hungarian — Hungarian Algorithm (assignment problem, augmenting path)
+- [ ] pagerank — PageRank (iterative power method, dangling nodes, damping factor)
+- [ ] scc-kosaraju — Kosaraju's SCC (two-pass DFS, transpose graph)
+
+### Dynamic Programming
+- [ ] knapsack — 0/1 Knapsack (DP table fill, item selection traceback)
+- [ ] matrix-chain — Matrix Chain Multiplication (optimal parenthesization)
+- [ ] lis — Longest Increasing Subsequence (patience sorting, O(n log n))
+- [ ] egg-drop — Egg Drop Problem (2D DP table, floor vs egg tradeoff)
+
+### Probabilistic & Approximate
+- [ ] count-min-sketch — Count-Min Sketch (frequency estimation, hash collision, error bounds)
+- [ ] hyperloglog — HyperLogLog (cardinality estimation, leading zeros, register merge)
+- [ ] reservoir-sampling — Reservoir Sampling (streaming uniform sample)
+- [ ] monte-carlo-pi — Monte Carlo π (point sampling in circle, convergence)
+
+### Numerical & Mathematical
+- [ ] fft — Fast Fourier Transform (butterfly diagram, bit-reversal permutation)
+- [ ] strassen — Strassen Matrix Multiplication (7-multiply recursion tree)
+- [ ] quickselect — QuickSelect / BFPRT (linear-time k-th element)
+- [ ] extended-gcd — Extended Euclidean Algorithm (Bézout coefficients)
+- [ ] chinese-remainder — Chinese Remainder Theorem (Garner's algorithm)
+
+### Geometry
+- [ ] line-sweep — Sweep Line (segment intersection, event queue)
+- [ ] voronoi — Voronoi Diagram (Fortune's sweep line, beach line)
+- [ ] closest-pair — Closest Pair of Points (divide & conquer, strip merge)
+
+### Misc
+- [ ] wavelet-tree — Wavelet Tree (range frequency queries, O(log σ) per op)
+- [ ] disjoint-set-weighted — Weighted Union-Find (union by rank + path compression)
+- [ ] van-emde-boas-ops — vEB Interactive Demo (predecessor/successor with universe size slider)
+
 ## Done
 - miller-rabin — Miller-Rabin Primality Test (probabilistic primality, witness squaring chains, Carmichael numbers) ✅ 2026-04-03
 - sieve-of-eratosthenes — Sieve of Eratosthenes (prime number sieve, mark composites step by step, O(n log log n)) ✅ 2026-03-31
