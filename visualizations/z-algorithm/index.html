@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Z-Algorithm — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--or:#f97316;--or0:rgba(249,115,22,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);--rd:#f85149;--rd0:rgba(248,81,73,.15);--bl:#58a6ff;--bl0:rgba(88,166,255,.15);--yl:#e3b341;--yl0:rgba(227,179,65,.15);--pu:#d2a8ff;--pu0:rgba(210,168,255,.15);--cy:#67e8f9;--cy0:rgba(103,232,249,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--cy)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--cy)}
+.layout{display:grid;grid-template-columns:1fr 310px;min-height:calc(100vh - 50px)}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.irow{display:flex;gap:10px;flex-wrap:wrap}
+.ig{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.ig label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.ig input{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:.92rem;font-family:'Cascadia Code','Fira Code',monospace;outline:none;transition:border-color .2s}
+.ig input:focus{border-color:var(--cy)}
+.presets{display:flex;flex-wrap:wrap;gap:5px}
+.pb{font-size:.7rem;padding:3px 9px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-weight:500;transition:all .15s}
+.pb:hover{color:var(--cy);border-color:var(--cy)}
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--cy);color:var(--cy)}
+button.pr{background:var(--cy);border-color:var(--cy);color:#041018}
+button.pr:hover{background:#48d0e8}
+button:disabled{opacity:.35;cursor:not-allowed}
+.spd{margin-left:auto;display:flex;align-items:center;gap:6px}
+.spd label{font-size:.72rem;color:var(--muted)}
+input[type=range]{accent-color:var(--cy);width:80px;cursor:pointer}
+.sbar{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:12px;font-size:.82rem;min-height:42px}
+.badge{font-size:.67rem;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px;font-weight:700;flex-shrink:0}
+.badge.rdy{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.badge.bld{background:var(--cy0);border:1px solid var(--cy);color:var(--cy)}
+.badge.sch{background:var(--bl0);border:1px solid var(--bl);color:var(--bl)}
+.badge.dn{background:var(--gr0);border:1px solid var(--gr);color:var(--gr)}
+.smsg{flex:1;font-size:.8rem;color:var(--muted)}
+.cnts{display:flex;gap:12px;font-size:.73rem;color:var(--muted);flex-shrink:0}
+.cnts b{color:var(--text)}
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+.vbox{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px}
+/* Character rail */
+.crail{display:flex;flex-wrap:wrap;gap:3px}
+.cc{width:33px;height:37px;border:1px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Cascadia Code','Fira Code',monospace;font-size:.9rem;font-weight:700;transition:background .16s,border-color .16s,color .16s;position:relative;flex-shrink:0}
+.cc .ci{font-size:.44rem;color:var(--muted);font-weight:400;position:absolute;bottom:2px;font-family:sans-serif}
+.cc.inn{color:#555}
+.cc.cur{background:var(--cy0);border-color:var(--cy);color:var(--cy);box-shadow:0 0 9px rgba(103,232,249,.22)}
+.cc.ok{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+.cc.bad{background:var(--rd0);border-color:var(--rd);color:var(--rd);animation:jig .22s ease}
+.cc.fnd{background:var(--yl0);border-color:var(--yl);color:var(--yl);animation:pop .35s ease}
+.cc.zbox{background:var(--pu0);border-color:var(--pu);color:var(--pu)}
+.cc.sep{background:var(--s2);border:1px dashed var(--border);color:var(--muted)}
+.cc.pat{background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.35);color:var(--or)}
+@keyframes jig{0%,100%{transform:translateX(0)}30%{transform:translateX(-3px)}70%{transform:translateX(3px)}}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.16)}100%{transform:scale(1)}}
+/* Z-value bar */
+.zrail{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.zc{width:33px;height:28px;border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'Cascadia Code','Fira Code',monospace;font-size:.78rem;font-weight:700;transition:all .18s;flex-shrink:0;color:var(--muted)}
+.zc.filled{background:var(--cy0);border-color:var(--cy);color:var(--cy)}
+.zc.cur{background:var(--or0);border-color:var(--or);color:var(--or)}
+.zc.match{background:var(--yl0);border-color:var(--yl);color:var(--yl)}
+/* Z-box indicator */
+.zbox-row{display:flex;gap:3px;min-height:14px;margin-bottom:2px}
+.zb{width:33px;height:10px;border-radius:2px;flex-shrink:0;transition:background .15s}
+.zb.in{background:var(--pu0);border:1px solid rgba(210,168,255,.4)}
+.zb.out{background:transparent;border:none}
+/* Pointer row */
+.prail{display:flex;flex-wrap:wrap;gap:3px}
+.pc{width:33px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0;color:transparent;transition:color .13s}
+.pc.i{color:var(--cy)}.pc.k{color:var(--or)}
+/* Matches */
+.mrail{display:flex;flex-wrap:wrap;gap:5px;min-height:26px}
+.mbdg{background:var(--yl0);border:1px solid var(--yl);color:var(--yl);padding:2px 9px;border-radius:20px;font-size:.73rem;font-weight:700;font-family:monospace;animation:si .28s ease}
+@keyframes si{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+/* Info boxes */
+.ibox{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;font-size:.77rem;line-height:1.58;color:var(--muted)}
+.ibox h3{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:8px}
+.ibox p{margin-bottom:6px}.ibox p:last-child{margin-bottom:0}
+.ibox code{background:var(--s2);padding:1px 5px;border-radius:3px;font-family:monospace;color:var(--cy);font-size:.75rem}
+.cx{font-weight:600}.cx.g{color:var(--gr)}.cx.o{color:var(--or)}.cx.b{color:var(--bl)}.cx.p{color:var(--pu)}.cx.y{color:var(--yl)}.cx.r{color:var(--rd)}.cx.c{color:var(--cy)}
+.cxr{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:.75rem}
+.cxr:last-child{border-bottom:none}.cxr .l{color:var(--muted)}.cxr .v{font-weight:700;color:var(--cy);font-family:monospace}
+/* Log */
+.lbox{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px;max-height:210px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.lbox::-webkit-scrollbar{width:3px}.lbox::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.le{font-size:.69rem;font-family:monospace;color:var(--muted);line-height:1.42}
+.le.ok{color:var(--gr)}.le.bad{color:var(--rd)}.le.fnd{color:var(--yl);font-weight:700}.le.cpy{color:var(--pu)}.le.ph{color:var(--cy);font-weight:700;padding-top:3px;border-top:1px solid var(--border);margin-top:2px}
+/* Section titles */
+.sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sec-hd .slbl{margin-bottom:0}
+.mode-lbl{font-size:.65rem;padding:2px 8px;border-radius:20px;font-weight:700}
+.mode-pat{background:var(--or0);border:1px solid var(--or);color:var(--or)}
+.mode-sep{background:var(--s2);border:1px solid var(--border);color:var(--muted)}
+.mode-txt{background:var(--bl0);border:1px solid var(--bl);color:var(--bl)}
+@media(max-width:840px){.layout{grid-template-columns:1fr}.sidebar{border-top:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔍 <span>Z-Algorithm</span> — Linear String Matching via Z-Array</h1>
+  <a href="../../index.html">← All Visualizations</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="irow">
+    <div class="ig" style="flex:3"><label>Text (Haystack)</label><input id="tIn" value="AABXAABXCAABXAABXAY" maxlength="50" spellcheck="false"></div>
+    <div class="ig" style="flex:2"><label>Pattern (Needle)</label><input id="pIn" value="AABXAAY" maxlength="20" spellcheck="false"></div>
+  </div>
+  <div>
+    <div class="slbl">Quick Presets</div>
+    <div class="presets">
+      <button class="pb" onclick="preset('AABXAABXCAABXAABXAY','AABXAAY')">Z classic</button>
+      <button class="pb" onclick="preset('AAAAAAAAAB','AAAAB')">Worst case</button>
+      <button class="pb" onclick="preset('ABCABCABCABC','ABCABC')">Repeating</button>
+      <button class="pb" onclick="preset('HELLO WORLD','WORLD')">Simple</button>
+      <button class="pb" onclick="preset('MISSISSIPPI','ISSI')">Mississippi</button>
+      <button class="pb" onclick="preset('ABABABAB','ABAB')">Overlapping</button>
+    </div>
+  </div>
+  <div class="ctrls">
+    <button class="pr" id="bStart" onclick="startVis()">▶ Start</button>
+    <button id="bStep" onclick="step1()" disabled>⏭ Step</button>
+    <button id="bPause" onclick="togglePause()" disabled>⏸ Pause</button>
+    <button onclick="resetVis()">↺ Reset</button>
+    <div class="spd"><label>Speed</label><input type="range" id="spd" min="1" max="10" value="5"><label id="spdL">5×</label></div>
+  </div>
+  <div class="sbar">
+    <span class="badge rdy" id="badge">Ready</span>
+    <span class="smsg" id="smsg">Configure inputs, then press Start.</span>
+    <div class="cnts"><span>Comparisons: <b id="cmpN">0</b></span><span>Matches: <b id="mN">0</b></span></div>
+  </div>
+
+  <!-- Concatenated string + Z-array -->
+  <div class="vbox">
+    <div class="sec-hd">
+      <div class="slbl">Concatenated String</div>
+      <span class="mode-lbl mode-pat">Pattern</span>
+      <span style="font-size:.65rem;color:var(--muted)">+</span>
+      <span class="mode-lbl mode-sep">$</span>
+      <span style="font-size:.65rem;color:var(--muted)">+</span>
+      <span class="mode-lbl mode-txt">Text</span>
+    </div>
+    <!-- Z-box range indicators -->
+    <div class="zbox-row" id="zboxRow"></div>
+    <!-- Pointer row (i) -->
+    <div class="prail" id="iptr"></div>
+    <!-- Character cells -->
+    <div class="crail" id="srow"></div>
+    <!-- Z-value cells -->
+    <div class="zrail" id="zrow"></div>
+    <!-- Pointer row (k — comparison offset within Z-box) -->
+    <div class="prail" id="kptr"></div>
+  </div>
+
+  <!-- Matches -->
+  <div>
+    <div class="slbl">Matches Found in Text</div>
+    <div class="mrail" id="mrail"><span style="color:var(--muted);font-size:.76rem">None yet…</span></div>
+  </div>
+</div>
+
+<div class="sidebar">
+  <div class="ibox">
+    <h3>🧠 How Z-Algorithm Works</h3>
+    <p>For a string <code>S</code>, <span class="cx c">Z[i]</span> = length of longest substring starting at <code>S[i]</code> that is also a <span class="cx o">prefix</span> of <code>S</code>.</p>
+    <p>A <span class="cx p">Z-box [l, r]</span> tracks the rightmost matching segment. For each <code>i</code>:</p>
+    <p>• If <code>i &gt; r</code>: extend naively from scratch.</p>
+    <p>• If <code>i ≤ r</code>: copy <code>Z[i−l]</code> as a head-start, then try to extend past <code>r</code>.</p>
+    <p>For <span class="cx b">pattern matching</span>: build <code>S = P + "$" + T</code>. Any position in T where <code>Z[i] = |P|</code> is a match!</p>
+  </div>
+  <div class="ibox">
+    <h3>⚡ Complexity</h3>
+    <div class="cxr"><span class="l">Z-array build</span><span class="v">O(n)</span></div>
+    <div class="cxr"><span class="l">Pattern search</span><span class="v">O(n + m)</span></div>
+    <div class="cxr"><span class="l">Space</span><span class="v">O(n + m)</span></div>
+    <div class="cxr"><span class="l">Brute-force</span><span class="v">O(n · m)</span></div>
+    <p style="margin-top:8px;font-size:.72rem">n = |text|, m = |pattern|. Each char compared at most twice!</p>
+  </div>
+  <div class="ibox">
+    <h3>🎨 Legend</h3>
+    <p><span class="cx c">■</span> Current position <code>i</code></p>
+    <p><span class="cx o">■</span> Pattern segment (prefix match progress)</p>
+    <p><span class="cx p">■</span> Inside Z-box [l, r]</p>
+    <p><span class="cx g">■</span> Characters matched in comparison</p>
+    <p><span class="cx r">■</span> Mismatch</p>
+    <p><span class="cx y">■</span> Full pattern match found</p>
+  </div>
+  <div>
+    <div class="slbl">Step Log</div>
+    <div class="lbox" id="lbox"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let S='',PAT='',TXT='',steps=[],si=0,running=false,paused=false,tim=null;
+let sLen=0; // length of concatenated string
+
+$('spd').addEventListener('input',()=>$('spdL').textContent=$('spd').value+'×');
+const delay=()=>Math.round(1000-+$('spd').value*90);
+
+function preset(t,p){$('tIn').value=t;$('pIn').value=p;resetVis()}
+
+/* ── Step generator ── */
+function genSteps(pat, txt){
+  const m=pat.length, n=txt.length;
+  const s=pat+'$'+txt;  // concatenated
+  const N=s.length;
+  const Z=new Array(N).fill(null);
+  const out=[];
+  let cmp=0;
+  const found=[];
+
+  out.push({k:'ph', msg:'Building Z-array on: "'+pat+'" + "$" + "'+txt+'"',
+    Z:[...Z], l:0, r:0, i:-1, cmp, found:[...found]});
+
+  let l=0, r=0;
+  for(let i=1;i<N;i++){
+    // announce position
+    out.push({k:'pos', i, l, r, Z:[...Z], cmp, found:[...found],
+      msg:`i=${i} '${s[i]}': ${i<=r?'inside Z-box ['+l+','+r+'], copy Z['+(i-l)+']='+Z[i-l]:'outside Z-box, expand from scratch'}`});
+
+    let zi=0;
+    if(i<=r){
+      const mirror=i-l;
+      zi=Math.min(Z[mirror]??0, r-i+1);
+      if(zi>0){
+        out.push({k:'copy', i, zi, mirror, l, r, Z:[...Z], cmp, found:[...found],
+          msg:`Copy: Z[${i}] ≥ min(Z[${mirror}]=${Z[mirror]??0}, r-i+1=${r-i+1}) = ${zi}`});
+      }
+    }
+
+    // try to extend
+    let extended=false;
+    while(i+zi<N && zi<m+1 && s[zi]===s[i+zi]){
+      cmp++;
+      out.push({k:'match', i, zi, l, r, Z:[...Z], cmp, found:[...found],
+        msg:`Match s[${zi}]='${s[zi]}' = s[${i+zi}]='${s[i+zi]}' → Z[${i}] now ${zi+1}`});
+      zi++;
+      extended=true;
+    }
+    if(i+zi<N && s[zi]!==s[i+zi]){
+      cmp++;
+      out.push({k:'miss', i, zi, l, r, Z:[...Z], cmp, found:[...found],
+        msg:`Mismatch s[${zi}]='${s[zi]}' ≠ s[${i+zi}]='${s[i+zi]}' — Z[${i}]=${zi}`});
+    }
+
+    Z[i]=zi;
+    if(zi>0 && i+zi-1>r){ l=i; r=i+zi-1; }
+
+    // check if this is a pattern match in text portion
+    let isMatch=false;
+    if(i>=m+1 && zi===m){
+      const pos=i-(m+1); // position in text
+      found.push(pos);
+      isMatch=true;
+    }
+    out.push({k:'zset', i, zi, l, r, Z:[...Z], cmp, found:[...found], isMatch,
+      msg:`Z[${i}] = ${zi}${isMatch?' 🎉 MATCH at text['+( i-(m+1) )+'!':(zi>0?' — Z-box updated to ['+l+','+r+']':'')} `});
+  }
+
+  out.push({k:'done', Z:[...Z], l, r, cmp, found:[...found],
+    msg:`Done! ${found.length} match(es). Total comparisons: ${cmp}`});
+  return out;
+}
+
+/* ── DOM build ── */
+function buildDOM(){
+  const N=S.length, m=PAT.length;
+
+  // Z-box row
+  const zbr=$('zboxRow'); zbr.innerHTML='';
+  for(let i=0;i<N;i++){
+    const d=document.createElement('div');d.className='zb out';d.id=`zb-${i}`;zbr.appendChild(d);
+  }
+
+  // pointer row (i)
+  const ip=$('iptr'); ip.innerHTML='';
+  for(let i=0;i<N;i++){
+    const p=document.createElement('div');p.className='pc';p.id=`ip-${i}`;ip.appendChild(p);
+  }
+
+  // character row
+  const sr=$('srow'); sr.innerHTML='';
+  for(let i=0;i<N;i++){
+    const c=document.createElement('div');
+    if(i<m) c.className='cc pat';
+    else if(i===m) c.className='cc sep';
+    else c.className='cc inn';
+    c.id=`sc-${i}`;
+    c.innerHTML=`${S[i]}<span class="ci">${i}</span>`;
+    sr.appendChild(c);
+  }
+
+  // Z-value row
+  const zr=$('zrow'); zr.innerHTML='';
+  for(let i=0;i<N;i++){
+    const c=document.createElement('div');c.className='zc';c.id=`zc-${i}`;
+    c.textContent='—';zr.appendChild(c);
+  }
+
+  // pointer row (k)
+  const kp=$('kptr'); kp.innerHTML='';
+  for(let i=0;i<N;i++){
+    const p=document.createElement('div');p.className='pc';p.id=`kp-${i}`;kp.appendChild(p);
+  }
+}
+
+/* ── Apply a step ── */
+function applyStep(s){
+  const m=PAT.length, N=S.length;
+  const badge=$('badge');
+
+  // badge
+  if(s.k==='ph'){badge.className='badge bld';badge.textContent='Init';}
+  else if(s.k==='done'){badge.className='badge dn';badge.textContent='Done';}
+  else{badge.className='badge bld';badge.textContent='Z-Array';}
+
+  $('smsg').textContent=s.msg;
+  if(s.cmp!==undefined) $('cmpN').textContent=s.cmp;
+  if(s.found!==undefined){$('mN').textContent=s.found.length; renderMatches(s.found);}
+
+  // Z-box shading
+  if(s.l!==undefined && s.r!==undefined){
+    for(let j=0;j<N;j++){
+      const d=$(`zb-${j}`);if(!d)continue;
+      d.className=(j>=s.l&&j<=s.r&&s.r>0)?'zb in':'zb out';
+    }
+  }
+
+  // Z-values
+  if(s.Z){
+    for(let j=0;j<N;j++){
+      const c=$(`zc-${j}`);if(!c)continue;
+      if(s.Z[j]===null||s.Z[j]===undefined){c.textContent='—';c.className='zc';}
+      else{
+        c.textContent=s.Z[j];
+        const isM=(j>=m+1&&s.Z[j]===m);
+        c.className=isM?'zc match':'zc filled';
+      }
+    }
+    // Highlight current i's Z cell as "cur" if computing
+    if(s.i!==undefined&&s.i>=0&&s.k!=='zset'){
+      const c=$(`zc-${s.i}`);if(c)c.className='zc cur';
+    }
+  }
+
+  // Pointer i
+  for(let j=0;j<N;j++){const p=$(`ip-${j}`);if(p)p.className='pc';}
+  if(s.i!==undefined&&s.i>=0){
+    const p=$(`ip-${s.i}`);if(p)p.className='pc i';
+  }
+
+  // character coloring
+  // reset all first
+  for(let j=0;j<N;j++){
+    const c=$(`sc-${j}`);if(!c)continue;
+    if(j<m) c.className='cc pat';
+    else if(j===m) c.className='cc sep';
+    else c.className='cc inn';
+  }
+
+  if(s.k==='pos'||s.k==='copy'){
+    const c=$(`sc-${s.i}`);if(c)c.className='cc cur';
+  }
+  if(s.k==='match'){
+    // highlight matched prefix chars (0..zi-1) and text chars (i..i+zi-1)
+    for(let j=0;j<s.zi;j++){const c=$(`sc-${j}`);if(c)c.className='cc ok';}
+    for(let j=s.i;j<s.i+s.zi;j++){const c=$(`sc-${j}`);if(c)c.className='cc ok';}
+    // current comparison chars
+    const c0=$(`sc-${s.zi}`);if(c0)c0.className='cc cur';
+    const c1=$(`sc-${s.i+s.zi}`);if(c1)c1.className='cc cur';
+    // k pointer
+    for(let j=0;j<N;j++){const p=$(`kp-${j}`);if(p)p.className='pc';}
+    const kp0=$(`kp-${s.zi}`);if(kp0)kp0.className='pc k';
+    const kp1=$(`kp-${s.i+s.zi}`);if(kp1)kp1.className='pc k';
+  }
+  if(s.k==='miss'){
+    for(let j=0;j<s.zi;j++){const c=$(`sc-${j}`);if(c)c.className='cc ok';}
+    for(let j=s.i;j<s.i+s.zi;j++){const c=$(`sc-${j}`);if(c)c.className='cc ok';}
+    const c0=$(`sc-${s.zi}`);if(c0)c0.className='cc bad';
+    const c1=$(`sc-${s.i+s.zi}`);if(c1)c1.className='cc bad';
+    for(let j=0;j<N;j++){const p=$(`kp-${j}`);if(p)p.className='pc';}
+  }
+  if(s.k==='zset'){
+    if(s.isMatch){
+      const pos=s.i-(m+1);
+      for(let j=s.i;j<s.i+m&&j<N;j++){const c=$(`sc-${j}`);if(c)c.className='cc fnd';}
+      const c=$(`zc-${s.i}`);if(c)c.className='zc match';
+      log(`🎉 MATCH at text[${pos}]`,'fnd');
+    } else {
+      for(let j=0;j<N;j++){const p=$(`kp-${j}`);if(p)p.className='pc';}
+    }
+  }
+  if(s.k==='done'){
+    for(let j=0;j<N;j++){const p=$(`kp-${j}`);if(p)p.className='pc';}
+    for(let j=0;j<N;j++){const pp=$(`ip-${j}`);if(pp)pp.className='pc';}
+  }
+
+  // Step log for key events
+  if(s.k==='ph') log('── Z-algorithm start ──','ph');
+  if(s.k==='pos') log(`i=${s.i} '${S[s.i]}': ${s.i<=s.r&&s.r>0?'inside Z-box':'expand'}`, '');
+  if(s.k==='copy') log(`  copy Z[${s.i-s.l}]=${s.Z[s.i-s.l]} → head-start ${s.zi}`,'cpy');
+  if(s.k==='match') log(`  s[${s.zi}]='${S[s.zi]}'=s[${s.i+s.zi}]='${S[s.i+s.zi]}' ✓`,'ok');
+  if(s.k==='miss') log(`  s[${s.zi}]='${S[s.zi]}'≠s[${s.i+s.zi}]='${S[s.i+s.zi]}' ✗`,'bad');
+  if(s.k==='zset'&&!s.isMatch&&s.zi>0) log(`  Z[${s.i}]=${s.zi}`,'');
+  if(s.k==='done') log(`── Done: ${s.found.length} match(es), ${s.cmp} comparisons ──`,'ph');
+}
+
+function renderMatches(found){
+  const r=$('mrail');
+  if(!found.length){r.innerHTML='<span style="color:var(--muted);font-size:.76rem">None yet…</span>';return;}
+  r.innerHTML='';
+  found.forEach(p=>{
+    const b=document.createElement('div');b.className='mbdg';
+    b.textContent=`idx ${p}: "${TXT.slice(p,p+PAT.length)}"`;r.appendChild(b);
+  });
+}
+
+function log(msg,cls){
+  const lb=$('lbox'),e=document.createElement('div');
+  e.className='le '+(cls||'');e.textContent=msg;lb.appendChild(e);
+  lb.scrollTop=lb.scrollHeight;
+}
+
+function stepOnce(){
+  if(si>=steps.length)return;
+  applyStep(steps[si++]);
+  if(si>=steps.length)finishVis();
+}
+
+function run(){
+  if(!running||paused)return;
+  if(si>=steps.length){finishVis();return;}
+  applyStep(steps[si++]);
+  tim=setTimeout(run,delay());
+}
+
+function startVis(){
+  resetVis();
+  TXT=$('tIn').value.trim().toUpperCase();
+  PAT=$('pIn').value.trim().toUpperCase();
+  if(!TXT||!PAT){alert('Please enter both text and pattern.');return;}
+  if(PAT.includes('$')||TXT.includes('$')){alert('$ is reserved as separator; remove it from inputs.');return;}
+  S=PAT+'$'+TXT;
+  sLen=S.length;
+  steps=genSteps(PAT,TXT); si=0;
+  buildDOM();
+  $('bStart').disabled=true;$('bStep').disabled=false;$('bPause').disabled=false;
+  running=true;paused=false;
+  $('lbox').innerHTML='';
+  $('mrail').innerHTML='<span style="color:var(--muted);font-size:.76rem">None yet…</span>';
+  run();
+}
+
+function step1(){
+  if(!steps.length){
+    TXT=$('tIn').value.trim().toUpperCase();
+    PAT=$('pIn').value.trim().toUpperCase();
+    if(!TXT||!PAT)return;
+    if(PAT.includes('$')||TXT.includes('$')){alert('$ is reserved; remove it from inputs.');return;}
+    S=PAT+'$'+TXT; sLen=S.length;
+    steps=genSteps(PAT,TXT);si=0;
+    buildDOM();
+    $('bStart').disabled=true;$('bPause').disabled=false;
+    running=true;paused=true;
+    $('lbox').innerHTML='';
+    $('mrail').innerHTML='<span style="color:var(--muted);font-size:.76rem">None yet…</span>';
+  }
+  stepOnce();
+}
+
+function togglePause(){
+  if(!running)return;
+  paused=!paused;
+  $('bPause').textContent=paused?'▶ Resume':'⏸ Pause';
+  if(!paused)run();
+}
+
+function finishVis(){
+  running=false;clearTimeout(tim);
+  $('bStart').disabled=false;$('bStep').disabled=true;$('bPause').disabled=true;
+  $('bPause').textContent='⏸ Pause';
+  $('badge').className='badge dn';$('badge').textContent='Done';
+}
+
+function resetVis(){
+  running=false;paused=false;clearTimeout(tim);
+  steps=[];si=0;S='';
+  $('bStart').disabled=false;$('bStep').disabled=false;$('bPause').disabled=true;
+  $('bPause').textContent='⏸ Pause';
+  $('badge').className='badge rdy';$('badge').textContent='Ready';
+  $('smsg').textContent='Configure inputs, then press Start.';
+  $('cmpN').textContent='0';$('mN').textContent='0';
+  $('zboxRow').innerHTML='';$('iptr').innerHTML='';$('srow').innerHTML='';
+  $('zrow').innerHTML='';$('kptr').innerHTML='';$('lbox').innerHTML='';
+  $('mrail').innerHTML='<span style="color:var(--muted);font-size:.76rem">None yet…</span>';
+}
+</script>
+</body>
+</html>

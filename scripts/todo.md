@@ -4,7 +4,7 @@
 
 ### Strings & Compression
 - [x] boyer-moore — Boyer-Moore String Search (bad character + good suffix heuristics, right-to-left scan) ✅ 2026-04-11
-- [ ] z-algorithm — Z-Algorithm (Z-array linear string matching, prefix vs suffix comparison)
+- [x] z-algorithm — Z-Algorithm (Z-array linear string matching, prefix vs suffix comparison) ✅ 2026-04-13
 - [ ] suffix-automaton — Suffix Automaton (SAM, online construction, endpos sets)
 - [ ] suffix-tree — Suffix Tree (Ukkonen's algorithm, compact trie, O(n) construction)
 - [ ] arithmetic-coding — Arithmetic Coding (interval subdivision, encoder + decoder)
