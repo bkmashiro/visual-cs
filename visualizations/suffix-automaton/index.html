@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suffix Automaton (SAM) — visual-cs</title>
+<style>
+:root{
+  --bg:#07111f;
+  --surface:#0d1728;
+  --surface-2:#13213a;
+  --surface-3:#192a48;
+  --border:#284166;
+  --text:#e6eefc;
+  --muted:#90a5c7;
+  --cyan:#67e8f9;
+  --blue:#60a5fa;
+  --violet:#a78bfa;
+  --amber:#fbbf24;
+  --green:#4ade80;
+  --red:#fb7185;
+  --shadow:0 24px 80px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left,rgba(103,232,249,.12),transparent 26%),
+    radial-gradient(circle at top right,rgba(167,139,250,.12),transparent 24%),
+    linear-gradient(180deg,#08101d,#050b14 60%);
+}
+a{color:inherit}
+header{
+  position:sticky;top:0;z-index:30;
+  backdrop-filter:blur(18px);
+  background:rgba(5,11,20,.72);
+  border-bottom:1px solid rgba(40,65,102,.7);
+}
+.header-inner{
+  max-width:1380px;margin:0 auto;padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+}
+.brand h1{font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase}
+.brand h1 span{color:var(--cyan)}
+.brand p{font-size:.82rem;color:var(--muted);margin-top:4px}
+.back{
+  text-decoration:none;border:1px solid var(--border);border-radius:999px;
+  padding:10px 16px;font-size:.8rem;color:var(--muted);transition:.18s ease;
+}
+.back:hover{color:var(--text);border-color:var(--cyan);transform:translateY(-1px)}
+.shell{
+  max-width:1380px;margin:0 auto;padding:28px 24px 40px;
+  display:grid;grid-template-columns:minmax(0,1.3fr) 360px;gap:22px;
+}
+.panel{
+  background:linear-gradient(180deg,rgba(13,23,40,.95),rgba(8,14,25,.95));
+  border:1px solid rgba(40,65,102,.85);border-radius:24px;box-shadow:var(--shadow);
+}
+.main{padding:24px;display:flex;flex-direction:column;gap:18px}
+.hero{
+  padding:22px;border-radius:22px;
+  background:linear-gradient(135deg,rgba(96,165,250,.14),rgba(103,232,249,.08) 40%,rgba(167,139,250,.14));
+  border:1px solid rgba(103,232,249,.16);
+  display:grid;grid-template-columns:1.3fr .9fr;gap:18px;
+}
+.hero h2{font-size:2.1rem;line-height:1.02;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.6;font-size:.96rem;max-width:58ch}
+.hero-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.metric{background:rgba(9,18,33,.74);border:1px solid rgba(103,232,249,.12);border-radius:18px;padding:14px}
+.metric .label{font-size:.7rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:8px}
+.metric .value{font-size:1.35rem;font-weight:800}
+.metric .hint{font-size:.78rem;color:var(--muted);margin-top:6px;line-height:1.45}
+.toolbar,.status,.graph-panel,.table-wrap,.timeline-wrap{
+  padding:18px;border-radius:20px;
+  background:rgba(10,18,31,.9);border:1px solid rgba(40,65,102,.72);
+}
+.toolbar{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:6px;min-width:150px;flex:1}
+.field.small{flex:.4;min-width:120px}
+.field label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+input[type=text],input[type=range]{width:100%}
+input[type=text]{
+  background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:14px;
+  padding:13px 14px;font-size:1rem;outline:none;transition:border-color .18s ease,box-shadow .18s ease;
+}
+input[type=text]:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(103,232,249,.12)}
+.presets,.buttons{display:flex;flex-wrap:wrap;gap:10px}
+button{
+  border:none;border-radius:14px;padding:11px 16px;font-size:.86rem;font-weight:700;cursor:pointer;
+  color:var(--text);background:var(--surface-2);border:1px solid var(--border);transition:.18s ease;
+}
+button:hover:not(:disabled){transform:translateY(-1px);border-color:var(--cyan)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#04101d;border-color:transparent}
+.secondary{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.45);color:#ddd6fe}
+.ghost{color:var(--muted)}
+.preset{padding:8px 12px;border-radius:999px;font-size:.78rem}
+.speedbox{display:flex;align-items:center;gap:10px;margin-left:auto;min-width:220px}
+.speedbox span{font-size:.78rem;color:var(--muted)}
+input[type=range]{accent-color:var(--cyan)}
+.status{display:grid;grid-template-columns:180px 1fr auto;gap:14px;align-items:center}
+.pill{
+  display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 14px;
+  border-radius:999px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;
+  background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.4);color:#bfdbfe;
+  word-break:break-all;text-align:center;
+}
+.status p{color:var(--muted);line-height:1.55;font-size:.88rem}
+.quick-stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat-chip{min-width:80px;padding:10px 12px;border-radius:14px;border:1px solid rgba(40,65,102,.7);background:var(--surface-2)}
+.stat-chip .k{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.stat-chip .v{font-size:1.05rem;font-weight:800;margin-top:4px}
+/* String strip */
+.string-strip{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.char-card{
+  min-width:42px;min-height:58px;
+  background:linear-gradient(180deg,rgba(25,42,72,.96),rgba(16,25,43,.96));
+  border:1px solid rgba(96,165,250,.26);border-radius:13px;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+}
+.char-card.processed{border-color:var(--green);background:rgba(74,222,128,.07)}
+.char-card.current{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(103,232,249,.15)}
+.char-card .ch{font-size:1.05rem;font-weight:800}
+.char-card .ix{font-size:.66rem;color:var(--muted);margin-top:3px}
+/* Graph panel */
+.graph-panel{padding:16px;display:flex;flex-direction:column;gap:12px}
+.graph-section-title{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.graph-section-title h3{font-size:1rem}
+.graph-section-title p{font-size:.8rem;color:var(--muted)}
+.graph-scroll{overflow-x:auto;overflow-y:hidden;border-radius:12px;background:rgba(7,15,26,.7)}
+.graph-scroll::-webkit-scrollbar{height:5px}
+.graph-scroll::-webkit-scrollbar-thumb{background:rgba(40,65,102,.9);border-radius:999px}
+#sam-svg{display:block}
+/* Table */
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid rgba(40,65,102,.55)}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.11em;color:var(--muted)}
+td code{font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;color:#c7d2fe;font-size:.85rem}
+.row-new{background:rgba(103,232,249,.07)}
+.row-clone{background:rgba(167,139,250,.07)}
+.row-modified{background:rgba(251,191,36,.05)}
+.row-last{outline:1px solid rgba(74,222,128,.3);outline-offset:-1px}
+/* Timeline */
+.timeline-wrap{display:flex;flex-direction:column;gap:12px}
+.section-title{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.section-title h3{font-size:1rem}
+.section-title p{font-size:.82rem;color:var(--muted)}
+.timeline-list{display:flex;flex-direction:column;gap:8px;max-height:230px;overflow:auto;padding-right:4px}
+.timeline-list::-webkit-scrollbar{width:5px}
+.timeline-list::-webkit-scrollbar-thumb{background:rgba(40,65,102,.9);border-radius:999px}
+.timeline-item{
+  padding:11px 14px;border-radius:14px;
+  background:rgba(19,33,58,.85);border:1px solid rgba(40,65,102,.65);
+  cursor:pointer;transition:border-color .15s;
+}
+.timeline-item:hover{border-color:rgba(96,165,250,.5)}
+.timeline-item.active{border-color:var(--cyan);background:rgba(96,165,250,.08)}
+.timeline-item .phase{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);margin-bottom:5px}
+.timeline-item p{font-size:.82rem;color:var(--muted);line-height:1.45}
+/* Sidebar */
+.sidebar{padding:20px;display:flex;flex-direction:column;gap:16px}
+.side-card{padding:18px;border-radius:20px;background:rgba(10,18,31,.9);border:1px solid rgba(40,65,102,.72)}
+.side-card h3{font-size:.95rem;margin-bottom:10px}
+.side-card p,.side-card li{color:var(--muted);line-height:1.58;font-size:.88rem}
+.side-card p+p{margin-top:8px}
+.side-card ul{padding-left:18px;display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.legend{display:grid;grid-template-columns:1fr;gap:10px}
+.legend-item{display:flex;align-items:center;gap:10px;font-size:.83rem;color:var(--muted)}
+.swatch{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+.mono{font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;color:#dbeafe}
+@media(max-width:1120px){
+  .shell{grid-template-columns:1fr}
+  .hero{grid-template-columns:1fr}
+  .status{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .header-inner,.shell{padding-left:16px;padding-right:16px}
+  .main,.sidebar{padding:16px}
+  .hero{padding:18px}
+  .hero h2{font-size:1.7rem}
+  .toolbar,.status,.graph-panel,.table-wrap,.timeline-wrap,.side-card{padding:14px}
+  .speedbox{margin-left:0;min-width:0;width:100%}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>visual<span>-cs</span> / suffix automaton</h1>
+      <p>Online SAM construction — suffix links, endpos classes, and O(n) states.</p>
+    </div>
+    <a class="back" href="../../index.html">← All Visualizations</a>
+  </div>
+</header>
+
+<div class="shell">
+  <section class="panel main">
+
+    <div class="hero">
+      <div>
+        <h2>Build a Suffix Automaton one character at a time.</h2>
+        <p>
+          The Suffix Automaton (SAM) is the smallest DFA that accepts every suffix of a string.
+          Each state represents an <span class="mono">endpos</span> equivalence class — substrings that always end at exactly the same set of positions.
+          Online construction is <span class="mono">O(n)</span> with at most <span class="mono">2n−1</span> states and <span class="mono">3n−4</span> transitions.
+        </p>
+      </div>
+      <div class="hero-metrics">
+        <div class="metric">
+          <div class="label">Algorithm</div>
+          <div class="value">Online SAM</div>
+          <div class="hint">Extend one character at a time via suffix link traversal.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Time / Space</div>
+          <div class="value">O(n)</div>
+          <div class="hint">Linear bound on both states (≤2n−1) and transitions (≤3n−4).</div>
+        </div>
+        <div class="metric">
+          <div class="label">Key Structure</div>
+          <div class="value">Suffix Links</div>
+          <div class="hint">Each state links to the longest proper suffix with a strictly larger endpos set.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Applications</div>
+          <div class="value">LCS, Counting</div>
+          <div class="hint">Distinct substrings, longest common substring, palindrome counting.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="row">
+        <div class="field">
+          <label for="textInput">String (max 12)</label>
+          <input id="textInput" type="text" maxlength="12" value="aabbc" spellcheck="false">
+        </div>
+        <div class="field small">
+          <label>Speed</label>
+          <div class="speedbox">
+            <input id="speed" type="range" min="1" max="10" value="5">
+            <span id="speedLabel">5×</span>
+          </div>
+        </div>
+      </div>
+      <div class="presets">
+        <button class="preset" data-text="aab">aab</button>
+        <button class="preset" data-text="aabbc">aabbc</button>
+        <button class="preset" data-text="abcbc">abcbc</button>
+        <button class="preset" data-text="abacab">abacab</button>
+        <button class="preset" data-text="banana">banana</button>
+        <button class="preset" data-text="aaaa">aaaa</button>
+      </div>
+      <div class="buttons">
+        <button class="primary" id="playBtn">▶ Play</button>
+        <button class="secondary" id="prevBtn">◀ Prev</button>
+        <button class="secondary" id="nextBtn">Next ▶</button>
+        <button class="ghost" id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <div class="status">
+      <div class="pill" id="phasePill">Ready</div>
+      <p id="statusText">Choose a preset or type a string, then press Play or step through with Prev / Next.</p>
+      <div class="quick-stats">
+        <div class="stat-chip"><div class="k">Step</div><div class="v" id="stepStat">–</div></div>
+        <div class="stat-chip"><div class="k">States</div><div class="v" id="statesStat">1</div></div>
+        <div class="stat-chip"><div class="k">Last</div><div class="v" id="lastStat">s₀</div></div>
+        <div class="stat-chip"><div class="k">Edges</div><div class="v" id="edgesStat">0</div></div>
+      </div>
+    </div>
+
+    <div class="graph-panel">
+      <div class="graph-section-title">
+        <h3>Automaton Graph</h3>
+        <p id="graphHint">Solid arrows = transitions &nbsp;·&nbsp; Dashed arcs = suffix links &nbsp;·&nbsp; x-axis = state len</p>
+      </div>
+      <div class="string-strip" id="stringStrip"></div>
+      <div class="graph-scroll">
+        <svg id="sam-svg" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr-t" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#60a5fa" opacity=".9"/>
+            </marker>
+            <marker id="arr-l" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#a78bfa" opacity=".75"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="section-title" style="margin-bottom:10px">
+        <h3>State Table</h3>
+        <p><span class="mono">len</span> = max substring length &nbsp;·&nbsp; <span class="mono">link</span> = suffix link target</p>
+      </div>
+      <table>
+        <thead>
+          <tr><th>State</th><th>len</th><th>link</th><th>Transitions</th></tr>
+        </thead>
+        <tbody id="stateTable"></tbody>
+      </table>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="section-title">
+        <h3>Construction Steps</h3>
+        <p>Click any step to jump directly to it</p>
+      </div>
+      <div class="timeline-list" id="timeline"></div>
+    </div>
+
+  </section>
+
+  <aside class="panel sidebar">
+    <div class="side-card">
+      <h3>Online Construction Algorithm</h3>
+      <p>For each new character <span class="mono">c</span>, create state <span class="mono">cur</span> with <span class="mono">len = last.len + 1</span>. Walk up suffix links from <span class="mono">last</span>, adding transition <span class="mono">c → cur</span> wherever it is missing.</p>
+      <p>When a state <span class="mono">p</span> already has <span class="mono">c → q</span>:</p>
+      <ul>
+        <li>If <span class="mono">q.len = p.len + 1</span> → set <span class="mono">cur.link = q</span> (no clone needed)</li>
+        <li>Otherwise → <strong>clone</strong> <span class="mono">q</span> into a new state, fix suffix links and transitions, set both <span class="mono">cur.link</span> and <span class="mono">q.link</span> to the clone</li>
+      </ul>
+    </div>
+
+    <div class="side-card">
+      <h3>Endpos Equivalence Classes</h3>
+      <p>Each SAM state represents a group of substrings with the identical <span class="mono">endpos</span> set — the positions in the original string where each substring ends.</p>
+      <p>The number of distinct substrings represented by state <span class="mono">v</span> is exactly <span class="mono">v.len − v.link.len</span>. Sum over all states to count all distinct substrings.</p>
+    </div>
+
+    <div class="side-card">
+      <h3>Color Legend</h3>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:rgba(103,232,249,.9)"></span> Newly created state</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(167,139,250,.9)"></span> Cloned state</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(251,191,36,.9)"></span> Modified state (transition redirected)</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(74,222,128,.9)"></span> Current <span class="mono" style="color:inherit">last</span> state</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(255,255,255,.45)"></span> Initial state s₀</div>
+        <div class="legend-item"><span class="swatch" style="background:#60a5fa;height:3px;border-radius:1px"></span> Transition (solid arrow)</div>
+        <div class="legend-item"><span class="swatch" style="background:#a78bfa;height:3px;border-radius:1px;opacity:.7"></span> Suffix link (dashed arc)</div>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <h3>Why SAM is Powerful</h3>
+      <ul>
+        <li>Accepts all suffixes in O(n) states — provably optimal</li>
+        <li>Count distinct substrings: sum of <span class="mono">len − link.len</span> over all states</li>
+        <li>Find longest common substring of two strings in O(n + m)</li>
+        <li>Foundation for palindrome counting and compressed text indexes</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ── SAM CONSTRUCTION ─────────────────────────────────────────────────────────
+
+function buildHistory(text) {
+  // states array; each: { id, len, link, next:{char:id} }
+  const states = [{ id: 0, len: 0, link: -1, next: {} }];
+  let last = 0;
+  const steps = [];
+
+  function snapStates() {
+    return states.map(s => ({ ...s, next: { ...s.next } }));
+  }
+  function push(title, desc, hl) {
+    steps.push({ title, desc, states: snapStates(), last, highlight: { ...hl } });
+  }
+
+  push(
+    'Initial state',
+    'The SAM starts with a single initial state s₀ (id=0, len=0). ' +
+    'It represents the empty string and is the root of the suffix link tree. ' +
+    'last = s₀.',
+    {}
+  );
+
+  for (let ci = 0; ci < text.length; ci++) {
+    const c = text[ci];
+    const processedStr = text.slice(0, ci + 1);
+
+    // Create new state
+    const cur = states.length;
+    states.push({ id: cur, len: states[last].len + 1, link: -1, next: {} });
+
+    // Walk suffix links, adding missing transitions
+    let p = last;
+    const redirected = [];
+    while (p !== -1 && states[p].next[c] === undefined) {
+      states[p].next[c] = cur;
+      redirected.push(p);
+      p = states[p].link;
+    }
+
+    if (p === -1) {
+      // Walked all the way to root without finding c — link to initial
+      states[cur].link = 0;
+      last = cur;
+      push(
+        `Add '${c}' → state ${cur}`,
+        `Adding '${c}' at position ${ci}: created state ${cur} (len=${states[cur].len}). ` +
+        `Walked the entire suffix link chain without finding a '${c}' transition, ` +
+        `so set ${cur}.link = s₀. ` +
+        `Added '${c}→${cur}' in ${redirected.length} state(s): [${redirected.join(', ')}]. ` +
+        `last = ${cur}.`,
+        { newState: cur, modifiedStates: redirected, processedStr }
+      );
+    } else {
+      const q = states[p].next[c];
+      if (states[p].len + 1 === states[q].len) {
+        // q has the right length — link directly
+        states[cur].link = q;
+        last = cur;
+        push(
+          `Add '${c}' → state ${cur}`,
+          `Adding '${c}' at position ${ci}: created state ${cur} (len=${states[cur].len}). ` +
+          `Found state ${q} (len=${states[q].len}) via p=${p} with p.len+1 = q.len — ` +
+          `set ${cur}.link = ${q}. No clone needed. ` +
+          `Added '${c}→${cur}' in ${redirected.length} state(s): [${redirected.join(', ')}]. ` +
+          `last = ${cur}.`,
+          { newState: cur, modifiedStates: redirected, processedStr }
+        );
+      } else {
+        // Must clone q
+        const clone = states.length;
+        states.push({
+          id: clone,
+          len: states[p].len + 1,
+          link: states[q].link,
+          next: { ...states[q].next }
+        });
+        // Redirect transitions from p upward that pointed to q
+        let pp = p;
+        while (pp !== -1 && states[pp].next[c] === q) {
+          states[pp].next[c] = clone;
+          pp = states[pp].link;
+        }
+        states[q].link = clone;
+        states[cur].link = clone;
+        last = cur;
+        push(
+          `Add '${c}' → ${cur} + clone ${clone}`,
+          `Adding '${c}' at position ${ci}: created state ${cur} (len=${states[cur].len}). ` +
+          `State ${q} (len=${states[q].len}) had wrong length for a direct link (needed p.len+1=${states[clone].len}). ` +
+          `Cloned ${q} → ${clone} (len=${states[clone].len}), copying all transitions. ` +
+          `Redirected '${c}' transitions from p=${p} upward to clone. ` +
+          `Set ${cur}.link = ${clone}, ${q}.link = ${clone}. ` +
+          `last = ${cur}.`,
+          { newState: cur, cloneState: clone, modifiedStates: redirected, processedStr }
+        );
+      }
+    }
+  }
+
+  return steps;
+}
+
+// ── LAYOUT ───────────────────────────────────────────────────────────────────
+
+function computeLayout(finalStates) {
+  const byLen = {};
+  for (const s of finalStates) {
+    (byLen[s.len] = byLen[s.len] || []).push(s.id);
+  }
+  for (const len in byLen) byLen[len].sort((a, b) => a - b);
+
+  const X_GAP = 114, Y_GAP = 90, X_PAD = 62, Y_PAD = 58;
+  const maxLen = Math.max(...finalStates.map(s => s.len));
+  const maxGroup = Math.max(...Object.values(byLen).map(g => g.length));
+  const W = maxLen * X_GAP + X_PAD * 2 + 36;
+  const H = Math.max(190, maxGroup * Y_GAP + Y_PAD * 2);
+
+  const positions = {};
+  for (const lenStr in byLen) {
+    const len = +lenStr;
+    const group = byLen[len];
+    const count = group.length;
+    const midY = H / 2;
+    group.forEach((id, i) => {
+      positions[id] = {
+        x: len * X_GAP + X_PAD,
+        y: midY + (i - (count - 1) / 2) * Y_GAP
+      };
+    });
+  }
+  return { positions, W, H };
+}
+
+// ── SVG ───────────────────────────────────────────────────────────────────────
+
+const NS = 'http://www.w3.org/2000/svg';
+const R = 23; // state circle radius
+
+function svgEl(tag, attrs, text) {
+  const el = document.createElementNS(NS, tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+function pt(x) { return x.toFixed(1); }
+
+// Point on line from (x1,y1)→(x2,y2) at distance r from (x1,y1)
+function along(x1, y1, x2, y2, r) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const d = Math.sqrt(dx * dx + dy * dy) || 1;
+  return { x: x1 + dx * r / d, y: y1 + dy * r / d };
+}
+
+// Quadratic bezier: M p1 Q ctrl p2
+// bend: positive = bends toward (perpendicular left of direction)
+function bezD(x1, y1, x2, y2, bend) {
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  const dx = x2 - x1, dy = y2 - y1;
+  const d = Math.sqrt(dx * dx + dy * dy) || 1;
+  const cx = mx - bend * dy / d;
+  const cy = my + bend * dx / d;
+  return { d: `M ${pt(x1)} ${pt(y1)} Q ${pt(cx)} ${pt(cy)} ${pt(x2)} ${pt(y2)}`, cx, cy };
+}
+
+// Midpoint of a quadratic bezier at t=0.5
+function bezMid(x1, y1, x2, y2, bend) {
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  const dx = x2 - x1, dy = y2 - y1;
+  const d = Math.sqrt(dx * dx + dy * dy) || 1;
+  const cx = mx - bend * dy / d;
+  const cy = my + bend * dx / d;
+  return { x: 0.25 * x1 + 0.5 * cx + 0.25 * x2, y: 0.25 * y1 + 0.5 * cy + 0.25 * y2 };
+}
+
+function renderSVG(step, layout, svg) {
+  const { positions, W, H } = layout;
+  const { states, highlight } = step;
+  const { newState = -1, cloneState = -1, modifiedStates = [] } = highlight;
+
+  // Clear (keep defs)
+  const defs = svg.querySelector('defs');
+  while (svg.lastChild && svg.lastChild !== defs) svg.removeChild(svg.lastChild);
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+
+  const visIds = new Set(states.map(s => s.id));
+
+  // ── Suffix links (dashed, below transitions) ─────────────────────────────
+  const gLinks = svgEl('g');
+  for (const s of states) {
+    if (s.link < 0 || !positions[s.id] || !positions[s.link]) continue;
+    const p1 = positions[s.id], p2 = positions[s.link];
+
+    // Start/end slightly outside circle
+    const a1 = along(p1.x, p1.y, p2.x, p2.y, R + 3);
+    const a2 = along(p2.x, p2.y, p1.x, p1.y, R + 5);
+
+    // Arc upward (bend negative = above the line)
+    const { d } = bezD(a1.x, a1.y, a2.x, a2.y, -42);
+
+    gLinks.appendChild(svgEl('path', {
+      d, fill: 'none', stroke: '#a78bfa',
+      'stroke-width': '1.6', 'stroke-dasharray': '5 3',
+      'marker-end': 'url(#arr-l)', opacity: '0.6'
+    }));
+  }
+  svg.appendChild(gLinks);
+
+  // ── Transitions ───────────────────────────────────────────────────────────
+  // Group by (from, to) to combine multiple chars on same edge
+  const edgeMap = {};
+  for (const s of states) {
+    for (const [c, tid] of Object.entries(s.next)) {
+      if (!positions[s.id] || !positions[tid]) continue;
+      const key = `${s.id}|${tid}`;
+      if (!edgeMap[key]) edgeMap[key] = { from: s.id, to: tid, chars: [] };
+      edgeMap[key].chars.push(c);
+    }
+  }
+
+  // Count parallel edges per unordered pair (for offset)
+  const pairCnt = {}, pairIdx = {};
+  for (const { from, to } of Object.values(edgeMap)) {
+    const pk = `${Math.min(from, to)}_${Math.max(from, to)}`;
+    pairCnt[pk] = (pairCnt[pk] || 0) + 1;
+  }
+
+  const gTrans = svgEl('g');
+  for (const { from, to, chars } of Object.values(edgeMap)) {
+    const p1 = positions[from], p2 = positions[to];
+    if (!p1 || !p2) continue;
+
+    const pk = `${Math.min(from, to)}_${Math.max(from, to)}`;
+    pairIdx[pk] = (pairIdx[pk] || 0);
+    const idx = pairIdx[pk]++;
+    const total = pairCnt[pk];
+
+    // Slight downward bend, offset per parallel edge
+    const bend = 18 + (idx - (total - 1) / 2) * 22;
+
+    const a1 = along(p1.x, p1.y, p2.x, p2.y, R + 1);
+    const a2 = along(p2.x, p2.y, p1.x, p1.y, R + 5);
+    const { d } = bezD(a1.x, a1.y, a2.x, a2.y, bend);
+    const mid = bezMid(a1.x, a1.y, a2.x, a2.y, bend);
+
+    gTrans.appendChild(svgEl('path', {
+      d, fill: 'none', stroke: '#60a5fa',
+      'stroke-width': '2', 'marker-end': 'url(#arr-t)', opacity: '0.82'
+    }));
+
+    // Label background + text
+    const label = chars.slice().sort().join(',');
+    const lw = label.length * 7.5 + 10;
+    gTrans.appendChild(svgEl('rect', {
+      x: pt(mid.x - lw / 2), y: pt(mid.y - 8),
+      width: pt(lw), height: '16', rx: '4',
+      fill: 'rgba(5,12,23,0.88)'
+    }));
+    gTrans.appendChild(svgEl('text', {
+      x: pt(mid.x), y: pt(mid.y + 4.5),
+      'text-anchor': 'middle',
+      'font-size': '11',
+      'font-family': 'SFMono-Regular,ui-monospace,Menlo,monospace',
+      fill: '#93c5fd'
+    }, label));
+  }
+  svg.appendChild(gTrans);
+
+  // ── States ────────────────────────────────────────────────────────────────
+  const gStates = svgEl('g');
+  for (const s of states) {
+    const pos = positions[s.id];
+    if (!pos) continue;
+
+    const isNew = s.id === newState;
+    const isCl = s.id === cloneState;
+    const isMod = modifiedStates.includes(s.id);
+    const isLast = s.id === step.last;
+    const isInit = s.id === 0;
+
+    let fill, stroke, glow = null, sw = '1.8';
+    if (isNew) {
+      fill = 'rgba(103,232,249,.18)'; stroke = '#67e8f9'; glow = '#67e8f9'; sw = '2.5';
+    } else if (isCl) {
+      fill = 'rgba(167,139,250,.18)'; stroke = '#a78bfa'; glow = '#a78bfa'; sw = '2.5';
+    } else if (isMod) {
+      fill = 'rgba(251,191,36,.13)'; stroke = '#fbbf24'; glow = '#fbbf24'; sw = '2';
+    } else if (isLast) {
+      fill = 'rgba(74,222,128,.11)'; stroke = '#4ade80'; glow = '#4ade80'; sw = '2';
+    } else if (isInit) {
+      fill = 'rgba(255,255,255,.05)'; stroke = 'rgba(255,255,255,.5)';
+    } else {
+      fill = 'rgba(25,42,72,.9)'; stroke = 'rgba(96,165,250,.35)';
+    }
+
+    const g = svgEl('g');
+
+    // Glow ring
+    if (glow) {
+      g.appendChild(svgEl('circle', {
+        cx: pt(pos.x), cy: pt(pos.y), r: R + 6,
+        fill: 'none', stroke: glow, 'stroke-width': '1', opacity: '0.28'
+      }));
+    }
+
+    // Main circle
+    g.appendChild(svgEl('circle', {
+      cx: pt(pos.x), cy: pt(pos.y), r: R,
+      fill, stroke, 'stroke-width': sw
+    }));
+
+    // Label: state id
+    g.appendChild(svgEl('text', {
+      x: pt(pos.x), y: pt(pos.y + 1.5),
+      'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-size': '12', 'font-weight': '700',
+      'font-family': 'Inter,ui-sans-serif,system-ui,sans-serif',
+      fill: '#e6eefc'
+    }, `s${s.id}`));
+
+    // len below circle
+    g.appendChild(svgEl('text', {
+      x: pt(pos.x), y: pt(pos.y + R + 15),
+      'text-anchor': 'middle',
+      'font-size': '10',
+      'font-family': 'SFMono-Regular,ui-monospace,Menlo,monospace',
+      fill: '#90a5c7'
+    }, `${s.len}`));
+
+    gStates.appendChild(g);
+  }
+  svg.appendChild(gStates);
+}
+
+// ── APP STATE ────────────────────────────────────────────────────────────────
+
+const app = { text: '', steps: [], idx: 0, layout: null, timer: null, playing: false };
+const $ = id => document.getElementById(id);
+
+$('speed').addEventListener('input', () => {
+  $('speedLabel').textContent = $('speed').value + '×';
+});
+
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => { $('textInput').value = btn.dataset.text; init(); });
+});
+
+$('playBtn').addEventListener('click', () => {
+  if (app.playing) stopPlay();
+  else { if (app.idx >= app.steps.length - 1) app.idx = 0; startPlay(); }
+});
+$('prevBtn').addEventListener('click', () => {
+  stopPlay();
+  if (app.idx > 0) { app.idx--; render(); }
+});
+$('nextBtn').addEventListener('click', () => {
+  stopPlay();
+  if (app.idx < app.steps.length - 1) { app.idx++; render(); }
+});
+$('resetBtn').addEventListener('click', init);
+
+function init() {
+  stopPlay();
+  const raw = $('textInput').value.replace(/\s/g, '').slice(0, 12);
+  app.text = raw;
+  app.steps = buildHistory(raw);
+  app.idx = 0;
+  const last = app.steps[app.steps.length - 1];
+  app.layout = computeLayout(last.states);
+  render();
+}
+
+function startPlay() {
+  app.playing = true;
+  $('playBtn').textContent = '⏸ Pause';
+  tick();
+}
+function stopPlay() {
+  app.playing = false;
+  $('playBtn').textContent = '▶ Play';
+  clearTimeout(app.timer);
+}
+function tick() {
+  if (!app.playing) return;
+  if (app.idx >= app.steps.length - 1) { stopPlay(); return; }
+  const delay = Math.max(260, 1400 - Number($('speed').value) * 110);
+  app.timer = setTimeout(() => { app.idx++; render(); tick(); }, delay);
+}
+
+function render() {
+  const { steps, idx, layout, text } = app;
+  if (!steps.length) return;
+  const step = steps[Math.min(idx, steps.length - 1)];
+  const { states, highlight, last } = step;
+  const { processedStr = '', newState = -1, cloneState = -1, modifiedStates = [] } = highlight;
+
+  // Status
+  $('phasePill').textContent = step.title;
+  $('statusText').textContent = step.desc;
+  $('stepStat').textContent = `${idx} / ${steps.length - 1}`;
+  $('statesStat').textContent = states.length;
+  $('lastStat').textContent = `s${last}`;
+  const edges = states.reduce((n, s) => n + Object.keys(s.next).length, 0);
+  $('edgesStat').textContent = edges;
+
+  // String strip
+  const strip = $('stringStrip');
+  strip.innerHTML = '';
+  Array.from(text).forEach((ch, i) => {
+    const d = document.createElement('div');
+    const pLen = processedStr.length;
+    d.className = 'char-card' +
+      (i < pLen ? ' processed' : '') +
+      (i === pLen - 1 ? ' current' : '');
+    d.innerHTML = `<div class="ch">${escHtml(ch)}</div><div class="ix">${i}</div>`;
+    strip.appendChild(d);
+  });
+
+  // Graph
+  if (layout) renderSVG(step, layout, $('sam-svg'));
+
+  // State table
+  const tbody = $('stateTable');
+  tbody.innerHTML = '';
+  for (const s of states) {
+    const tr = document.createElement('tr');
+    if (s.id === newState) tr.className = 'row-new';
+    else if (s.id === cloneState) tr.className = 'row-clone';
+    else if (modifiedStates.includes(s.id)) tr.className = 'row-modified';
+    if (s.id === last) tr.classList.add('row-last');
+    const trans = Object.entries(s.next)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([c, t]) => `${c}→s${t}`)
+      .join(', ');
+    tr.innerHTML = `
+      <td>s${s.id}${s.id === 0 ? ' <span style="color:var(--muted);font-size:.72rem">(init)</span>' : ''}</td>
+      <td>${s.len}</td>
+      <td>${s.link >= 0 ? `s${s.link}` : '—'}</td>
+      <td><code>${trans || '—'}</code></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Timeline
+  const tl = $('timeline');
+  tl.innerHTML = '';
+  steps.forEach((st, i) => {
+    const div = document.createElement('div');
+    div.className = 'timeline-item' + (i === idx ? ' active' : '');
+    div.innerHTML = `<div class="phase">${st.title}</div><p>${st.desc}</p>`;
+    div.addEventListener('click', () => { stopPlay(); app.idx = i; render(); });
+    tl.appendChild(div);
+  });
+  const active = tl.querySelector('.active');
+  if (active) active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+  // Buttons
+  $('prevBtn').disabled = idx === 0;
+  $('nextBtn').disabled = idx === steps.length - 1;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Start
+init();
+</script>
+</body>
+</html>
