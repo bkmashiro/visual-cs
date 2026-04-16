@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boyer-Moore Voting — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#e3b341;--ac0:rgba(227,179,65,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
+--bl:#58a6ff;--bl0:rgba(88,166,255,.15);--rd:#f85149;--rd0:rgba(248,81,73,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+button.primary:hover{opacity:.85}
+button:disabled{opacity:.4;cursor:not-allowed}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.array-vis{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.arr-cell{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:1.1rem;font-weight:700;border:2px solid var(--border);background:var(--s2);transition:all .3s;position:relative}
+.arr-cell.current{border-color:var(--ac);background:var(--ac0);box-shadow:0 0 12px rgba(227,179,65,.3)}
+.arr-cell.candidate-match{border-color:var(--gr);background:var(--gr0)}
+.arr-cell.candidate-mismatch{border-color:var(--rd);background:var(--rd0)}
+.arr-cell.processed{opacity:.5}
+.arr-cell.majority{border-color:var(--gr);background:var(--gr0);box-shadow:0 0 12px rgba(63,185,80,.3)}
+.arr-cell .idx{position:absolute;top:2px;right:4px;font-size:.5rem;color:var(--muted);font-weight:400}
+.counter-vis{display:flex;align-items:center;gap:16px;padding:16px;background:var(--s2);border:1px solid var(--border);border-radius:10px;margin-top:8px}
+.counter-box{text-align:center;flex:1}
+.counter-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:4px}
+.counter-val{font-size:2rem;font-weight:800;font-family:monospace;transition:all .3s}
+.counter-val.up{color:var(--gr);animation:bounce .3s}
+.counter-val.down{color:var(--rd);animation:bounce .3s}
+@keyframes bounce{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+.arrow-indicator{font-size:1.5rem;color:var(--muted)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.75rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.8;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+.phase-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.phase-badge.phase1{background:var(--ac0);border:1px solid var(--ac);color:var(--ac)}
+.phase-badge.phase2{background:var(--bl0);border:1px solid var(--bl);color:var(--bl)}
+.phase-badge.done{background:var(--gr0);border:1px solid var(--gr);color:var(--gr)}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Boyer-Moore Voting</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">Random Array</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div class="slider-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="100" max="1500" value="600">
+      <span id="speed-lbl">600ms</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div id="phase-badge" class="phase-badge phase1">Phase 1: Find Candidate</div>
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;margin-top:8px">Array</div>
+    <div class="array-vis" id="array-vis"></div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Candidate & Count</div>
+    <div class="counter-vis">
+      <div class="counter-box">
+        <div class="counter-label">Candidate</div>
+        <div class="counter-val" id="cand-val" style="color:var(--ac)">—</div>
+      </div>
+      <div class="arrow-indicator" id="arrow">⟷</div>
+      <div class="counter-box">
+        <div class="counter-label">Count</div>
+        <div class="counter-val" id="count-val" style="color:var(--bl)">0</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Array Size</div><div class="v" id="s-size" style="color:var(--bl)">0</div></div>
+      <div class="stat-card"><div class="k">Step</div><div class="v" id="s-step" style="color:var(--ac)">0</div></div>
+      <div class="stat-card"><div class="k">Majority?</div><div class="v" id="s-result" style="color:var(--muted)">—</div></div>
+      <div class="stat-card"><div class="k">Frequency</div><div class="v" id="s-freq" style="color:var(--muted)">—</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Click "Random Array" to generate data, then "Run" or "Step" to visualize.</div>
+  </div>
+  <div>
+    <h3>Pseudocode</h3>
+    <div class="pseudo" id="pseudo">
+      <div id="p0">// Phase 1: Find candidate</div>
+      <div id="p1">candidate ← null, count ← 0</div>
+      <div id="p2">for each element x in array:</div>
+      <div id="p3">&nbsp;&nbsp;if count == 0:</div>
+      <div id="p4">&nbsp;&nbsp;&nbsp;&nbsp;candidate ← x, count ← 1</div>
+      <div id="p5">&nbsp;&nbsp;else if x == candidate:</div>
+      <div id="p6">&nbsp;&nbsp;&nbsp;&nbsp;count++</div>
+      <div id="p7">&nbsp;&nbsp;else: count--</div>
+      <div id="p8">// Phase 2: Verify</div>
+      <div id="p9">count occurrences of candidate</div>
+      <div id="p10">return count > n/2 ? candidate : none</div>
+    </div>
+  </div>
+  <div>
+    <h3>How It Works</h3>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+      <p><strong style="color:var(--text)">Boyer-Moore Voting</strong> finds the majority element (appearing > n/2 times) in O(n) time and O(1) space.</p>
+      <p style="margin-top:6px"><strong>Phase 1:</strong> Maintain a candidate and count. When count drops to 0, pick a new candidate. Matching elements increment count, mismatches decrement.</p>
+      <p style="margin-top:6px"><strong>Phase 2:</strong> Verify the candidate actually appears > n/2 times (necessary since a majority may not exist).</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+let arr = [];
+let candidate = null;
+let count = 0;
+let stepIdx = 0;
+let phase = 1; // 1 or 2
+let verifyCount = 0;
+let running = false;
+let paused = false;
+let timer = null;
+let totalSteps = 0;
+
+function genArray() {
+  const n = 12 + Math.floor(Math.random() * 8);
+  arr = [];
+  // Ensure majority exists ~70% of time
+  if (Math.random() < 0.7) {
+    const maj = Math.floor(Math.random() * 9) + 1;
+    const majCount = Math.floor(n / 2) + 1 + Math.floor(Math.random() * Math.floor(n / 4));
+    for (let i = 0; i < Math.min(majCount, n); i++) arr.push(maj);
+    while (arr.length < n) arr.push(Math.floor(Math.random() * 9) + 1);
+  } else {
+    for (let i = 0; i < n; i++) arr.push(Math.floor(Math.random() * 6) + 1);
+  }
+  // Shuffle
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function renderArray() {
+  const vis = document.getElementById('array-vis');
+  vis.innerHTML = '';
+  arr.forEach((v, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'arr-cell';
+    cell.id = 'cell-' + i;
+    cell.innerHTML = `${v}<span class="idx">${i}</span>`;
+    vis.appendChild(cell);
+  });
+}
+
+function highlightPseudo(line) {
+  for (let i = 0; i <= 10; i++) {
+    const el = document.getElementById('p' + i);
+    if (el) el.classList.remove('active');
+  }
+  if (line >= 0) {
+    const el = document.getElementById('p' + line);
+    if (el) el.classList.add('active');
+  }
+}
+
+function updateCounterDisplay(anim) {
+  const candEl = document.getElementById('cand-val');
+  const countEl = document.getElementById('count-val');
+  candEl.textContent = candidate === null ? '—' : candidate;
+  countEl.textContent = count;
+  if (anim) {
+    countEl.className = 'counter-val ' + anim;
+    setTimeout(() => countEl.className = 'counter-val', 300);
+  }
+}
+
+function updateStats() {
+  document.getElementById('s-size').textContent = arr.length;
+  document.getElementById('s-step').textContent = totalSteps;
+}
+
+function reset() {
+  candidate = null;
+  count = 0;
+  stepIdx = 0;
+  phase = 1;
+  verifyCount = 0;
+  totalSteps = 0;
+  running = false;
+  paused = false;
+  if (timer) clearInterval(timer);
+  timer = null;
+  document.getElementById('phase-badge').className = 'phase-badge phase1';
+  document.getElementById('phase-badge').textContent = 'Phase 1: Find Candidate';
+  document.getElementById('s-result').textContent = '—';
+  document.getElementById('s-result').style.color = 'var(--muted)';
+  document.getElementById('s-freq').textContent = '—';
+  document.getElementById('s-freq').style.color = 'var(--muted)';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  highlightPseudo(-1);
+  updateCounterDisplay();
+  updateStats();
+  // Clear cell styles
+  arr.forEach((_, i) => {
+    const c = document.getElementById('cell-' + i);
+    if (c) c.className = 'arr-cell';
+  });
+}
+
+function doStep() {
+  if (phase === 1) {
+    if (stepIdx >= arr.length) {
+      // Move to phase 2
+      phase = 2;
+      stepIdx = 0;
+      verifyCount = 0;
+      document.getElementById('phase-badge').className = 'phase-badge phase2';
+      document.getElementById('phase-badge').textContent = 'Phase 2: Verify Candidate';
+      highlightPseudo(8);
+      document.getElementById('explain').textContent = `Phase 1 complete. Candidate is ${candidate}. Now verifying it appears > ${arr.length}/2 = ${Math.floor(arr.length/2)} times...`;
+      totalSteps++;
+      updateStats();
+      return true;
+    }
+
+    const x = arr[stepIdx];
+    // Clear previous highlights
+    arr.forEach((_, i) => {
+      const c = document.getElementById('cell-' + i);
+      if (c && i < stepIdx) c.className = 'arr-cell processed';
+      else if (c && i > stepIdx) c.className = 'arr-cell';
+    });
+    const cell = document.getElementById('cell-' + stepIdx);
+    cell.className = 'arr-cell current';
+
+    if (count === 0) {
+      candidate = x;
+      count = 1;
+      highlightPseudo(4);
+      cell.className = 'arr-cell current candidate-match';
+      document.getElementById('explain').textContent = `Count is 0. Set new candidate to ${x}, count to 1.`;
+      updateCounterDisplay('up');
+    } else if (x === candidate) {
+      count++;
+      highlightPseudo(6);
+      cell.className = 'arr-cell current candidate-match';
+      document.getElementById('explain').textContent = `Element ${x} matches candidate ${candidate}. Count++ → ${count}`;
+      updateCounterDisplay('up');
+    } else {
+      count--;
+      highlightPseudo(7);
+      cell.className = 'arr-cell current candidate-mismatch';
+      document.getElementById('explain').textContent = `Element ${x} ≠ candidate ${candidate}. Count-- → ${count}`;
+      updateCounterDisplay('down');
+    }
+
+    stepIdx++;
+    totalSteps++;
+    updateStats();
+    return true;
+  } else {
+    // Phase 2: verification
+    if (stepIdx >= arr.length) {
+      // Done
+      const isMajority = verifyCount > arr.length / 2;
+      document.getElementById('phase-badge').className = 'phase-badge done';
+      document.getElementById('phase-badge').textContent = 'Complete';
+      highlightPseudo(10);
+
+      if (isMajority) {
+        document.getElementById('s-result').textContent = candidate;
+        document.getElementById('s-result').style.color = 'var(--gr)';
+        document.getElementById('explain').textContent = `✓ ${candidate} appears ${verifyCount} times (> ${arr.length}/2). It IS the majority element!`;
+        // Highlight majority cells
+        arr.forEach((v, i) => {
+          const c = document.getElementById('cell-' + i);
+          if (v === candidate) c.className = 'arr-cell majority';
+          else c.className = 'arr-cell processed';
+        });
+      } else {
+        document.getElementById('s-result').textContent = 'None';
+        document.getElementById('s-result').style.color = 'var(--rd)';
+        document.getElementById('explain').textContent = `✗ ${candidate} appears only ${verifyCount} times (≤ ${arr.length}/2). No majority element exists.`;
+      }
+      document.getElementById('s-freq').textContent = `${verifyCount}/${arr.length}`;
+      document.getElementById('s-freq').style.color = isMajority ? 'var(--gr)' : 'var(--rd)';
+
+      running = false;
+      if (timer) clearInterval(timer);
+      totalSteps++;
+      updateStats();
+      return false;
+    }
+
+    highlightPseudo(9);
+    const cell = document.getElementById('cell-' + stepIdx);
+    if (arr[stepIdx] === candidate) {
+      verifyCount++;
+      cell.className = 'arr-cell candidate-match';
+    } else {
+      cell.className = 'arr-cell processed';
+    }
+    document.getElementById('explain').textContent = `Counting: element ${arr[stepIdx]} ${arr[stepIdx] === candidate ? '= candidate ✓' : '≠ candidate'}. Count so far: ${verifyCount}`;
+
+    stepIdx++;
+    totalSteps++;
+    updateStats();
+    return true;
+  }
+}
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (arr.length === 0) return;
+  if (!running) reset();
+  running = true;
+  paused = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  const speed = parseInt(document.getElementById('speed').value);
+  if (timer) clearInterval(timer);
+  timer = setInterval(() => {
+    if (!paused) {
+      if (!doStep()) clearInterval(timer);
+    }
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (arr.length === 0) return;
+  paused = true;
+  if (timer) clearInterval(timer);
+  doStep();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  genArray();
+  renderArray();
+  reset();
+  document.getElementById('explain').textContent = `Generated array of ${arr.length} elements. Click "Run" or "Step" to start.`;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  if (arr.length) {
+    renderArray();
+    reset();
+    document.getElementById('explain').textContent = 'Reset. Click "Run" or "Step" to start.';
+  }
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
+  if (running && !paused) {
+    clearInterval(timer);
+    timer = setInterval(() => {
+      if (!paused && !doStep()) clearInterval(timer);
+    }, parseInt(e.target.value));
+  }
+});
+
+// Init with sample
+genArray();
+renderArray();
+updateStats();
+})();
+</script>
+</body>
+</html>
