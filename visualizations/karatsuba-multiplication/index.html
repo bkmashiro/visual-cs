@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karatsuba Multiplication — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#58a6ff;--ac0:rgba(88,166,255,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
+--bl:#58a6ff;--rd:#f85149;--yl:#e3b341;--yl0:rgba(227,179,65,.15);--pr:#a371f7;--pr0:rgba(163,113,247,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.input-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-family:monospace}
+.input-row input{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:1.2rem;font-family:monospace;font-weight:700;width:180px;text-align:center;outline:none}
+.input-row input:focus{border-color:var(--ac)}
+.input-row .op{font-size:1.4rem;color:var(--muted)}
+.tree-container{min-height:400px;overflow:auto}
+.tree-node{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px;margin:8px 4px;display:inline-block;text-align:center;font-family:monospace;font-size:.82rem;transition:all .3s;position:relative}
+.tree-node.active{border-color:var(--yl);background:var(--yl0);box-shadow:0 0 12px rgba(227,179,65,.2)}
+.tree-node.complete{border-color:var(--gr);background:var(--gr0)}
+.tree-node .label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.tree-node .val{font-weight:700;color:var(--text);font-size:1rem}
+.tree-node .sub{font-size:.72rem;color:var(--muted);margin-top:4px}
+.step-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:6px;font-size:.82rem;font-family:monospace;transition:all .3s;border-left:3px solid var(--border)}
+.step-card.active{border-left-color:var(--yl);background:var(--yl0)}
+.step-card.done{border-left-color:var(--gr)}
+.step-card .step-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-family:sans-serif}
+.step-card .step-math{color:var(--text);line-height:1.6}
+.step-card .step-math .hl{color:var(--yl);font-weight:700}
+.step-card .step-math .gr{color:var(--gr);font-weight:700}
+.result-box{text-align:center;padding:20px;background:var(--gr0);border:1px solid var(--gr);border-radius:10px;font-size:1.3rem;font-weight:800;font-family:monospace;color:var(--gr)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.8;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+#steps-container{max-height:500px;overflow-y:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Karatsuba Multiplication</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">Random Numbers</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div class="slider-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="200" max="2000" value="800">
+      <span id="speed-lbl">800ms</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Input</div>
+    <div class="input-row">
+      <input type="text" id="num-a" value="1234" maxlength="8">
+      <span class="op">&times;</span>
+      <input type="text" id="num-b" value="5678" maxlength="8">
+    </div>
+  </div>
+  <div class="panel" style="flex:1">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Decomposition Steps</div>
+    <div id="steps-container"></div>
+    <div class="result-box" id="result-box" style="display:none"></div>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Multiplications</div><div class="v" id="s-mults" style="color:var(--ac)">0</div></div>
+      <div class="stat-card"><div class="k">Naive Would Use</div><div class="v" id="s-naive" style="color:var(--rd)">0</div></div>
+      <div class="stat-card"><div class="k">Depth</div><div class="v" id="s-depth" style="color:var(--yl)">0</div></div>
+      <div class="stat-card"><div class="k">Step</div><div class="v" id="s-step" style="color:var(--muted)">0</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Enter two numbers and click "Run" to see Karatsuba in action.</div>
+  </div>
+  <div>
+    <h3>Pseudocode</h3>
+    <div class="pseudo">
+      <div id="p0">karatsuba(x, y):</div>
+      <div id="p1">&nbsp;&nbsp;if x < 10 or y < 10:</div>
+      <div id="p2">&nbsp;&nbsp;&nbsp;&nbsp;return x * y  // base case</div>
+      <div id="p3">&nbsp;&nbsp;n = max(digits(x), digits(y))</div>
+      <div id="p4">&nbsp;&nbsp;m = ceil(n/2)</div>
+      <div id="p5">&nbsp;&nbsp;a, b = split(x, m) // x = a*10^m + b</div>
+      <div id="p6">&nbsp;&nbsp;c, d = split(y, m) // y = c*10^m + d</div>
+      <div id="p7">&nbsp;&nbsp;z0 = karatsuba(b, d)</div>
+      <div id="p8">&nbsp;&nbsp;z2 = karatsuba(a, c)</div>
+      <div id="p9">&nbsp;&nbsp;z1 = karatsuba(a+b, c+d) - z2 - z0</div>
+      <div id="p10">&nbsp;&nbsp;return z2*10^(2m) + z1*10^m + z0</div>
+    </div>
+  </div>
+  <div>
+    <h3>Key Insight</h3>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+      <p><strong style="color:var(--text)">Karatsuba</strong> reduces 4 multiplications to 3 by computing z1 = (a+b)(c+d) - z2 - z0 instead of ac + bd separately.</p>
+      <p style="margin-top:6px">This gives O(n^1.585) complexity vs O(n^2) for schoolbook multiplication — a significant speedup for large numbers.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+let steps = [];
+let stepIdx = 0;
+let running = false, paused = false, timer = null;
+let multCount = 0;
+let maxDepth = 0;
+
+function karatsubaSteps(x, y, depth) {
+  maxDepth = Math.max(maxDepth, depth);
+  if (x < 10 || y < 10) {
+    const result = x * y;
+    multCount++;
+    steps.push({
+      type: 'base',
+      depth,
+      x, y, result,
+      desc: `Base case: ${x} \u00d7 ${y} = ${result}`
+    });
+    return result;
+  }
+
+  const xStr = x.toString();
+  const yStr = y.toString();
+  const n = Math.max(xStr.length, yStr.length);
+  const m = Math.ceil(n / 2);
+  const pow = Math.pow(10, m);
+
+  const a = Math.floor(x / pow);
+  const b = x % pow;
+  const c = Math.floor(y / pow);
+  const d = y % pow;
+
+  steps.push({
+    type: 'split',
+    depth,
+    x, y, a, b, c, d, m,
+    desc: `Split: ${x} = ${a}\u00b710^${m} + ${b}, ${y} = ${c}\u00b710^${m} + ${d}`
+  });
+
+  steps.push({ type: 'compute', depth, label: 'z0', desc: `Computing z0 = ${b} \u00d7 ${d}` });
+  const z0 = karatsubaSteps(b, d, depth + 1);
+  steps.push({ type: 'result', depth, label: 'z0', value: z0, desc: `z0 = ${z0}` });
+
+  steps.push({ type: 'compute', depth, label: 'z2', desc: `Computing z2 = ${a} \u00d7 ${c}` });
+  const z2 = karatsubaSteps(a, c, depth + 1);
+  steps.push({ type: 'result', depth, label: 'z2', value: z2, desc: `z2 = ${z2}` });
+
+  steps.push({ type: 'compute', depth, label: 'z1', desc: `Computing z1 = (${a}+${b}) \u00d7 (${c}+${d}) - z2 - z0` });
+  const z1full = karatsubaSteps(a + b, c + d, depth + 1);
+  const z1 = z1full - z2 - z0;
+  steps.push({ type: 'result', depth, label: 'z1', value: z1, desc: `z1 = ${z1full} - ${z2} - ${z0} = ${z1}` });
+
+  const result = z2 * Math.pow(10, 2 * m) + z1 * Math.pow(10, m) + z0;
+  steps.push({
+    type: 'combine',
+    depth,
+    z0, z1, z2, m, result,
+    x, y,
+    desc: `${x} \u00d7 ${y} = ${z2}\u00b710^${2*m} + ${z1}\u00b710^${m} + ${z0} = ${result}`
+  });
+
+  return result;
+}
+
+function renderSteps() {
+  const container = document.getElementById('steps-container');
+  container.innerHTML = '';
+  for (let i = 0; i < Math.min(stepIdx, steps.length); i++) {
+    const s = steps[i];
+    const card = document.createElement('div');
+    card.className = 'step-card' + (i === stepIdx - 1 ? ' active' : ' done');
+    card.style.marginLeft = (s.depth * 16) + 'px';
+
+    let label = '';
+    if (s.type === 'split') label = 'Split';
+    else if (s.type === 'base') label = 'Base Case';
+    else if (s.type === 'compute') label = 'Compute ' + s.label;
+    else if (s.type === 'result') label = 'Result ' + s.label;
+    else if (s.type === 'combine') label = 'Combine';
+
+    card.innerHTML = `<div class="step-label">${label} (depth ${s.depth})</div><div class="step-math">${s.desc}</div>`;
+    container.appendChild(card);
+  }
+  container.scrollTop = container.scrollHeight;
+}
+
+function highlightPseudo(line) {
+  for (let i = 0; i <= 10; i++) {
+    const el = document.getElementById('p' + i);
+    if (el) el.classList.remove('active');
+  }
+  if (line >= 0) {
+    const el = document.getElementById('p' + line);
+    if (el) el.classList.add('active');
+  }
+}
+
+function doStep() {
+  if (stepIdx >= steps.length) {
+    const s = steps[steps.length - 1];
+    document.getElementById('result-box').style.display = '';
+    document.getElementById('result-box').textContent = `${document.getElementById('num-a').value} \u00d7 ${document.getElementById('num-b').value} = ${s.result}`;
+    highlightPseudo(10);
+    document.getElementById('explain').textContent = `Done! Result: ${s.result}. Used ${multCount} multiplications (naive: ${naiveCount()}).`;
+    running = false;
+    return false;
+  }
+
+  const s = steps[stepIdx];
+  if (s.type === 'base') highlightPseudo(2);
+  else if (s.type === 'split') highlightPseudo(5);
+  else if (s.type === 'compute') {
+    if (s.label === 'z0') highlightPseudo(7);
+    else if (s.label === 'z2') highlightPseudo(8);
+    else highlightPseudo(9);
+  } else if (s.type === 'combine') highlightPseudo(10);
+
+  document.getElementById('explain').textContent = s.desc;
+  document.getElementById('s-mults').textContent = multCount;
+  document.getElementById('s-depth').textContent = maxDepth;
+
+  stepIdx++;
+  document.getElementById('s-step').textContent = stepIdx;
+  renderSteps();
+  return true;
+}
+
+function naiveCount() {
+  const a = document.getElementById('num-a').value;
+  const b = document.getElementById('num-b').value;
+  return a.length * b.length;
+}
+
+function resetState() {
+  steps = [];
+  stepIdx = 0;
+  multCount = 0;
+  maxDepth = 0;
+  running = false; paused = false;
+  if (timer) clearInterval(timer);
+  timer = null;
+  document.getElementById('steps-container').innerHTML = '';
+  document.getElementById('result-box').style.display = 'none';
+  document.getElementById('s-mults').textContent = '0';
+  document.getElementById('s-naive').textContent = naiveCount();
+  document.getElementById('s-depth').textContent = '0';
+  document.getElementById('s-step').textContent = '0';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  highlightPseudo(-1);
+}
+
+function startComputation() {
+  resetState();
+  const a = parseInt(document.getElementById('num-a').value) || 0;
+  const b = parseInt(document.getElementById('num-b').value) || 0;
+  if (a <= 0 || b <= 0) {
+    document.getElementById('explain').textContent = 'Please enter positive integers.';
+    return false;
+  }
+  karatsubaSteps(a, b, 0);
+  // Reset multCount for step-by-step display
+  multCount = 0;
+  steps.forEach(s => { if (s.type === 'base') multCount++; });
+  multCount = 0; // will recount during stepping
+  return true;
+}
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (!running && !startComputation()) return;
+  running = true; paused = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  if (timer) clearInterval(timer);
+  const speed = parseInt(document.getElementById('speed').value);
+  timer = setInterval(() => {
+    if (!paused && !doStep()) clearInterval(timer);
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (!running && !startComputation()) return;
+  running = true;
+  paused = true;
+  doStep();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  const digits = 3 + Math.floor(Math.random() * 3);
+  const a = Math.floor(Math.random() * Math.pow(10, digits)) + Math.pow(10, digits - 1);
+  const b = Math.floor(Math.random() * Math.pow(10, digits)) + Math.pow(10, digits - 1);
+  document.getElementById('num-a').value = a;
+  document.getElementById('num-b').value = b;
+  resetState();
+  document.getElementById('explain').textContent = `Generated ${a} \u00d7 ${b}. Click "Run" to start.`;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  resetState();
+  document.getElementById('explain').textContent = 'Reset. Enter numbers and click "Run".';
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
+});
+
+resetState();
+})();
+</script>
+</body>
+</html>
