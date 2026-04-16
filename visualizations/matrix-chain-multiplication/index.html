@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matrix Chain Multiplication — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#a371f7;--ac0:rgba(163,113,247,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
+--bl:#58a6ff;--bl0:rgba(88,166,255,.15);--rd:#f85149;--yl:#e3b341;--yl0:rgba(227,179,65,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+button.primary:hover{opacity:.85}
+button:disabled{opacity:.4;cursor:not-allowed}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.matrix-dims{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem;font-family:monospace}
+.matrix-dims .dim{padding:4px 10px;border-radius:6px;background:var(--ac0);border:1px solid var(--ac);color:var(--ac);font-weight:600}
+.matrix-dims .x{color:var(--muted)}
+.dp-table{display:grid;gap:2px;margin-top:8px}
+.dp-cell{display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:.7rem;font-family:monospace;font-weight:600;height:40px;min-width:40px;border:1px solid var(--border);background:var(--s2);color:var(--muted);transition:all .3s;position:relative}
+.dp-cell.filled{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.dp-cell.current{background:var(--yl0);border-color:var(--yl);color:var(--yl);box-shadow:0 0 10px rgba(227,179,65,.3)}
+.dp-cell.optimal{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+.dp-cell.diagonal{background:var(--s2);border-color:var(--border);color:var(--muted)}
+.dp-cell.empty{background:transparent;border-color:transparent}
+.parenthesization{font-size:1.1rem;font-family:monospace;font-weight:700;text-align:center;padding:16px;background:var(--s2);border:1px solid var(--border);border-radius:8px;color:var(--ac);word-break:break-all;line-height:1.8}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.8;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+.row-labels{display:flex;align-items:center}
+.table-wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Matrix Chain Multiplication</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">Random Matrices</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div class="slider-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="100" max="1500" value="400">
+      <span id="speed-lbl">400ms</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Matrix Dimensions</div>
+    <div class="matrix-dims" id="matrix-dims"></div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">DP Table — m[i][j] = min cost to multiply M_i...M_j</div>
+    <div class="table-wrap" id="table-wrap"></div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Optimal Parenthesization</div>
+    <div class="parenthesization" id="paren-vis">—</div>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Matrices</div><div class="v" id="s-count" style="color:var(--bl)">0</div></div>
+      <div class="stat-card"><div class="k">Min Cost</div><div class="v" id="s-cost" style="color:var(--gr)">—</div></div>
+      <div class="stat-card"><div class="k">Chain Length</div><div class="v" id="s-chain" style="color:var(--ac)">—</div></div>
+      <div class="stat-card"><div class="k">Step</div><div class="v" id="s-step" style="color:var(--muted)">0</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Generate matrices and run the algorithm.</div>
+  </div>
+  <div>
+    <h3>Pseudocode</h3>
+    <div class="pseudo">
+      <div id="p0">for l = 2 to n:  // chain length</div>
+      <div id="p1">&nbsp;&nbsp;for i = 1 to n-l+1:</div>
+      <div id="p2">&nbsp;&nbsp;&nbsp;&nbsp;j = i + l - 1</div>
+      <div id="p3">&nbsp;&nbsp;&nbsp;&nbsp;m[i][j] = ∞</div>
+      <div id="p4">&nbsp;&nbsp;&nbsp;&nbsp;for k = i to j-1:</div>
+      <div id="p5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;q = m[i][k] + m[k+1][j] + p[i-1]*p[k]*p[j]</div>
+      <div id="p6">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if q < m[i][j]: m[i][j] = q, s[i][j] = k</div>
+    </div>
+  </div>
+  <div>
+    <h3>How It Works</h3>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+      <p><strong style="color:var(--text)">Matrix Chain Multiplication</strong> finds the optimal way to parenthesize a chain of matrices to minimize scalar multiplications.</p>
+      <p style="margin-top:6px">The DP table fills diagonally: chain length 2 first, then 3, etc. For each subchain m[i][j], we try every split point k and pick the one giving minimum cost.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+let dims = []; // p[0..n] dimensions
+let n = 0; // number of matrices
+let m = []; // cost table
+let s = []; // split table
+let running = false;
+let paused = false;
+let timer = null;
+let steps = [];
+let stepIdx = 0;
+let totalSteps = 0;
+
+function genDims() {
+  n = 4 + Math.floor(Math.random() * 3); // 4-6 matrices
+  dims = [];
+  for (let i = 0; i <= n; i++) {
+    dims.push(5 + Math.floor(Math.random() * 46)); // 5..50
+  }
+}
+
+function renderDims() {
+  const vis = document.getElementById('matrix-dims');
+  vis.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    if (i > 0) { const x = document.createElement('span'); x.className = 'x'; x.textContent = ' \u00d7 '; vis.appendChild(x); }
+    const d = document.createElement('span');
+    d.className = 'dim';
+    d.textContent = `M${i+1}(${dims[i]}\u00d7${dims[i+1]})`;
+    vis.appendChild(d);
+  }
+  document.getElementById('s-count').textContent = n;
+}
+
+function buildTable() {
+  m = Array.from({ length: n + 1 }, () => Array(n + 1).fill(0));
+  s = Array.from({ length: n + 1 }, () => Array(n + 1).fill(0));
+}
+
+function renderTable(currentI, currentJ) {
+  const wrap = document.getElementById('table-wrap');
+  wrap.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'dp-table';
+  grid.style.gridTemplateColumns = `40px repeat(${n}, 1fr)`;
+
+  // Header row
+  const empty = document.createElement('div');
+  empty.className = 'dp-cell empty';
+  grid.appendChild(empty);
+  for (let j = 1; j <= n; j++) {
+    const h = document.createElement('div');
+    h.className = 'dp-cell empty';
+    h.style.color = 'var(--muted)';
+    h.style.fontSize = '.65rem';
+    h.textContent = j;
+    grid.appendChild(h);
+  }
+
+  for (let i = 1; i <= n; i++) {
+    const label = document.createElement('div');
+    label.className = 'dp-cell empty';
+    label.style.color = 'var(--muted)';
+    label.style.fontSize = '.65rem';
+    label.textContent = i;
+    grid.appendChild(label);
+
+    for (let j = 1; j <= n; j++) {
+      const cell = document.createElement('div');
+      cell.className = 'dp-cell';
+      if (i > j) {
+        cell.className = 'dp-cell empty';
+      } else if (i === j) {
+        cell.className = 'dp-cell diagonal';
+        cell.textContent = '0';
+      } else if (m[i][j] > 0) {
+        cell.className = 'dp-cell filled';
+        if (i === currentI && j === currentJ) cell.className = 'dp-cell current';
+        cell.textContent = m[i][j];
+      }
+      grid.appendChild(cell);
+    }
+  }
+  wrap.appendChild(grid);
+}
+
+function buildParenStr(i, j) {
+  if (i === j) return `M${i}`;
+  const k = s[i][j];
+  return `(${buildParenStr(i, k)} \u00d7 ${buildParenStr(k + 1, j)})`;
+}
+
+function precomputeSteps() {
+  steps = [];
+  buildTable();
+  for (let l = 2; l <= n; l++) {
+    for (let i = 1; i <= n - l + 1; i++) {
+      const j = i + l - 1;
+      m[i][j] = Infinity;
+      for (let k = i; k < j; k++) {
+        const q = m[i][k] + m[k + 1][j] + dims[i - 1] * dims[k] * dims[j];
+        const improved = q < m[i][j];
+        if (improved) {
+          m[i][j] = q;
+          s[i][j] = k;
+        }
+        steps.push({ l, i, j, k, q, best: m[i][j], improved, split: s[i][j] });
+      }
+    }
+  }
+  // Reset for animation
+  buildTable();
+}
+
+function highlightPseudo(line) {
+  for (let i = 0; i <= 6; i++) {
+    document.getElementById('p' + i).classList.remove('active');
+  }
+  if (line >= 0) document.getElementById('p' + line).classList.add('active');
+}
+
+function doStep() {
+  if (stepIdx >= steps.length) {
+    highlightPseudo(-1);
+    const result = buildParenStr(1, n);
+    document.getElementById('paren-vis').textContent = result;
+    document.getElementById('s-cost').textContent = m[1][n];
+    document.getElementById('explain').textContent = `Done! Minimum cost: ${m[1][n]} multiplications. Optimal: ${result}`;
+    // Highlight optimal path
+    renderTable(-1, -1);
+    running = false;
+    return false;
+  }
+
+  const st = steps[stepIdx];
+  // Apply to table
+  const q = st.q;
+  if (q < m[st.i][st.j] || m[st.i][st.j] === 0) {
+    m[st.i][st.j] = st.best;
+    s[st.i][st.j] = st.split;
+  }
+  // Also need to restore proper values
+  m[st.i][st.j] = st.best;
+  s[st.i][st.j] = st.split;
+
+  highlightPseudo(st.improved ? 6 : 5);
+  renderTable(st.i, st.j);
+  document.getElementById('s-chain').textContent = st.l;
+  document.getElementById('s-step').textContent = stepIdx + 1;
+
+  const costStr = `m[${st.i}][${st.k}] + m[${st.k+1}][${st.j}] + ${dims[st.i-1]}*${dims[st.k]}*${dims[st.j]} = ${st.q}`;
+  if (st.improved) {
+    document.getElementById('explain').textContent = `Chain ${st.i}..${st.j}, split k=${st.k}: ${costStr} \u2192 NEW BEST!`;
+  } else {
+    document.getElementById('explain').textContent = `Chain ${st.i}..${st.j}, split k=${st.k}: ${costStr} (not better than ${st.best})`;
+  }
+
+  // Show partial parenthesization
+  if (m[1][n] > 0) {
+    document.getElementById('paren-vis').textContent = buildParenStr(1, n);
+    document.getElementById('s-cost').textContent = m[1][n];
+  }
+
+  stepIdx++;
+  totalSteps++;
+  return true;
+}
+
+function resetState() {
+  running = false;
+  paused = false;
+  if (timer) clearInterval(timer);
+  timer = null;
+  stepIdx = 0;
+  totalSteps = 0;
+  buildTable();
+  renderTable(-1, -1);
+  document.getElementById('paren-vis').textContent = '\u2014';
+  document.getElementById('s-cost').textContent = '\u2014';
+  document.getElementById('s-chain').textContent = '\u2014';
+  document.getElementById('s-step').textContent = '0';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  highlightPseudo(-1);
+}
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (n === 0) return;
+  if (!running) {
+    resetState();
+    precomputeSteps();
+  }
+  running = true;
+  paused = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  if (timer) clearInterval(timer);
+  const speed = parseInt(document.getElementById('speed').value);
+  timer = setInterval(() => {
+    if (!paused && !doStep()) clearInterval(timer);
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (n === 0) return;
+  if (!running) {
+    resetState();
+    precomputeSteps();
+    running = true;
+  }
+  paused = true;
+  doStep();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  genDims();
+  renderDims();
+  resetState();
+  document.getElementById('explain').textContent = `Generated ${n} matrices. Click "Run" to find optimal parenthesization.`;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  resetState();
+  document.getElementById('explain').textContent = 'Reset. Click "Run" or "Step" to start.';
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
+});
+
+// Init
+genDims();
+renderDims();
+buildTable();
+renderTable(-1, -1);
+})();
+</script>
+</body>
+</html>
