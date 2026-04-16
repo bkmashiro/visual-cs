@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hungarian Algorithm — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#f97316;--ac0:rgba(249,115,22,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
+--bl:#58a6ff;--bl0:rgba(88,166,255,.15);--rd:#f85149;--rd0:rgba(248,81,73,.15);--yl:#e3b341;--yl0:rgba(227,179,65,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.matrix-wrap{overflow-x:auto}
+.matrix{display:grid;gap:2px;margin-top:8px}
+.m-cell{display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:.82rem;font-family:monospace;font-weight:600;height:44px;min-width:44px;border:1px solid var(--border);background:var(--s2);color:var(--text);transition:all .3s;position:relative}
+.m-cell.header{background:transparent;border:none;color:var(--muted);font-size:.72rem;font-weight:700}
+.m-cell.zero{color:var(--gr);background:var(--gr0);border-color:rgba(63,185,80,.3)}
+.m-cell.assigned{color:#0d1117;background:var(--gr);border-color:var(--gr);font-weight:800}
+.m-cell.covered-row{background:rgba(88,166,255,.08);border-color:rgba(88,166,255,.2)}
+.m-cell.covered-col{background:rgba(163,113,247,.08);border-color:rgba(163,113,247,.2)}
+.m-cell.covered-both{background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.3)}
+.m-cell.highlight{border-color:var(--yl);box-shadow:0 0 8px rgba(227,179,65,.3)}
+.phase-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;background:var(--ac0);border:1px solid var(--ac);color:var(--ac)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.7;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.assignment-result{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.assign-chip{padding:4px 10px;border-radius:20px;font-size:.78rem;font-weight:600;background:var(--gr0);border:1px solid var(--gr);color:var(--gr);font-family:monospace}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Hungarian Algorithm</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">Random Matrix</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div class="slider-row" style="flex:1;min-width:150px">
+        <span>Speed</span>
+        <input type="range" id="speed" min="200" max="2000" value="800">
+        <span id="speed-lbl">800ms</span>
+      </div>
+      <div class="slider-row" style="min-width:100px">
+        <span>Size</span>
+        <input type="range" id="size" min="3" max="6" value="4">
+        <span id="size-lbl">4</span>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div id="phase-badge" class="phase-badge">Original Cost Matrix</div>
+    <div class="matrix-wrap" id="matrix-wrap"></div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Optimal Assignment</div>
+    <div class="assignment-result" id="assignment-result">
+      <span style="color:var(--muted);font-size:.82rem">Run the algorithm to find the optimal assignment.</span>
+    </div>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Matrix Size</div><div class="v" id="s-size" style="color:var(--bl)">4x4</div></div>
+      <div class="stat-card"><div class="k">Min Cost</div><div class="v" id="s-cost" style="color:var(--gr)">—</div></div>
+      <div class="stat-card"><div class="k">Lines Used</div><div class="v" id="s-lines" style="color:var(--yl)">0</div></div>
+      <div class="stat-card"><div class="k">Step</div><div class="v" id="s-step" style="color:var(--muted)">0</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Generate a cost matrix and run the Hungarian algorithm.</div>
+  </div>
+  <div>
+    <h3>Algorithm Steps</h3>
+    <div class="pseudo">
+      <div id="p0">1. Subtract row minimums</div>
+      <div id="p1">2. Subtract column minimums</div>
+      <div id="p2">3. Cover zeros with min lines</div>
+      <div id="p3">4. If lines = n: find assignment</div>
+      <div id="p4">5. Else: adjust matrix</div>
+      <div id="p5">&nbsp;&nbsp;find min uncovered value</div>
+      <div id="p6">&nbsp;&nbsp;subtract from uncovered cells</div>
+      <div id="p7">&nbsp;&nbsp;add to double-covered cells</div>
+      <div id="p8">&nbsp;&nbsp;go to step 3</div>
+    </div>
+  </div>
+  <div>
+    <h3>How It Works</h3>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+      <p><strong style="color:var(--text)">The Hungarian Algorithm</strong> solves the assignment problem in O(n^3): assign n workers to n tasks minimizing total cost.</p>
+      <p style="margin-top:6px">It reduces the cost matrix until enough zeros exist to form a perfect matching. Row/column reductions create zeros; line covering and adjustment ensure optimality.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+let n = 4;
+let original = [];
+let cost = [];
+let steps = [];
+let stepIdx = 0;
+let running = false, paused = false, timer = null;
+let stepCount = 0;
+
+function genMatrix() {
+  n = parseInt(document.getElementById('size').value);
+  original = [];
+  cost = [];
+  for (let i = 0; i < n; i++) {
+    const row = [];
+    for (let j = 0; j < n; j++) {
+      row.push(1 + Math.floor(Math.random() * 20));
+    }
+    original.push([...row]);
+    cost.push([...row]);
+  }
+}
+
+function clone(m) { return m.map(r => [...r]); }
+
+function renderMatrix(matrix, coveredRows, coveredCols, assignments, highlightCells) {
+  const wrap = document.getElementById('matrix-wrap');
+  wrap.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'matrix';
+  grid.style.gridTemplateColumns = `40px repeat(${n}, 1fr)`;
+
+  // Header
+  const corner = document.createElement('div');
+  corner.className = 'm-cell header';
+  grid.appendChild(corner);
+  for (let j = 0; j < n; j++) {
+    const h = document.createElement('div');
+    h.className = 'm-cell header';
+    h.textContent = `T${j+1}`;
+    if (coveredCols && coveredCols[j]) h.style.color = '#a371f7';
+    grid.appendChild(h);
+  }
+
+  for (let i = 0; i < n; i++) {
+    const rh = document.createElement('div');
+    rh.className = 'm-cell header';
+    rh.textContent = `W${i+1}`;
+    if (coveredRows && coveredRows[i]) rh.style.color = '#58a6ff';
+    grid.appendChild(rh);
+
+    for (let j = 0; j < n; j++) {
+      const cell = document.createElement('div');
+      let cls = 'm-cell';
+      const isAssigned = assignments && assignments.some(a => a[0] === i && a[1] === j);
+      const isZero = matrix[i][j] === 0;
+      const isCovRow = coveredRows && coveredRows[i];
+      const isCovCol = coveredCols && coveredCols[j];
+      const isHighlight = highlightCells && highlightCells.some(c => c[0] === i && c[1] === j);
+
+      if (isAssigned) cls += ' assigned';
+      else if (isZero) cls += ' zero';
+      else if (isCovRow && isCovCol) cls += ' covered-both';
+      else if (isCovRow) cls += ' covered-row';
+      else if (isCovCol) cls += ' covered-col';
+      if (isHighlight) cls += ' highlight';
+
+      cell.className = cls;
+      cell.textContent = matrix[i][j];
+      grid.appendChild(cell);
+    }
+  }
+  wrap.appendChild(grid);
+}
+
+function highlightPseudo(line) {
+  for (let i = 0; i <= 8; i++) {
+    document.getElementById('p' + i).classList.remove('active');
+  }
+  if (line >= 0) document.getElementById('p' + line).classList.add('active');
+}
+
+// Hungarian algorithm - precompute all steps
+function computeSteps() {
+  steps = [];
+  let m = clone(cost);
+
+  // Step 1: Row reduction
+  for (let i = 0; i < n; i++) {
+    const minVal = Math.min(...m[i]);
+    for (let j = 0; j < n; j++) m[i][j] -= minVal;
+  }
+  steps.push({ type: 'row-reduce', matrix: clone(m), desc: 'Subtract each row minimum to create zeros.', pseudo: 0 });
+
+  // Step 2: Col reduction
+  for (let j = 0; j < n; j++) {
+    let minVal = Infinity;
+    for (let i = 0; i < n; i++) minVal = Math.min(minVal, m[i][j]);
+    for (let i = 0; i < n; i++) m[i][j] -= minVal;
+  }
+  steps.push({ type: 'col-reduce', matrix: clone(m), desc: 'Subtract each column minimum.', pseudo: 1 });
+
+  // Iterate
+  let maxIter = 20;
+  while (maxIter-- > 0) {
+    // Find minimum line cover
+    const { coveredRows, coveredCols, lineCount } = minLineCover(m);
+    steps.push({
+      type: 'cover', matrix: clone(m), coveredRows: [...coveredRows], coveredCols: [...coveredCols],
+      lineCount, desc: `Cover all zeros with ${lineCount} lines (need ${n}).`, pseudo: 2
+    });
+
+    if (lineCount >= n) {
+      // Find assignment
+      const assignment = findAssignment(m);
+      let totalCost = 0;
+      assignment.forEach(([i, j]) => totalCost += original[i][j]);
+      steps.push({
+        type: 'done', matrix: clone(m), assignments: assignment, totalCost,
+        desc: `${lineCount} lines = ${n}. Optimal assignment found! Total cost: ${totalCost}`, pseudo: 3
+      });
+      break;
+    }
+
+    // Adjust
+    let minUncovered = Infinity;
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        if (!coveredRows[i] && !coveredCols[j]) {
+          minUncovered = Math.min(minUncovered, m[i][j]);
+        }
+      }
+    }
+
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        if (!coveredRows[i] && !coveredCols[j]) m[i][j] -= minUncovered;
+        else if (coveredRows[i] && coveredCols[j]) m[i][j] += minUncovered;
+      }
+    }
+
+    steps.push({
+      type: 'adjust', matrix: clone(m), minVal: minUncovered,
+      desc: `Min uncovered = ${minUncovered}. Subtract from uncovered, add to double-covered.`, pseudo: 6
+    });
+  }
+}
+
+function minLineCover(m) {
+  // Greedy line covering heuristic
+  const coveredRows = Array(n).fill(false);
+  const coveredCols = Array(n).fill(false);
+
+  // Try to find assignment via augmenting paths
+  const rowMatch = Array(n).fill(-1);
+  const colMatch = Array(n).fill(-1);
+
+  for (let i = 0; i < n; i++) {
+    const visited = Array(n).fill(false);
+    augment(m, i, rowMatch, colMatch, visited);
+  }
+
+  // Mark rows without assignment
+  const unmarkedRows = new Set();
+  for (let i = 0; i < n; i++) {
+    if (rowMatch[i] === -1) unmarkedRows.add(i);
+  }
+
+  // Alternating path marking
+  const markedRows = new Set();
+  const markedCols = new Set();
+  const queue = [...unmarkedRows];
+  for (const r of unmarkedRows) markedRows.add(r);
+
+  while (queue.length) {
+    const r = queue.shift();
+    for (let j = 0; j < n; j++) {
+      if (m[r][j] === 0 && !markedCols.has(j)) {
+        markedCols.add(j);
+        // Find row matched to this column
+        const matchedRow = colMatch[j];
+        if (matchedRow >= 0 && !markedRows.has(matchedRow)) {
+          markedRows.add(matchedRow);
+          queue.push(matchedRow);
+        }
+      }
+    }
+  }
+
+  // Cover: unmarked rows + marked cols
+  for (let i = 0; i < n; i++) {
+    if (!markedRows.has(i)) coveredRows[i] = true;
+  }
+  for (let j = 0; j < n; j++) {
+    if (markedCols.has(j)) coveredCols[j] = true;
+  }
+
+  const lineCount = coveredRows.filter(Boolean).length + coveredCols.filter(Boolean).length;
+  return { coveredRows, coveredCols, lineCount };
+}
+
+function augment(m, row, rowMatch, colMatch, visited) {
+  for (let j = 0; j < n; j++) {
+    if (m[row][j] === 0 && !visited[j]) {
+      visited[j] = true;
+      if (colMatch[j] === -1 || augment(m, colMatch[j], rowMatch, colMatch, visited)) {
+        rowMatch[row] = j;
+        colMatch[j] = row;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function findAssignment(m) {
+  const rowMatch = Array(n).fill(-1);
+  const colMatch = Array(n).fill(-1);
+  for (let i = 0; i < n; i++) {
+    const visited = Array(n).fill(false);
+    augment(m, i, rowMatch, colMatch, visited);
+  }
+  const result = [];
+  for (let i = 0; i < n; i++) {
+    if (rowMatch[i] >= 0) result.push([i, rowMatch[i]]);
+  }
+  return result;
+}
+
+function doStep() {
+  if (stepIdx >= steps.length) {
+    running = false;
+    return false;
+  }
+
+  const s = steps[stepIdx];
+  highlightPseudo(s.pseudo);
+  document.getElementById('explain').textContent = s.desc;
+
+  if (s.type === 'done') {
+    renderMatrix(s.matrix, null, null, s.assignments);
+    document.getElementById('s-cost').textContent = s.totalCost;
+    const res = document.getElementById('assignment-result');
+    res.innerHTML = '';
+    s.assignments.forEach(([i, j]) => {
+      const chip = document.createElement('span');
+      chip.className = 'assign-chip';
+      chip.textContent = `W${i+1}\u2192T${j+1} ($${original[i][j]})`;
+      res.appendChild(chip);
+    });
+    document.getElementById('phase-badge').textContent = 'Optimal Assignment Found';
+    document.getElementById('phase-badge').style.borderColor = 'var(--gr)';
+    document.getElementById('phase-badge').style.color = 'var(--gr)';
+    document.getElementById('phase-badge').style.background = 'var(--gr0)';
+  } else if (s.type === 'cover') {
+    renderMatrix(s.matrix, s.coveredRows, s.coveredCols);
+    document.getElementById('s-lines').textContent = s.lineCount;
+    document.getElementById('phase-badge').textContent = `Step: Line Covering (${s.lineCount} lines)`;
+  } else {
+    renderMatrix(s.matrix);
+    if (s.type === 'row-reduce') document.getElementById('phase-badge').textContent = 'Step: Row Reduction';
+    else if (s.type === 'col-reduce') document.getElementById('phase-badge').textContent = 'Step: Column Reduction';
+    else if (s.type === 'adjust') document.getElementById('phase-badge').textContent = 'Step: Matrix Adjustment';
+  }
+
+  stepIdx++;
+  stepCount++;
+  document.getElementById('s-step').textContent = stepCount;
+  return stepIdx < steps.length;
+}
+
+function resetState() {
+  steps = [];
+  stepIdx = 0;
+  stepCount = 0;
+  running = false; paused = false;
+  if (timer) clearInterval(timer);
+  timer = null;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  document.getElementById('s-cost').textContent = '\u2014';
+  document.getElementById('s-lines').textContent = '0';
+  document.getElementById('s-step').textContent = '0';
+  document.getElementById('phase-badge').textContent = 'Original Cost Matrix';
+  document.getElementById('phase-badge').style.borderColor = '';
+  document.getElementById('phase-badge').style.color = '';
+  document.getElementById('phase-badge').style.background = '';
+  document.getElementById('assignment-result').innerHTML = '<span style="color:var(--muted);font-size:.82rem">Run the algorithm to find the optimal assignment.</span>';
+  highlightPseudo(-1);
+  renderMatrix(cost);
+}
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (cost.length === 0) return;
+  if (!running) { resetState(); computeSteps(); }
+  running = true; paused = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  if (timer) clearInterval(timer);
+  const speed = parseInt(document.getElementById('speed').value);
+  timer = setInterval(() => {
+    if (!paused && !doStep()) clearInterval(timer);
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (cost.length === 0) return;
+  if (!running) { resetState(); computeSteps(); running = true; }
+  paused = true;
+  doStep();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  genMatrix();
+  document.getElementById('s-size').textContent = `${n}x${n}`;
+  resetState();
+  document.getElementById('explain').textContent = `Generated ${n}x${n} cost matrix. Click "Run" to find optimal assignment.`;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  resetState();
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
+});
+document.getElementById('size').addEventListener('input', (e) => {
+  document.getElementById('size-lbl').textContent = e.target.value;
+});
+
+// Init
+genMatrix();
+document.getElementById('s-size').textContent = `${n}x${n}`;
+renderMatrix(cost);
+})();
+</script>
+</body>
+</html>
