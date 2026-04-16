@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulated Annealing (TSP) — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#f97316;--ac0:rgba(249,115,22,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
+--bl:#58a6ff;--bl0:rgba(88,166,255,.15);--rd:#f85149;--yl:#e3b341}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+button.primary:hover{opacity:.85}
+button:disabled{opacity:.4;cursor:not-allowed}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+canvas{border-radius:10px;background:#0a0f16;border:1px solid var(--border);width:100%;cursor:crosshair}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.75rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.8;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+.temp-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:6px}
+.temp-fill{height:100%;border-radius:3px;transition:width .1s;background:linear-gradient(90deg,var(--bl),var(--yl),var(--ac),var(--rd))}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Simulated Annealing</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">Random Cities</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+      <div class="slider-row" style="flex:1;min-width:180px">
+        <span>Speed</span>
+        <input type="range" id="speed" min="1" max="100" value="20">
+        <span id="speed-lbl">20</span>
+      </div>
+      <div class="slider-row" style="flex:1;min-width:140px">
+        <span>Cities</span>
+        <input type="range" id="cities-count" min="5" max="40" value="15">
+        <span id="cities-lbl">15</span>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="flex:1;display:flex;flex-direction:column;gap:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1">
+      <div>
+        <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Current Solution</div>
+        <canvas id="canvas-current" width="500" height="400"></canvas>
+      </div>
+      <div>
+        <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Best Solution</div>
+        <canvas id="canvas-best" width="500" height="400"></canvas>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Temperature Cooling Curve</div>
+      <canvas id="canvas-temp" width="1000" height="120"></canvas>
+    </div>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Temperature</div><div class="v" id="s-temp" style="color:var(--ac)">1000</div></div>
+      <div class="stat-card"><div class="k">Iteration</div><div class="v" id="s-iter" style="color:var(--bl)">0</div></div>
+      <div class="stat-card"><div class="k">Current Dist</div><div class="v" id="s-curr" style="color:var(--yl)">—</div></div>
+      <div class="stat-card"><div class="k">Best Dist</div><div class="v" id="s-best" style="color:var(--gr)">—</div></div>
+      <div class="stat-card"><div class="k">Accepted</div><div class="v" id="s-acc" style="color:var(--gr)">0</div></div>
+      <div class="stat-card"><div class="k">Rejected</div><div class="v" id="s-rej" style="color:var(--rd)">0</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Temperature</h3>
+    <div class="temp-bar"><div class="temp-fill" id="temp-fill" style="width:100%"></div></div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Click "Random Cities" to generate cities, then "Run" to start the optimization.</div>
+  </div>
+  <div>
+    <h3>Pseudocode</h3>
+    <div class="pseudo" id="pseudo">
+      <div id="p0">T ← T_initial</div>
+      <div id="p1">solution ← random_tour()</div>
+      <div id="p2">while T > T_min:</div>
+      <div id="p3">&nbsp;&nbsp;neighbor ← swap_two_cities(solution)</div>
+      <div id="p4">&nbsp;&nbsp;Δ ← cost(neighbor) - cost(solution)</div>
+      <div id="p5">&nbsp;&nbsp;if Δ < 0 or random() < e^(-Δ/T):</div>
+      <div id="p6">&nbsp;&nbsp;&nbsp;&nbsp;solution ← neighbor</div>
+      <div id="p7">&nbsp;&nbsp;T ← T × cooling_rate</div>
+      <div id="p8">return best_solution</div>
+    </div>
+  </div>
+  <div>
+    <h3>How It Works</h3>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+      <p><strong style="color:var(--text)">Simulated Annealing</strong> is a probabilistic optimization technique inspired by metallurgical annealing. It explores the solution space by accepting worse solutions with a probability that decreases as the "temperature" cools.</p>
+      <p style="margin-top:6px">At high temperatures, the algorithm freely accepts worse solutions to escape local minima. As it cools, it becomes increasingly greedy, converging toward the global optimum.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const canvasCurr = document.getElementById('canvas-current');
+const canvasBest = document.getElementById('canvas-best');
+const canvasTemp = document.getElementById('canvas-temp');
+const ctxC = canvasCurr.getContext('2d');
+const ctxB = canvasBest.getContext('2d');
+const ctxT = canvasTemp.getContext('2d');
+
+let cities = [];
+let currentTour = [];
+let bestTour = [];
+let currentDist = Infinity;
+let bestDist = Infinity;
+let temperature = 1000;
+const T_INITIAL = 1000;
+const T_MIN = 0.01;
+const COOLING = 0.9995;
+let iteration = 0;
+let accepted = 0;
+let rejected = 0;
+let running = false;
+let paused = false;
+let tempHistory = [];
+let lastSwap = [-1, -1];
+
+function resizeCanvases() {
+  [canvasCurr, canvasBest].forEach(c => {
+    c.width = c.clientWidth * devicePixelRatio;
+    c.height = c.clientHeight * devicePixelRatio;
+    c.getContext('2d').scale(devicePixelRatio, devicePixelRatio);
+  });
+  canvasTemp.width = canvasTemp.clientWidth * devicePixelRatio;
+  canvasTemp.height = canvasTemp.clientHeight * devicePixelRatio;
+  ctxT.scale(devicePixelRatio, devicePixelRatio);
+}
+
+function genCities(n) {
+  cities = [];
+  const pad = 30;
+  const w = canvasCurr.clientWidth - pad * 2;
+  const h = canvasCurr.clientHeight - pad * 2;
+  for (let i = 0; i < n; i++) {
+    cities.push({ x: pad + Math.random() * w, y: pad + Math.random() * h });
+  }
+}
+
+function dist(a, b) {
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+}
+
+function tourDist(tour) {
+  let d = 0;
+  for (let i = 0; i < tour.length; i++) {
+    d += dist(cities[tour[i]], cities[tour[(i + 1) % tour.length]]);
+  }
+  return d;
+}
+
+function initTour() {
+  currentTour = cities.map((_, i) => i);
+  // Shuffle
+  for (let i = currentTour.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [currentTour[i], currentTour[j]] = [currentTour[j], currentTour[i]];
+  }
+  currentDist = tourDist(currentTour);
+  bestTour = [...currentTour];
+  bestDist = currentDist;
+  temperature = T_INITIAL;
+  iteration = 0;
+  accepted = 0;
+  rejected = 0;
+  tempHistory = [];
+  lastSwap = [-1, -1];
+  updateStats();
+}
+
+function drawTour(ctx, tour, w, h, color, swapIndices) {
+  ctx.clearRect(0, 0, w, h);
+  if (!cities.length) return;
+
+  // Draw edges
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.6;
+  ctx.beginPath();
+  for (let i = 0; i < tour.length; i++) {
+    const c = cities[tour[i]];
+    if (i === 0) ctx.moveTo(c.x, c.y);
+    else ctx.lineTo(c.x, c.y);
+  }
+  ctx.lineTo(cities[tour[0]].x, cities[tour[0]].y);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Draw cities
+  cities.forEach((c, i) => {
+    const isSwap = swapIndices && (tour[swapIndices[0]] === i || tour[swapIndices[1]] === i);
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, isSwap ? 6 : 4, 0, Math.PI * 2);
+    ctx.fillStyle = isSwap ? '#f85149' : '#58a6ff';
+    ctx.fill();
+    ctx.strokeStyle = '#0d1117';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+}
+
+function drawTempChart() {
+  const w = canvasTemp.clientWidth;
+  const h = canvasTemp.clientHeight;
+  ctxT.clearRect(0, 0, w, h);
+
+  if (tempHistory.length < 2) return;
+
+  const maxT = T_INITIAL;
+  const step = w / Math.max(tempHistory.length - 1, 1);
+
+  ctxT.strokeStyle = '#f97316';
+  ctxT.lineWidth = 2;
+  ctxT.beginPath();
+  tempHistory.forEach((t, i) => {
+    const x = i * step;
+    const y = h - (t / maxT) * (h - 10) - 5;
+    if (i === 0) ctxT.moveTo(x, y);
+    else ctxT.lineTo(x, y);
+  });
+  ctxT.stroke();
+
+  // Current marker
+  if (tempHistory.length > 0) {
+    const last = tempHistory.length - 1;
+    const x = last * step;
+    const y = h - (tempHistory[last] / maxT) * (h - 10) - 5;
+    ctxT.beginPath();
+    ctxT.arc(x, y, 4, 0, Math.PI * 2);
+    ctxT.fillStyle = '#f97316';
+    ctxT.fill();
+  }
+}
+
+function highlightPseudo(line) {
+  for (let i = 0; i <= 8; i++) {
+    document.getElementById('p' + i).classList.remove('active');
+  }
+  if (line >= 0) document.getElementById('p' + line).classList.add('active');
+}
+
+function updateStats() {
+  document.getElementById('s-temp').textContent = temperature.toFixed(2);
+  document.getElementById('s-iter').textContent = iteration;
+  document.getElementById('s-curr').textContent = currentDist === Infinity ? '—' : currentDist.toFixed(1);
+  document.getElementById('s-best').textContent = bestDist === Infinity ? '—' : bestDist.toFixed(1);
+  document.getElementById('s-acc').textContent = accepted;
+  document.getElementById('s-rej').textContent = rejected;
+  document.getElementById('temp-fill').style.width = (temperature / T_INITIAL * 100) + '%';
+}
+
+function step() {
+  if (temperature <= T_MIN) {
+    running = false;
+    highlightPseudo(8);
+    document.getElementById('explain').textContent = `Done! Best distance: ${bestDist.toFixed(1)} after ${iteration} iterations.`;
+    return false;
+  }
+
+  // Generate neighbor by swapping two cities
+  const n = currentTour.length;
+  let i = Math.floor(Math.random() * n);
+  let j = Math.floor(Math.random() * n);
+  while (j === i) j = Math.floor(Math.random() * n);
+  lastSwap = [i, j];
+
+  highlightPseudo(3);
+
+  const newTour = [...currentTour];
+  [newTour[i], newTour[j]] = [newTour[j], newTour[i]];
+  const newDist = tourDist(newTour);
+  const delta = newDist - currentDist;
+
+  highlightPseudo(4);
+
+  const prob = delta < 0 ? 1 : Math.exp(-delta / temperature);
+  const rand = Math.random();
+
+  if (rand < prob) {
+    currentTour = newTour;
+    currentDist = newDist;
+    accepted++;
+    highlightPseudo(6);
+    if (delta < 0) {
+      document.getElementById('explain').textContent = `Accepted better solution (Δ=${delta.toFixed(1)}). Distance: ${currentDist.toFixed(1)}`;
+    } else {
+      document.getElementById('explain').textContent = `Accepted worse solution (Δ=+${delta.toFixed(1)}, prob=${(prob*100).toFixed(1)}%, T=${temperature.toFixed(1)})`;
+    }
+    if (currentDist < bestDist) {
+      bestDist = currentDist;
+      bestTour = [...currentTour];
+    }
+  } else {
+    rejected++;
+    highlightPseudo(5);
+    document.getElementById('explain').textContent = `Rejected worse solution (Δ=+${delta.toFixed(1)}, prob=${(prob*100).toFixed(1)}% < rand=${(rand*100).toFixed(1)}%)`;
+  }
+
+  temperature *= COOLING;
+  iteration++;
+  if (iteration % 10 === 0) tempHistory.push(temperature);
+
+  highlightPseudo(7);
+  updateStats();
+  return true;
+}
+
+function render() {
+  const wC = canvasCurr.clientWidth, hC = canvasCurr.clientHeight;
+  drawTour(ctxC, currentTour, wC, hC, '#f97316', lastSwap);
+  drawTour(ctxB, bestTour, canvasBest.clientWidth, canvasBest.clientHeight, '#3fb950', null);
+  drawTempChart();
+}
+
+let animFrame;
+function runLoop() {
+  if (!running || paused) return;
+  const stepsPerFrame = parseInt(document.getElementById('speed').value);
+  for (let i = 0; i < stepsPerFrame; i++) {
+    if (!step()) { render(); return; }
+  }
+  render();
+  animFrame = requestAnimationFrame(runLoop);
+}
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (cities.length === 0) {
+    genCities(parseInt(document.getElementById('cities-count').value));
+    resizeCanvases();
+    initTour();
+  }
+  running = true;
+  paused = false;
+  runLoop();
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (cities.length === 0) {
+    genCities(parseInt(document.getElementById('cities-count').value));
+    resizeCanvases();
+    initTour();
+  }
+  paused = true;
+  step();
+  render();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+  if (!paused && running) runLoop();
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  running = false;
+  paused = false;
+  cancelAnimationFrame(animFrame);
+  resizeCanvases();
+  genCities(parseInt(document.getElementById('cities-count').value));
+  initTour();
+  render();
+  highlightPseudo(1);
+  document.getElementById('explain').textContent = `Generated ${cities.length} cities with random initial tour. Distance: ${currentDist.toFixed(1)}`;
+  document.getElementById('btn-pause').textContent = 'Pause';
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  running = false;
+  paused = false;
+  cancelAnimationFrame(animFrame);
+  cities = [];
+  currentTour = [];
+  bestTour = [];
+  currentDist = Infinity;
+  bestDist = Infinity;
+  temperature = T_INITIAL;
+  iteration = 0;
+  accepted = 0;
+  rejected = 0;
+  tempHistory = [];
+  lastSwap = [-1, -1];
+  updateStats();
+  resizeCanvases();
+  ctxC.clearRect(0, 0, canvasCurr.clientWidth, canvasCurr.clientHeight);
+  ctxB.clearRect(0, 0, canvasBest.clientWidth, canvasBest.clientHeight);
+  ctxT.clearRect(0, 0, canvasTemp.clientWidth, canvasTemp.clientHeight);
+  highlightPseudo(-1);
+  document.getElementById('explain').textContent = 'Click "Random Cities" to generate cities, then "Run" to start the optimization.';
+  document.getElementById('btn-pause').textContent = 'Pause';
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value;
+});
+
+document.getElementById('cities-count').addEventListener('input', (e) => {
+  document.getElementById('cities-lbl').textContent = e.target.value;
+});
+
+window.addEventListener('resize', () => { resizeCanvases(); render(); });
+
+// Init
+resizeCanvases();
+})();
+</script>
+</body>
+</html>
