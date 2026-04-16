@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0/1 Knapsack — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#a371f7;--ac0:rgba(163,113,247,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
+--bl:#58a6ff;--bl0:rgba(88,166,255,.15);--rd:#f85149;--yl:#e3b341;--yl0:rgba(227,179,65,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.items-vis{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.item-card{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--s2);font-size:.8rem;transition:all .3s}
+.item-card.considering{border-color:var(--yl);background:var(--yl0)}
+.item-card.selected{border-color:var(--gr);background:var(--gr0)}
+.item-card .iname{font-weight:700;color:var(--text)}
+.item-card .iinfo{color:var(--muted);font-size:.72rem;margin-top:2px}
+.table-wrap{overflow-x:auto}
+.dp-table{display:grid;gap:1px;margin-top:8px}
+.dp-cell{display:flex;align-items:center;justify-content:center;border-radius:3px;font-size:.65rem;font-family:monospace;font-weight:600;height:32px;min-width:32px;border:1px solid var(--border);background:var(--s2);color:var(--muted);transition:all .25s}
+.dp-cell.header{background:transparent;border:none;color:var(--muted);font-size:.6rem}
+.dp-cell.row-header{background:transparent;border:none;color:var(--muted);font-size:.6rem;text-align:right;justify-content:flex-end;padding-right:4px}
+.dp-cell.filled{background:rgba(88,166,255,.08);border-color:rgba(88,166,255,.2);color:var(--bl)}
+.dp-cell.current{background:var(--yl0);border-color:var(--yl);color:var(--yl);box-shadow:0 0 8px rgba(227,179,65,.3)}
+.dp-cell.backtrack{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+.knapsack-vis{display:flex;align-items:center;gap:12px;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;margin-top:8px}
+.bag{width:60px;height:60px;border:2px solid var(--ac);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:var(--ac0)}
+.bag-info{flex:1;font-size:.82rem}
+.bag-info .label{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em}
+.bag-info .val{font-weight:700;font-size:1.1rem;font-family:monospace}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.8;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>0/1 Knapsack</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">Random Items</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div class="slider-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="50" max="800" value="200">
+      <span id="speed-lbl">200ms</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Items</div>
+    <div class="items-vis" id="items-vis"></div>
+    <div class="knapsack-vis">
+      <div class="bag">&#127890;</div>
+      <div class="bag-info">
+        <div class="label">Capacity</div>
+        <div class="val" id="cap-val">0</div>
+      </div>
+      <div class="bag-info">
+        <div class="label">Total Value</div>
+        <div class="val" id="total-val" style="color:var(--gr)">0</div>
+      </div>
+      <div class="bag-info">
+        <div class="label">Weight Used</div>
+        <div class="val" id="weight-val" style="color:var(--bl)">0</div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">DP Table — dp[i][w] = max value using items 1..i with capacity w</div>
+    <div class="table-wrap" id="table-wrap"></div>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Items</div><div class="v" id="s-items" style="color:var(--bl)">0</div></div>
+      <div class="stat-card"><div class="k">Capacity</div><div class="v" id="s-cap" style="color:var(--ac)">0</div></div>
+      <div class="stat-card"><div class="k">Max Value</div><div class="v" id="s-max" style="color:var(--gr)">—</div></div>
+      <div class="stat-card"><div class="k">Step</div><div class="v" id="s-step" style="color:var(--muted)">0</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Generate items and run the 0/1 knapsack algorithm.</div>
+  </div>
+  <div>
+    <h3>Pseudocode</h3>
+    <div class="pseudo">
+      <div id="p0">for i = 1 to n:</div>
+      <div id="p1">&nbsp;&nbsp;for w = 0 to W:</div>
+      <div id="p2">&nbsp;&nbsp;&nbsp;&nbsp;if weight[i] > w:</div>
+      <div id="p3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dp[i][w] = dp[i-1][w]</div>
+      <div id="p4">&nbsp;&nbsp;&nbsp;&nbsp;else:</div>
+      <div id="p5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dp[i][w] = max(dp[i-1][w],</div>
+      <div id="p6">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dp[i-1][w-weight[i]] + value[i])</div>
+      <div id="p7">// Backtrack to find selected items</div>
+    </div>
+  </div>
+  <div>
+    <h3>How It Works</h3>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+      <p><strong style="color:var(--text)">0/1 Knapsack</strong> maximizes value under a weight constraint. Each item is either taken or left (no fractions).</p>
+      <p style="margin-top:6px">For each item and capacity, we choose the better of: skip the item (take dp[i-1][w]) or take it (take dp[i-1][w-weight] + value).</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const NAMES = ['Gem','Ring','Crown','Coin','Cup','Lamp','Book','Map','Orb','Key','Sword','Shield'];
+let items = []; // {name, weight, value}
+let W = 0; // capacity
+let dp = [];
+let running = false, paused = false, timer = null;
+let phase = 'fill'; // fill or backtrack
+let fi = 1, fw = 0; // fill pointers
+let stepCount = 0;
+let selectedItems = [];
+
+function genItems() {
+  const n = 4 + Math.floor(Math.random() * 3);
+  items = [];
+  const names = [...NAMES].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < n; i++) {
+    items.push({
+      name: names[i],
+      weight: 1 + Math.floor(Math.random() * 6),
+      value: 2 + Math.floor(Math.random() * 15)
+    });
+  }
+  W = Math.floor(items.reduce((s, it) => s + it.weight, 0) * 0.6);
+  W = Math.max(W, 3);
+  if (W > 15) W = 15;
+}
+
+function renderItems() {
+  const vis = document.getElementById('items-vis');
+  vis.innerHTML = '';
+  items.forEach((it, i) => {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.id = 'item-' + i;
+    card.innerHTML = `<div class="iname">${it.name}</div><div class="iinfo">w=${it.weight} v=${it.value}</div>`;
+    vis.appendChild(card);
+  });
+  document.getElementById('cap-val').textContent = W;
+  document.getElementById('s-items').textContent = items.length;
+  document.getElementById('s-cap').textContent = W;
+}
+
+function buildDP() {
+  const n = items.length;
+  dp = Array.from({ length: n + 1 }, () => Array(W + 1).fill(0));
+}
+
+function renderTable(ci, cw, backtrackCells) {
+  const wrap = document.getElementById('table-wrap');
+  wrap.innerHTML = '';
+  const n = items.length;
+  const grid = document.createElement('div');
+  grid.className = 'dp-table';
+  grid.style.gridTemplateColumns = `50px repeat(${W + 1}, 1fr)`;
+
+  // Header
+  const corner = document.createElement('div');
+  corner.className = 'dp-cell header';
+  corner.textContent = 'i\\w';
+  grid.appendChild(corner);
+  for (let w = 0; w <= W; w++) {
+    const h = document.createElement('div');
+    h.className = 'dp-cell header';
+    h.textContent = w;
+    grid.appendChild(h);
+  }
+
+  for (let i = 0; i <= n; i++) {
+    const rh = document.createElement('div');
+    rh.className = 'dp-cell row-header';
+    rh.textContent = i === 0 ? '0' : `${i}:${items[i-1].name}`;
+    grid.appendChild(rh);
+    for (let w = 0; w <= W; w++) {
+      const cell = document.createElement('div');
+      const isBacktrack = backtrackCells && backtrackCells.some(c => c[0] === i && c[1] === w);
+      if (isBacktrack) {
+        cell.className = 'dp-cell backtrack';
+      } else if (i === ci && w === cw) {
+        cell.className = 'dp-cell current';
+      } else if (i < fi || (i === fi && w < fw) || (phase === 'backtrack')) {
+        cell.className = 'dp-cell filled';
+      } else {
+        cell.className = 'dp-cell';
+      }
+      cell.textContent = dp[i][w];
+      grid.appendChild(cell);
+    }
+  }
+  wrap.appendChild(grid);
+}
+
+function highlightPseudo(line) {
+  for (let i = 0; i <= 7; i++) {
+    document.getElementById('p' + i).classList.remove('active');
+  }
+  if (line >= 0) document.getElementById('p' + line).classList.add('active');
+}
+
+function doStep() {
+  if (phase === 'fill') {
+    if (fi > items.length) {
+      // Start backtrack
+      phase = 'backtrack';
+      highlightPseudo(7);
+      document.getElementById('explain').textContent = `DP table complete. Max value: ${dp[items.length][W]}. Now backtracking...`;
+      document.getElementById('s-max').textContent = dp[items.length][W];
+      // Do backtrack in one step
+      selectedItems = [];
+      const backCells = [];
+      let w = W, totalW = 0, totalV = 0;
+      for (let i = items.length; i > 0; i--) {
+        if (dp[i][w] !== dp[i - 1][w]) {
+          selectedItems.push(i - 1);
+          backCells.push([i, w]);
+          totalW += items[i - 1].weight;
+          totalV += items[i - 1].value;
+          w -= items[i - 1].weight;
+          backCells.push([i - 1, w]);
+        } else {
+          backCells.push([i, w]);
+        }
+      }
+      renderTable(-1, -1, backCells);
+      selectedItems.forEach(idx => {
+        const el = document.getElementById('item-' + idx);
+        if (el) el.className = 'item-card selected';
+      });
+      document.getElementById('total-val').textContent = totalV;
+      document.getElementById('weight-val').textContent = totalW;
+      document.getElementById('explain').textContent = `Selected: ${selectedItems.map(i => items[i].name).join(', ')}. Total value: ${totalV}, weight: ${totalW}/${W}`;
+      running = false;
+      return false;
+    }
+
+    const i = fi;
+    const w = fw;
+    const it = items[i - 1];
+
+    if (it.weight > w) {
+      dp[i][w] = dp[i - 1][w];
+      highlightPseudo(3);
+      document.getElementById('explain').textContent = `Item ${it.name}(w=${it.weight}) too heavy for capacity ${w}. dp[${i}][${w}] = dp[${i-1}][${w}] = ${dp[i][w]}`;
+    } else {
+      const skip = dp[i - 1][w];
+      const take = dp[i - 1][w - it.weight] + it.value;
+      dp[i][w] = Math.max(skip, take);
+      if (take > skip) {
+        highlightPseudo(6);
+        document.getElementById('explain').textContent = `Take ${it.name}: dp[${i-1}][${w}-${it.weight}]+${it.value}=${take} > skip=${skip}. dp[${i}][${w}]=${dp[i][w]}`;
+        document.getElementById('item-' + (i - 1)).className = 'item-card considering';
+      } else {
+        highlightPseudo(5);
+        document.getElementById('explain').textContent = `Skip ${it.name}: skip=${skip} >= take=${take}. dp[${i}][${w}]=${dp[i][w]}`;
+      }
+    }
+
+    renderTable(i, w);
+    stepCount++;
+    document.getElementById('s-step').textContent = stepCount;
+
+    fw++;
+    if (fw > W) { fw = 0; fi++;
+      // Reset item highlights
+      items.forEach((_, idx) => {
+        const el = document.getElementById('item-' + idx);
+        if (el) el.className = 'item-card';
+      });
+    }
+    return true;
+  }
+  return false;
+}
+
+function resetState() {
+  running = false; paused = false;
+  if (timer) clearInterval(timer);
+  timer = null;
+  phase = 'fill';
+  fi = 1; fw = 0;
+  stepCount = 0;
+  selectedItems = [];
+  buildDP();
+  renderTable(-1, -1);
+  items.forEach((_, i) => {
+    const el = document.getElementById('item-' + i);
+    if (el) el.className = 'item-card';
+  });
+  document.getElementById('s-max').textContent = '\u2014';
+  document.getElementById('s-step').textContent = '0';
+  document.getElementById('total-val').textContent = '0';
+  document.getElementById('weight-val').textContent = '0';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  highlightPseudo(-1);
+}
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (items.length === 0) return;
+  if (!running) resetState();
+  running = true; paused = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  if (timer) clearInterval(timer);
+  const speed = parseInt(document.getElementById('speed').value);
+  timer = setInterval(() => {
+    if (!paused && !doStep()) clearInterval(timer);
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (items.length === 0) return;
+  if (!running) { resetState(); running = true; }
+  paused = true;
+  doStep();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  genItems();
+  renderItems();
+  resetState();
+  document.getElementById('explain').textContent = `Generated ${items.length} items, capacity W=${W}. Click "Run" to solve.`;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  resetState();
+  document.getElementById('explain').textContent = 'Reset. Click "Run" or "Step" to start.';
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
+});
+
+// Init
+genItems();
+renderItems();
+buildDP();
+renderTable(-1, -1);
+})();
+</script>
+</body>
+</html>
