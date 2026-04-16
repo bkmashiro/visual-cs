@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interval Scheduling — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#f97316;--ac0:rgba(249,115,22,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
+--bl:#58a6ff;--bl0:rgba(88,166,255,.15);--rd:#f85149;--rd0:rgba(248,81,73,.15);--yl:#e3b341}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+svg{width:100%;border-radius:10px;background:#0a0f16;border:1px solid var(--border)}
+svg text{font-family:-apple-system,sans-serif}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.8;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+.timeline-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Interval Scheduling</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">Random Intervals</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div class="slider-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="200" max="2000" value="700">
+      <span id="speed-lbl">700ms</span>
+    </div>
+  </div>
+  <div class="panel" style="flex:1">
+    <div class="timeline-label">Timeline — intervals sorted by end time</div>
+    <svg id="timeline-svg" viewBox="0 0 800 400" style="min-height:350px"></svg>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Total Intervals</div><div class="v" id="s-total" style="color:var(--bl)">0</div></div>
+      <div class="stat-card"><div class="k">Selected</div><div class="v" id="s-selected" style="color:var(--gr)">0</div></div>
+      <div class="stat-card"><div class="k">Rejected</div><div class="v" id="s-rejected" style="color:var(--rd)">0</div></div>
+      <div class="stat-card"><div class="k">Step</div><div class="v" id="s-step" style="color:var(--muted)">0</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Generate intervals and run the greedy scheduling algorithm.</div>
+  </div>
+  <div>
+    <h3>Pseudocode</h3>
+    <div class="pseudo">
+      <div id="p0">sort intervals by end time</div>
+      <div id="p1">selected ← [intervals[0]]</div>
+      <div id="p2">lastEnd ← intervals[0].end</div>
+      <div id="p3">for i = 1 to n-1:</div>
+      <div id="p4">&nbsp;&nbsp;if intervals[i].start ≥ lastEnd:</div>
+      <div id="p5">&nbsp;&nbsp;&nbsp;&nbsp;selected.add(intervals[i])</div>
+      <div id="p6">&nbsp;&nbsp;&nbsp;&nbsp;lastEnd ← intervals[i].end</div>
+      <div id="p7">&nbsp;&nbsp;else: skip (overlaps)</div>
+    </div>
+  </div>
+  <div>
+    <h3>How It Works</h3>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+      <p><strong style="color:var(--text)">Interval Scheduling Maximization</strong> selects the maximum number of non-overlapping intervals.</p>
+      <p style="margin-top:6px">The greedy strategy: always pick the interval that ends earliest. This provably gives the optimal solution because it leaves the most room for subsequent intervals.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('timeline-svg');
+
+let intervals = [];
+let selected = [];
+let rejected = [];
+let lastEnd = 0;
+let idx = 0;
+let running = false, paused = false, timer = null;
+let stepCount = 0;
+
+const COLORS = ['#58a6ff','#a371f7','#f97316','#e3b341','#f778ba','#3fb950','#67e8f9','#fb923c','#ff7b72','#d2a8ff','#22d3ee','#fbbf24'];
+
+function genIntervals() {
+  const n = 8 + Math.floor(Math.random() * 6);
+  intervals = [];
+  const maxTime = 24;
+  for (let i = 0; i < n; i++) {
+    const s = Math.floor(Math.random() * (maxTime - 2));
+    const e = s + 1 + Math.floor(Math.random() * Math.min(6, maxTime - s - 1));
+    intervals.push({ id: i, start: s, end: Math.min(e, maxTime), color: COLORS[i % COLORS.length], name: String.fromCharCode(65 + i) });
+  }
+  // Sort by end time
+  intervals.sort((a, b) => a.end - b.end || a.start - b.start);
+}
+
+function render(currentIdx) {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const pad = { l: 50, r: 20, t: 30, b: 30 };
+  const w = 800 - pad.l - pad.r;
+  const h = 400 - pad.t - pad.b;
+  const maxTime = Math.max(...intervals.map(i => i.end), 24);
+  const barH = Math.min(28, (h - 10) / intervals.length - 4);
+  const timeScale = w / maxTime;
+
+  // Time axis
+  for (let t = 0; t <= maxTime; t++) {
+    const x = pad.l + t * timeScale;
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('x1', x); line.setAttribute('y1', pad.t);
+    line.setAttribute('x2', x); line.setAttribute('y2', pad.t + h);
+    line.setAttribute('stroke', '#1c2128'); line.setAttribute('stroke-width', '1');
+    svg.appendChild(line);
+
+    if (t % 2 === 0) {
+      const txt = document.createElementNS(SVG_NS, 'text');
+      txt.setAttribute('x', x); txt.setAttribute('y', pad.t + h + 18);
+      txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('fill', '#8b949e');
+      txt.setAttribute('font-size', '10');
+      txt.textContent = t;
+      svg.appendChild(txt);
+    }
+  }
+
+  // lastEnd line
+  if (lastEnd > 0) {
+    const lx = pad.l + lastEnd * timeScale;
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('x1', lx); line.setAttribute('y1', pad.t);
+    line.setAttribute('x2', lx); line.setAttribute('y2', pad.t + h);
+    line.setAttribute('stroke', '#3fb950'); line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke-dasharray', '4 3'); line.setAttribute('opacity', '0.6');
+    svg.appendChild(line);
+
+    const lbl = document.createElementNS(SVG_NS, 'text');
+    lbl.setAttribute('x', lx); lbl.setAttribute('y', pad.t - 6);
+    lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('fill', '#3fb950');
+    lbl.setAttribute('font-size', '10'); lbl.setAttribute('font-weight', '600');
+    lbl.textContent = `lastEnd=${lastEnd}`;
+    svg.appendChild(lbl);
+  }
+
+  // Draw intervals
+  intervals.forEach((intv, i) => {
+    const y = pad.t + i * (barH + 4) + 2;
+    const x = pad.l + intv.start * timeScale;
+    const bw = (intv.end - intv.start) * timeScale;
+
+    const isSel = selected.includes(i);
+    const isRej = rejected.includes(i);
+    const isCurr = i === currentIdx;
+
+    // Label
+    const lbl = document.createElementNS(SVG_NS, 'text');
+    lbl.setAttribute('x', pad.l - 8); lbl.setAttribute('y', y + barH / 2 + 4);
+    lbl.setAttribute('text-anchor', 'end'); lbl.setAttribute('fill', '#8b949e');
+    lbl.setAttribute('font-size', '10'); lbl.setAttribute('font-weight', '600');
+    lbl.textContent = intv.name;
+    svg.appendChild(lbl);
+
+    // Bar
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('x', x); rect.setAttribute('y', y);
+    rect.setAttribute('width', bw); rect.setAttribute('height', barH);
+    rect.setAttribute('rx', '4');
+
+    if (isCurr) {
+      rect.setAttribute('fill', 'rgba(227,179,65,0.3)');
+      rect.setAttribute('stroke', '#e3b341');
+      rect.setAttribute('stroke-width', '2');
+    } else if (isSel) {
+      rect.setAttribute('fill', 'rgba(63,185,80,0.3)');
+      rect.setAttribute('stroke', '#3fb950');
+      rect.setAttribute('stroke-width', '2');
+    } else if (isRej) {
+      rect.setAttribute('fill', 'rgba(248,81,73,0.1)');
+      rect.setAttribute('stroke', '#f85149');
+      rect.setAttribute('stroke-width', '1');
+      rect.setAttribute('stroke-dasharray', '3 2');
+      rect.setAttribute('opacity', '0.5');
+    } else {
+      rect.setAttribute('fill', 'rgba(88,166,255,0.15)');
+      rect.setAttribute('stroke', '#30363d');
+      rect.setAttribute('stroke-width', '1');
+    }
+    svg.appendChild(rect);
+
+    // Time labels on bar
+    const tl = document.createElementNS(SVG_NS, 'text');
+    tl.setAttribute('x', x + bw / 2); tl.setAttribute('y', y + barH / 2 + 4);
+    tl.setAttribute('text-anchor', 'middle');
+    tl.setAttribute('fill', isCurr ? '#e3b341' : isSel ? '#3fb950' : isRej ? '#f85149' : '#8b949e');
+    tl.setAttribute('font-size', '9'); tl.setAttribute('font-weight', '600');
+    tl.textContent = `[${intv.start},${intv.end})`;
+    svg.appendChild(tl);
+  });
+}
+
+function highlightPseudo(line) {
+  for (let i = 0; i <= 7; i++) {
+    document.getElementById('p' + i).classList.remove('active');
+  }
+  if (line >= 0) document.getElementById('p' + line).classList.add('active');
+}
+
+function updateStats() {
+  document.getElementById('s-total').textContent = intervals.length;
+  document.getElementById('s-selected').textContent = selected.length;
+  document.getElementById('s-rejected').textContent = rejected.length;
+  document.getElementById('s-step').textContent = stepCount;
+}
+
+function resetState() {
+  selected = [];
+  rejected = [];
+  lastEnd = 0;
+  idx = 0;
+  running = false; paused = false;
+  if (timer) clearInterval(timer);
+  timer = null;
+  stepCount = 0;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  highlightPseudo(-1);
+  updateStats();
+  render(-1);
+}
+
+function doStep() {
+  if (idx >= intervals.length) {
+    highlightPseudo(-1);
+    document.getElementById('explain').textContent = `Done! Selected ${selected.length} non-overlapping intervals out of ${intervals.length}.`;
+    render(-1);
+    running = false;
+    return false;
+  }
+
+  if (idx === 0) {
+    // Always select first
+    selected.push(0);
+    lastEnd = intervals[0].end;
+    highlightPseudo(1);
+    document.getElementById('explain').textContent = `Select first interval ${intervals[0].name} [${intervals[0].start},${intervals[0].end}). lastEnd = ${lastEnd}`;
+    render(0);
+    idx++;
+  } else {
+    const intv = intervals[idx];
+    render(idx);
+
+    if (intv.start >= lastEnd) {
+      selected.push(idx);
+      lastEnd = intv.end;
+      highlightPseudo(5);
+      document.getElementById('explain').textContent = `${intv.name} [${intv.start},${intv.end}): start ${intv.start} \u2265 lastEnd ${lastEnd - (intv.end - intv.start)} \u2192 SELECT. lastEnd = ${lastEnd}`;
+    } else {
+      rejected.push(idx);
+      highlightPseudo(7);
+      document.getElementById('explain').textContent = `${intv.name} [${intv.start},${intv.end}): start ${intv.start} < lastEnd ${lastEnd} \u2192 REJECT (overlaps)`;
+    }
+    render(idx);
+    idx++;
+  }
+
+  stepCount++;
+  updateStats();
+  return true;
+}
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (intervals.length === 0) return;
+  if (!running) resetState();
+  running = true; paused = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  if (timer) clearInterval(timer);
+  const speed = parseInt(document.getElementById('speed').value);
+  timer = setInterval(() => {
+    if (!paused && !doStep()) clearInterval(timer);
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (intervals.length === 0) return;
+  if (!running) { resetState(); running = true; }
+  paused = true;
+  doStep();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  genIntervals();
+  resetState();
+  document.getElementById('explain').textContent = `Generated ${intervals.length} intervals sorted by end time. Click "Run" to start.`;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  resetState();
+  document.getElementById('explain').textContent = 'Reset. Click "Run" or "Step".';
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
+});
+
+// Init
+genIntervals();
+render(-1);
+updateStats();
+})();
+</script>
+</body>
+</html>
