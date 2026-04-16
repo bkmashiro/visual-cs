@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reservoir Sampling — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#d2a8ff;--ac0:rgba(210,168,255,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
+--bl:#58a6ff;--bl0:rgba(88,166,255,.15);--rd:#f85149;--rd0:rgba(248,81,73,.15);--yl:#e3b341}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+button.primary:hover{opacity:.85}
+button:disabled{opacity:.4;cursor:not-allowed}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.stream-vis{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px}
+.s-cell{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:.85rem;font-weight:600;border:1px solid var(--border);background:var(--s2);transition:all .3s;position:relative}
+.s-cell.current{border-color:var(--ac);background:var(--ac0);box-shadow:0 0 10px rgba(210,168,255,.3)}
+.s-cell.processed{opacity:.4}
+.s-cell.replaced{border-color:var(--rd);background:var(--rd0);animation:flash .4s}
+@keyframes flash{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+.reservoir-vis{display:flex;gap:8px;margin-top:8px;justify-content:center}
+.r-cell{width:60px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:1.4rem;font-weight:800;border:2px solid var(--ac);background:var(--ac0);transition:all .3s;position:relative}
+.r-cell.new{animation:popIn .4s}
+@keyframes popIn{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}
+.r-cell .slot{position:absolute;top:3px;left:6px;font-size:.5rem;color:var(--muted);font-weight:400}
+.prob-display{font-size:.9rem;font-weight:700;text-align:center;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;margin-top:8px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.8;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+canvas{width:100%;border-radius:8px;background:var(--s2);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Reservoir Sampling</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">New Stream</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div class="slider-row" style="flex:1;min-width:150px">
+        <span>Speed</span>
+        <input type="range" id="speed" min="50" max="1000" value="300">
+        <span id="speed-lbl">300ms</span>
+      </div>
+      <div class="slider-row" style="min-width:120px">
+        <span>k =</span>
+        <input type="range" id="k-val" min="1" max="5" value="3">
+        <span id="k-lbl">3</span>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Reservoir (k samples)</div>
+    <div class="reservoir-vis" id="reservoir-vis"></div>
+    <div class="prob-display" id="prob-display">Selection probability: k/n</div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Stream</div>
+    <div class="stream-vis" id="stream-vis"></div>
+  </div>
+  <div class="panel">
+    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Selection Frequency (run many times to see uniform distribution)</div>
+    <canvas id="freq-canvas" height="120"></canvas>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Stream Position</div><div class="v" id="s-pos" style="color:var(--bl)">0</div></div>
+      <div class="stat-card"><div class="k">Stream Size</div><div class="v" id="s-size" style="color:var(--muted)">0</div></div>
+      <div class="stat-card"><div class="k">Replacements</div><div class="v" id="s-rep" style="color:var(--rd)">0</div></div>
+      <div class="stat-card"><div class="k">Kept</div><div class="v" id="s-kept" style="color:var(--gr)">0</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Generate a stream and run reservoir sampling.</div>
+  </div>
+  <div>
+    <h3>Pseudocode</h3>
+    <div class="pseudo">
+      <div id="p0">reservoir[0..k-1] ← stream[0..k-1]</div>
+      <div id="p1">for i = k to n-1:</div>
+      <div id="p2">&nbsp;&nbsp;j ← random(0, i)</div>
+      <div id="p3">&nbsp;&nbsp;if j < k:</div>
+      <div id="p4">&nbsp;&nbsp;&nbsp;&nbsp;reservoir[j] ← stream[i]</div>
+      <div id="p5">&nbsp;&nbsp;else: skip element</div>
+      <div id="p6">return reservoir</div>
+    </div>
+  </div>
+  <div>
+    <h3>How It Works</h3>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+      <p><strong style="color:var(--text)">Reservoir Sampling</strong> selects k items uniformly at random from a stream of unknown length n, using only O(k) memory.</p>
+      <p style="margin-top:6px">Each element at position i has exactly k/i probability of being in the final sample. The first k elements fill the reservoir directly. After that, element i replaces a random reservoir slot with probability k/i.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+let stream = [];
+let reservoir = [];
+let k = 3;
+let pos = 0;
+let replacements = 0;
+let kept = 0;
+let running = false;
+let paused = false;
+let timer = null;
+let freqMap = {};
+
+function genStream() {
+  const n = 20 + Math.floor(Math.random() * 15);
+  stream = [];
+  for (let i = 0; i < n; i++) stream.push(i + 1);
+}
+
+function renderStream() {
+  const vis = document.getElementById('stream-vis');
+  vis.innerHTML = '';
+  stream.forEach((v, i) => {
+    const cell = document.createElement('div');
+    cell.className = 's-cell';
+    cell.id = 'sc-' + i;
+    cell.textContent = v;
+    vis.appendChild(cell);
+  });
+}
+
+function renderReservoir() {
+  const vis = document.getElementById('reservoir-vis');
+  vis.innerHTML = '';
+  for (let i = 0; i < k; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'r-cell';
+    cell.id = 'rc-' + i;
+    cell.innerHTML = `<span class="slot">${i}</span>${reservoir[i] !== undefined ? reservoir[i] : '—'}`;
+    vis.appendChild(cell);
+  }
+}
+
+function highlightPseudo(line) {
+  for (let i = 0; i <= 6; i++) {
+    document.getElementById('p' + i).classList.remove('active');
+  }
+  if (line >= 0) document.getElementById('p' + line).classList.add('active');
+}
+
+function updateStats() {
+  document.getElementById('s-pos').textContent = pos;
+  document.getElementById('s-size').textContent = stream.length;
+  document.getElementById('s-rep').textContent = replacements;
+  document.getElementById('s-kept').textContent = kept;
+  if (pos > 0) {
+    const prob = Math.min(k / pos, 1);
+    document.getElementById('prob-display').textContent = `Selection probability: k/n = ${k}/${pos} = ${(prob * 100).toFixed(1)}%`;
+  }
+}
+
+function drawFreq() {
+  const canvas = document.getElementById('freq-canvas');
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+
+  const keys = Object.keys(freqMap).map(Number).sort((a, b) => a - b);
+  if (keys.length === 0) return;
+
+  const maxFreq = Math.max(...Object.values(freqMap), 1);
+  const barW = Math.max(2, (w - 20) / stream.length - 1);
+
+  stream.forEach((v, i) => {
+    const freq = freqMap[v] || 0;
+    const barH = (freq / maxFreq) * (h - 20);
+    const x = 10 + i * (barW + 1);
+    ctx.fillStyle = reservoir.includes(v) ? '#d2a8ff' : '#30363d';
+    ctx.fillRect(x, h - 10 - barH, barW, barH);
+  });
+}
+
+function resetState() {
+  reservoir = [];
+  pos = 0;
+  replacements = 0;
+  kept = 0;
+  running = false;
+  paused = false;
+  if (timer) clearInterval(timer);
+  timer = null;
+  highlightPseudo(-1);
+  renderReservoir();
+  updateStats();
+  document.getElementById('btn-pause').textContent = 'Pause';
+  stream.forEach((_, i) => {
+    const c = document.getElementById('sc-' + i);
+    if (c) c.className = 's-cell';
+  });
+}
+
+function doStep() {
+  if (pos >= stream.length) {
+    highlightPseudo(6);
+    document.getElementById('explain').textContent = `Done! Reservoir contains: [${reservoir.join(', ')}]`;
+    // Update frequency
+    reservoir.forEach(v => { freqMap[v] = (freqMap[v] || 0) + 1; });
+    drawFreq();
+    running = false;
+    return false;
+  }
+
+  // Mark current
+  if (pos > 0) {
+    const prev = document.getElementById('sc-' + (pos - 1));
+    if (prev) prev.className = 's-cell processed';
+  }
+  const cell = document.getElementById('sc-' + pos);
+  cell.className = 's-cell current';
+
+  if (pos < k) {
+    // Fill reservoir directly
+    reservoir[pos] = stream[pos];
+    highlightPseudo(0);
+    document.getElementById('explain').textContent = `Filling reservoir slot ${pos} with element ${stream[pos]}`;
+    renderReservoir();
+    const rc = document.getElementById('rc-' + pos);
+    if (rc) rc.classList.add('new');
+    kept++;
+  } else {
+    const j = Math.floor(Math.random() * (pos + 1));
+    highlightPseudo(2);
+
+    if (j < k) {
+      const old = reservoir[j];
+      reservoir[j] = stream[pos];
+      highlightPseudo(4);
+      cell.className = 's-cell current replaced';
+      document.getElementById('explain').textContent = `j=${j} < k=${k}: Replace reservoir[${j}]=${old} with stream[${pos}]=${stream[pos]}`;
+      renderReservoir();
+      const rc = document.getElementById('rc-' + j);
+      if (rc) rc.classList.add('new');
+      replacements++;
+    } else {
+      highlightPseudo(5);
+      document.getElementById('explain').textContent = `j=${j} >= k=${k}: Skip element ${stream[pos]} (prob ${(k/(pos+1)*100).toFixed(1)}%)`;
+      kept++;
+    }
+  }
+
+  pos++;
+  updateStats();
+  return true;
+}
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (stream.length === 0) return;
+  if (!running) resetState();
+  running = true;
+  paused = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  if (timer) clearInterval(timer);
+  const speed = parseInt(document.getElementById('speed').value);
+  timer = setInterval(() => {
+    if (!paused && !doStep()) clearInterval(timer);
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (stream.length === 0) return;
+  if (!running) { resetState(); running = true; }
+  paused = true;
+  doStep();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  k = parseInt(document.getElementById('k-val').value);
+  genStream();
+  renderStream();
+  freqMap = {};
+  resetState();
+  drawFreq();
+  document.getElementById('explain').textContent = `Generated stream of ${stream.length} elements. Reservoir size k=${k}.`;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  resetState();
+  renderStream();
+  document.getElementById('explain').textContent = 'Reset. Click "Run" or "Step" to start.';
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
+});
+
+document.getElementById('k-val').addEventListener('input', (e) => {
+  document.getElementById('k-lbl').textContent = e.target.value;
+});
+
+// Init
+k = 3;
+genStream();
+renderStream();
+updateStats();
+drawFreq();
+})();
+</script>
+</body>
+</html>
