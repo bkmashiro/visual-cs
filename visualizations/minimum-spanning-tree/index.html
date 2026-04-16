@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minimum Spanning Tree — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#3fb950;--ac0:rgba(63,185,80,.15);--bl:#58a6ff;--bl0:rgba(88,166,255,.15);
+--rd:#f85149;--rd0:rgba(248,81,73,.15);--yl:#e3b341;--yl0:rgba(227,179,65,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+button.primary:hover{opacity:.85}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.active{background:var(--bl);color:#0d1117;border-color:var(--bl)}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+svg{width:100%;border-radius:10px;background:#0a0f16;border:1px solid var(--border)}
+svg text{font-family:-apple-system,sans-serif}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.7;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+.edge-list{max-height:200px;overflow-y:auto;font-size:.75rem;display:flex;flex-direction:column;gap:2px}
+.edge-item{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;background:var(--s2);border:1px solid var(--border);font-family:monospace}
+.edge-item.accepted{border-color:var(--ac);background:var(--ac0);color:var(--ac)}
+.edge-item.rejected{border-color:var(--rd);background:var(--rd0);color:var(--rd);opacity:.6}
+.edge-item.current{border-color:var(--yl);background:var(--yl0);color:var(--yl)}
+.algo-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.algo-toggle button{border:none;border-radius:0;padding:8px 20px}
+.algo-toggle button.active{background:var(--bl);color:#0d1117}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Minimum Spanning Tree</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <div class="algo-toggle">
+        <button id="btn-kruskal" class="active">Kruskal's</button>
+        <button id="btn-prim">Prim's</button>
+      </div>
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">New Graph</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div class="slider-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="100" max="1500" value="500">
+      <span id="speed-lbl">500ms</span>
+    </div>
+  </div>
+  <div class="panel" style="flex:1">
+    <svg id="graph-svg" viewBox="0 0 700 500" style="min-height:420px"></svg>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Algorithm</div><div class="v" id="s-algo" style="color:var(--bl)">Kruskal</div></div>
+      <div class="stat-card"><div class="k">MST Weight</div><div class="v" id="s-weight" style="color:var(--ac)">0</div></div>
+      <div class="stat-card"><div class="k">Edges Added</div><div class="v" id="s-edges" style="color:var(--yl)">0</div></div>
+      <div class="stat-card"><div class="k">Step</div><div class="v" id="s-step" style="color:var(--muted)">0</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Generate a graph and run Kruskal's or Prim's algorithm.</div>
+  </div>
+  <div>
+    <h3>Edge Processing</h3>
+    <div class="edge-list" id="edge-list"></div>
+  </div>
+  <div>
+    <h3 id="pseudo-title">Kruskal's Pseudocode</h3>
+    <div class="pseudo" id="pseudo-kruskal">
+      <div id="k0">sort edges by weight</div>
+      <div id="k1">for each edge (u,v,w) in sorted order:</div>
+      <div id="k2">&nbsp;&nbsp;if find(u) ≠ find(v):</div>
+      <div id="k3">&nbsp;&nbsp;&nbsp;&nbsp;union(u, v)</div>
+      <div id="k4">&nbsp;&nbsp;&nbsp;&nbsp;add edge to MST</div>
+      <div id="k5">&nbsp;&nbsp;else: skip (would create cycle)</div>
+    </div>
+    <div class="pseudo" id="pseudo-prim" style="display:none">
+      <div id="r0">start from vertex 0, add to MST set</div>
+      <div id="r1">while MST set ≠ all vertices:</div>
+      <div id="r2">&nbsp;&nbsp;find min-weight edge crossing cut</div>
+      <div id="r3">&nbsp;&nbsp;add that edge and new vertex to MST</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('graph-svg');
+
+let nodes = [];
+let edges = [];
+let mstEdges = [];
+let algorithm = 'kruskal';
+let running = false;
+let paused = false;
+let timer = null;
+let stepCount = 0;
+let mstWeight = 0;
+
+// Kruskal state
+let sortedEdges = [];
+let edgeIdx = 0;
+let parent = [];
+let rank = [];
+
+// Prim state
+let inMST = [];
+let primEdges = []; // candidate edges
+
+function genGraph() {
+  const n = 7 + Math.floor(Math.random() * 4);
+  nodes = [];
+  edges = [];
+  const pad = 60;
+  const w = 700 - pad * 2;
+  const h = 500 - pad * 2;
+
+  // Place nodes
+  for (let i = 0; i < n; i++) {
+    let x, y, ok;
+    do {
+      x = pad + Math.random() * w;
+      y = pad + Math.random() * h;
+      ok = true;
+      for (const nd of nodes) {
+        if (Math.hypot(nd.x - x, nd.y - y) < 70) { ok = false; break; }
+      }
+    } while (!ok);
+    nodes.push({ x, y });
+  }
+
+  // Generate edges - ensure connected
+  const used = new Set();
+  // Spanning tree first
+  const order = [...Array(n).keys()];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  for (let i = 1; i < n; i++) {
+    const u = order[i];
+    const v = order[Math.floor(Math.random() * i)];
+    const w = Math.round(Math.hypot(nodes[u].x - nodes[v].x, nodes[u].y - nodes[v].y) / 10);
+    edges.push({ u: Math.min(u, v), v: Math.max(u, v), w: Math.max(1, w) });
+    used.add(`${Math.min(u, v)}-${Math.max(u, v)}`);
+  }
+  // Add extra edges
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const key = `${i}-${j}`;
+      if (used.has(key)) continue;
+      const d = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+      if (d < 200 && Math.random() < 0.5) {
+        edges.push({ u: i, v: j, w: Math.max(1, Math.round(d / 10)) });
+        used.add(key);
+      }
+    }
+  }
+}
+
+function resetState() {
+  mstEdges = [];
+  mstWeight = 0;
+  stepCount = 0;
+  running = false;
+  paused = false;
+  if (timer) clearInterval(timer);
+  timer = null;
+  edgeIdx = 0;
+  sortedEdges = [];
+  parent = [];
+  rank = [];
+  inMST = [];
+  primEdges = [];
+  document.getElementById('edge-list').innerHTML = '';
+  document.getElementById('s-weight').textContent = '0';
+  document.getElementById('s-edges').textContent = '0';
+  document.getElementById('s-step').textContent = '0';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  highlightPseudo(-1);
+  document.getElementById('explain').textContent = `Click "Run" or "Step" to start ${algorithm === 'kruskal' ? "Kruskal's" : "Prim's"} algorithm.`;
+}
+
+function find(x) {
+  if (parent[x] !== x) parent[x] = find(parent[x]);
+  return parent[x];
+}
+function union(a, b) {
+  a = find(a); b = find(b);
+  if (a === b) return false;
+  if (rank[a] < rank[b]) [a, b] = [b, a];
+  parent[b] = a;
+  if (rank[a] === rank[b]) rank[a]++;
+  return true;
+}
+
+function initKruskal() {
+  sortedEdges = [...edges].sort((a, b) => a.w - b.w);
+  edgeIdx = 0;
+  parent = nodes.map((_, i) => i);
+  rank = nodes.map(() => 0);
+  highlightPseudo(0, 'kruskal');
+}
+
+function initPrim() {
+  inMST = nodes.map(() => false);
+  inMST[0] = true;
+  primEdges = [];
+  // Add edges from node 0
+  edges.forEach(e => {
+    if (e.u === 0 || e.v === 0) primEdges.push({ ...e });
+  });
+  highlightPseudo(0, 'prim');
+}
+
+function highlightPseudo(line, algo) {
+  const prefix = algorithm === 'kruskal' ? 'k' : 'r';
+  const max = algorithm === 'kruskal' ? 5 : 3;
+  for (let i = 0; i <= max; i++) {
+    const el = document.getElementById(prefix + i);
+    if (el) el.classList.remove('active');
+  }
+  if (line >= 0) {
+    const el = document.getElementById(prefix + line);
+    if (el) el.classList.add('active');
+  }
+}
+
+function addEdgeToList(edge, status) {
+  const list = document.getElementById('edge-list');
+  const item = document.createElement('div');
+  item.className = 'edge-item ' + status;
+  item.textContent = `(${edge.u}, ${edge.v}) w=${edge.w}`;
+  list.insertBefore(item, list.firstChild);
+}
+
+function stepKruskal() {
+  if (edgeIdx >= sortedEdges.length || mstEdges.length >= nodes.length - 1) {
+    highlightPseudo(-1);
+    document.getElementById('explain').textContent = `Kruskal's complete! MST weight: ${mstWeight}. ${mstEdges.length} edges.`;
+    return false;
+  }
+
+  const e = sortedEdges[edgeIdx];
+  highlightPseudo(1);
+
+  if (find(e.u) !== find(e.v)) {
+    union(e.u, e.v);
+    mstEdges.push(e);
+    mstWeight += e.w;
+    highlightPseudo(4);
+    addEdgeToList(e, 'accepted');
+    document.getElementById('explain').textContent = `Edge (${e.u},${e.v}) w=${e.w}: different components → ACCEPT. MST weight: ${mstWeight}`;
+  } else {
+    highlightPseudo(5);
+    addEdgeToList(e, 'rejected');
+    document.getElementById('explain').textContent = `Edge (${e.u},${e.v}) w=${e.w}: same component → REJECT (would create cycle)`;
+  }
+
+  edgeIdx++;
+  stepCount++;
+  updateStats();
+  render();
+  return mstEdges.length < nodes.length - 1;
+}
+
+function stepPrim() {
+  if (mstEdges.length >= nodes.length - 1 || primEdges.length === 0) {
+    highlightPseudo(-1);
+    document.getElementById('explain').textContent = `Prim's complete! MST weight: ${mstWeight}. ${mstEdges.length} edges.`;
+    return false;
+  }
+
+  // Filter out edges where both endpoints are in MST
+  primEdges = primEdges.filter(e => !(inMST[e.u] && inMST[e.v]));
+  if (primEdges.length === 0) return false;
+
+  // Find minimum weight crossing edge
+  primEdges.sort((a, b) => a.w - b.w);
+  const e = primEdges.shift();
+
+  highlightPseudo(2);
+
+  const newNode = inMST[e.u] ? e.v : e.u;
+  inMST[newNode] = true;
+  mstEdges.push(e);
+  mstWeight += e.w;
+
+  // Add new edges from newNode
+  edges.forEach(ed => {
+    const other = ed.u === newNode ? ed.v : (ed.v === newNode ? ed.u : -1);
+    if (other >= 0 && !inMST[other]) {
+      primEdges.push({ ...ed });
+    }
+  });
+
+  highlightPseudo(3);
+  addEdgeToList(e, 'accepted');
+  document.getElementById('explain').textContent = `Min crossing edge (${e.u},${e.v}) w=${e.w}: add vertex ${newNode} to MST. Weight: ${mstWeight}`;
+
+  stepCount++;
+  updateStats();
+  render();
+  return mstEdges.length < nodes.length - 1;
+}
+
+function doStep() {
+  return algorithm === 'kruskal' ? stepKruskal() : stepPrim();
+}
+
+function updateStats() {
+  document.getElementById('s-weight').textContent = mstWeight;
+  document.getElementById('s-edges').textContent = mstEdges.length;
+  document.getElementById('s-step').textContent = stepCount;
+}
+
+function render() {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const mstSet = new Set(mstEdges.map(e => `${e.u}-${e.v}`));
+
+  // Draw all edges first (faded)
+  edges.forEach(e => {
+    const key = `${e.u}-${e.v}`;
+    const isMST = mstSet.has(key);
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('x1', nodes[e.u].x);
+    line.setAttribute('y1', nodes[e.u].y);
+    line.setAttribute('x2', nodes[e.v].x);
+    line.setAttribute('y2', nodes[e.v].y);
+    line.setAttribute('stroke', isMST ? '#3fb950' : '#30363d');
+    line.setAttribute('stroke-width', isMST ? '3' : '1.5');
+    line.setAttribute('opacity', isMST ? '1' : '0.4');
+    svg.appendChild(line);
+
+    // Weight label
+    const mx = (nodes[e.u].x + nodes[e.v].x) / 2;
+    const my = (nodes[e.u].y + nodes[e.v].y) / 2;
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', mx);
+    t.setAttribute('y', my - 5);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('fill', isMST ? '#3fb950' : '#8b949e');
+    t.setAttribute('font-size', '11');
+    t.setAttribute('font-weight', isMST ? '700' : '400');
+    t.textContent = e.w;
+    svg.appendChild(t);
+  });
+
+  // Draw nodes
+  nodes.forEach((n, i) => {
+    const inTree = algorithm === 'prim' ? inMST[i] : mstEdges.some(e => e.u === i || e.v === i);
+    const circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('cx', n.x);
+    circle.setAttribute('cy', n.y);
+    circle.setAttribute('r', '18');
+    circle.setAttribute('fill', inTree ? 'rgba(63,185,80,0.2)' : 'rgba(88,166,255,0.1)');
+    circle.setAttribute('stroke', inTree ? '#3fb950' : '#58a6ff');
+    circle.setAttribute('stroke-width', '2');
+    svg.appendChild(circle);
+
+    const text = document.createElementNS(SVG_NS, 'text');
+    text.setAttribute('x', n.x);
+    text.setAttribute('y', n.y + 5);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('fill', '#e6edf3');
+    text.setAttribute('font-size', '13');
+    text.setAttribute('font-weight', '700');
+    text.textContent = i;
+    svg.appendChild(text);
+  });
+}
+
+// Event handlers
+document.getElementById('btn-kruskal').addEventListener('click', () => {
+  algorithm = 'kruskal';
+  document.getElementById('btn-kruskal').classList.add('active');
+  document.getElementById('btn-prim').classList.remove('active');
+  document.getElementById('s-algo').textContent = 'Kruskal';
+  document.getElementById('pseudo-kruskal').style.display = '';
+  document.getElementById('pseudo-prim').style.display = 'none';
+  document.getElementById('pseudo-title').textContent = "Kruskal's Pseudocode";
+  resetState();
+  render();
+});
+
+document.getElementById('btn-prim').addEventListener('click', () => {
+  algorithm = 'prim';
+  document.getElementById('btn-prim').classList.add('active');
+  document.getElementById('btn-kruskal').classList.remove('active');
+  document.getElementById('s-algo').textContent = 'Prim';
+  document.getElementById('pseudo-kruskal').style.display = 'none';
+  document.getElementById('pseudo-prim').style.display = '';
+  document.getElementById('pseudo-title').textContent = "Prim's Pseudocode";
+  resetState();
+  render();
+});
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (nodes.length === 0) return;
+  if (!running) {
+    resetState();
+    if (algorithm === 'kruskal') initKruskal();
+    else initPrim();
+  }
+  running = true;
+  paused = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  if (timer) clearInterval(timer);
+  const speed = parseInt(document.getElementById('speed').value);
+  timer = setInterval(() => {
+    if (!paused && !doStep()) { clearInterval(timer); running = false; }
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (nodes.length === 0) return;
+  if (!running) {
+    resetState();
+    if (algorithm === 'kruskal') initKruskal();
+    else initPrim();
+    running = true;
+  }
+  paused = true;
+  if (timer) clearInterval(timer);
+  doStep();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  genGraph();
+  resetState();
+  render();
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  resetState();
+  render();
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
+});
+
+// Init
+genGraph();
+render();
+})();
+</script>
+</body>
+</html>
