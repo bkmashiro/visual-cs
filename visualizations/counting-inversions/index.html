@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Counting Inversions — visual-cs</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+--ac:#58a6ff;--ac0:rgba(88,166,255,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
+--rd:#f85149;--rd0:rgba(248,81,73,.15);--yl:#e3b341;--yl0:rgba(227,179,65,.15);--pr:#a371f7}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;display:flex;flex-direction:column;gap:14px}
+.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
+.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.bar-container{display:flex;align-items:flex-end;gap:3px;height:200px;padding:10px 0}
+.bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;transition:all .3s}
+.bar-rect{width:100%;border-radius:3px 3px 0 0;transition:all .3s;min-height:4px}
+.bar-label{font-size:.65rem;font-family:monospace;margin-top:4px;color:var(--muted)}
+.bar.left .bar-rect{background:var(--ac)}
+.bar.right .bar-rect{background:var(--pr)}
+.bar.merged .bar-rect{background:var(--gr)}
+.bar.inversion .bar-rect{background:var(--rd)}
+.bar.default .bar-rect{background:var(--border)}
+.merge-vis{display:flex;gap:4px;margin-top:8px;min-height:48px;align-items:center;flex-wrap:wrap}
+.merge-cell{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:.9rem;font-weight:700;font-family:monospace;border:1px solid var(--border);background:var(--s2);transition:all .3s}
+.merge-cell.left{border-color:var(--ac);background:var(--ac0);color:var(--ac)}
+.merge-cell.right{border-color:var(--pr);background:rgba(163,113,247,.15);color:var(--pr)}
+.merge-cell.placed{border-color:var(--gr);background:var(--gr0);color:var(--gr)}
+.merge-cell.inv{border-color:var(--rd);background:var(--rd0);color:var(--rd)}
+.inversion-counter{font-size:2rem;font-weight:800;font-family:monospace;text-align:center;padding:16px;background:var(--s2);border:1px solid var(--border);border-radius:10px;transition:all .3s}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.8;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+.depth-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Counting Inversions</span></h1>
+  <a href="../../index.html">Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <div class="panel">
+    <div class="controls" style="margin-bottom:12px">
+      <button class="primary" id="btn-run">&#9654; Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-random">Random Array</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+    <div class="slider-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="100" max="1500" value="500">
+      <span id="speed-lbl">500ms</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="depth-label">Array Visualization</div>
+    <div class="bar-container" id="bar-container"></div>
+  </div>
+  <div class="panel">
+    <div class="depth-label">Current Merge Operation</div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start">
+      <div>
+        <div style="font-size:.65rem;color:var(--ac);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Left Half</div>
+        <div class="merge-vis" id="left-vis"></div>
+      </div>
+      <div style="font-size:1.2rem;color:var(--muted);padding-top:20px">&rarr;</div>
+      <div>
+        <div style="font-size:.65rem;color:var(--pr);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Right Half</div>
+        <div class="merge-vis" id="right-vis"></div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div style="font-size:.65rem;color:var(--gr);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Merged Result</div>
+      <div class="merge-vis" id="merged-vis"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="depth-label">Inversion Count</div>
+    <div class="inversion-counter" id="inv-counter" style="color:var(--rd)">0</div>
+  </div>
+</div>
+<div class="sidebar">
+  <div>
+    <h3>Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Array Size</div><div class="v" id="s-size" style="color:var(--bl)">0</div></div>
+      <div class="stat-card"><div class="k">Total Inversions</div><div class="v" id="s-inv" style="color:var(--rd)">0</div></div>
+      <div class="stat-card"><div class="k">Merge Depth</div><div class="v" id="s-depth" style="color:var(--pr)">0</div></div>
+      <div class="stat-card"><div class="k">Step</div><div class="v" id="s-step" style="color:var(--muted)">0</div></div>
+    </div>
+  </div>
+  <div>
+    <h3>Current Operation</h3>
+    <div class="explain-box" id="explain">Generate an array and run modified merge sort to count inversions.</div>
+  </div>
+  <div>
+    <h3>Pseudocode</h3>
+    <div class="pseudo">
+      <div id="p0">countInversions(arr):</div>
+      <div id="p1">&nbsp;&nbsp;if len(arr) ≤ 1: return 0</div>
+      <div id="p2">&nbsp;&nbsp;mid = len(arr) / 2</div>
+      <div id="p3">&nbsp;&nbsp;left = countInversions(arr[..mid])</div>
+      <div id="p4">&nbsp;&nbsp;right = countInversions(arr[mid..])</div>
+      <div id="p5">&nbsp;&nbsp;split = mergeCount(arr, mid)</div>
+      <div id="p6">&nbsp;&nbsp;return left + right + split</div>
+      <div id="p7">// In merge: when right[j] < left[i],</div>
+      <div id="p8">// inversions += remaining in left half</div>
+    </div>
+  </div>
+  <div>
+    <h3>How It Works</h3>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+      <p><strong style="color:var(--text)">Counting inversions</strong> via modified merge sort runs in O(n log n). An inversion is a pair (i,j) where i < j but arr[i] > arr[j].</p>
+      <p style="margin-top:6px">During the merge step, when an element from the right half is placed before remaining left elements, all those left elements form inversions with it. This is the key insight.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+let arr = [];
+let steps = [];
+let stepIdx = 0;
+let inversions = 0;
+let running = false, paused = false, timer = null;
+let stepCount = 0;
+
+function genArray() {
+  const n = 8 + Math.floor(Math.random() * 8);
+  arr = [];
+  for (let i = 0; i < n; i++) arr.push(1 + Math.floor(Math.random() * 40));
+}
+
+function renderBars(highlights) {
+  const container = document.getElementById('bar-container');
+  container.innerHTML = '';
+  const maxVal = Math.max(...arr);
+  arr.forEach((v, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    const hl = highlights && highlights[i];
+    bar.classList.add(hl || 'default');
+    const h = (v / maxVal) * 160 + 10;
+    bar.innerHTML = `<div class="bar-rect" style="height:${h}px"></div><div class="bar-label">${v}</div>`;
+    container.appendChild(bar);
+  });
+}
+
+// Precompute merge sort steps
+function mergeSortSteps(a, lo, hi, depth) {
+  if (hi - lo <= 1) return;
+  const mid = Math.floor((lo + hi) / 2);
+  mergeSortSteps(a, lo, mid, depth + 1);
+  mergeSortSteps(a, mid, hi, depth + 1);
+
+  // Merge step
+  const left = a.slice(lo, mid);
+  const right = a.slice(mid, hi);
+
+  steps.push({
+    type: 'merge-start',
+    lo, mid, hi, depth,
+    left: [...left], right: [...right],
+    desc: `Merge [${lo}..${mid-1}] and [${mid}..${hi-1}] at depth ${depth}`
+  });
+
+  let i = 0, j = 0, k = lo;
+  const merged = [];
+
+  while (i < left.length && j < right.length) {
+    if (left[i] <= right[j]) {
+      merged.push(left[i]);
+      a[k] = left[i];
+      steps.push({
+        type: 'pick-left',
+        lo, mid, hi, depth, li: i, rj: j, val: left[i],
+        inversionsAdded: 0,
+        left: [...left], right: [...right], merged: [...merged],
+        desc: `Pick ${left[i]} from left (no inversions)`
+      });
+      i++; k++;
+    } else {
+      const invCount = left.length - i;
+      merged.push(right[j]);
+      a[k] = right[j];
+      steps.push({
+        type: 'pick-right',
+        lo, mid, hi, depth, li: i, rj: j, val: right[j],
+        inversionsAdded: invCount,
+        left: [...left], right: [...right], merged: [...merged],
+        desc: `Pick ${right[j]} from right: ${invCount} inversions (${left.slice(i).join(',')} > ${right[j]})`
+      });
+      j++; k++;
+    }
+  }
+  while (i < left.length) {
+    merged.push(left[i]);
+    a[k] = left[i];
+    i++; k++;
+  }
+  while (j < right.length) {
+    merged.push(right[j]);
+    a[k] = right[j];
+    j++; k++;
+  }
+
+  steps.push({
+    type: 'merge-done',
+    lo, hi, depth, merged: [...merged],
+    arr: [...a],
+    desc: `Merge complete: [${merged.join(', ')}]`
+  });
+}
+
+function highlightPseudo(line) {
+  for (let i = 0; i <= 8; i++) {
+    document.getElementById('p' + i).classList.remove('active');
+  }
+  if (line >= 0) document.getElementById('p' + line).classList.add('active');
+}
+
+function renderMergeVis(left, right, merged, li, rj) {
+  const lv = document.getElementById('left-vis');
+  const rv = document.getElementById('right-vis');
+  const mv = document.getElementById('merged-vis');
+
+  lv.innerHTML = '';
+  rv.innerHTML = '';
+  mv.innerHTML = '';
+
+  if (left) {
+    left.forEach((v, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'merge-cell left';
+      if (li !== undefined && i < li) cell.style.opacity = '0.3';
+      if (li !== undefined && i === li) cell.style.boxShadow = '0 0 8px rgba(88,166,255,.4)';
+      cell.textContent = v;
+      lv.appendChild(cell);
+    });
+  }
+
+  if (right) {
+    right.forEach((v, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'merge-cell right';
+      if (rj !== undefined && i < rj) cell.style.opacity = '0.3';
+      if (rj !== undefined && i === rj) cell.style.boxShadow = '0 0 8px rgba(163,113,247,.4)';
+      cell.textContent = v;
+      rv.appendChild(cell);
+    });
+  }
+
+  if (merged) {
+    merged.forEach(v => {
+      const cell = document.createElement('div');
+      cell.className = 'merge-cell placed';
+      cell.textContent = v;
+      mv.appendChild(cell);
+    });
+  }
+}
+
+function doStep() {
+  if (stepIdx >= steps.length) {
+    highlightPseudo(6);
+    document.getElementById('explain').textContent = `Done! Total inversions: ${inversions}`;
+    renderBars(null);
+    renderMergeVis(null, null, null);
+    running = false;
+    return false;
+  }
+
+  const s = steps[stepIdx];
+
+  if (s.type === 'merge-start') {
+    highlightPseudo(5);
+    const hl = {};
+    for (let i = s.lo; i < s.mid; i++) hl[i] = 'left';
+    for (let i = s.mid; i < s.hi; i++) hl[i] = 'right';
+    renderBars(hl);
+    renderMergeVis(s.left, s.right, []);
+    document.getElementById('s-depth').textContent = s.depth;
+  } else if (s.type === 'pick-left') {
+    highlightPseudo(7);
+    const hl = {};
+    for (let i = s.lo; i < s.mid; i++) hl[i] = 'left';
+    for (let i = s.mid; i < s.hi; i++) hl[i] = 'right';
+    renderBars(hl);
+    renderMergeVis(s.left, s.right, s.merged, s.li, s.rj);
+  } else if (s.type === 'pick-right') {
+    highlightPseudo(8);
+    inversions += s.inversionsAdded;
+    const hl = {};
+    for (let i = s.lo; i < s.mid; i++) hl[i] = s.inversionsAdded > 0 ? 'inversion' : 'left';
+    for (let i = s.mid; i < s.hi; i++) hl[i] = 'right';
+    renderBars(hl);
+    renderMergeVis(s.left, s.right, s.merged, s.li, s.rj);
+    document.getElementById('inv-counter').textContent = inversions;
+    document.getElementById('s-inv').textContent = inversions;
+  } else if (s.type === 'merge-done') {
+    arr = [...s.arr];
+    const hl = {};
+    for (let i = s.lo; i < s.hi; i++) hl[i] = 'merged';
+    renderBars(hl);
+    renderMergeVis(null, null, s.merged);
+  }
+
+  document.getElementById('explain').textContent = s.desc;
+  stepIdx++;
+  stepCount++;
+  document.getElementById('s-step').textContent = stepCount;
+  return true;
+}
+
+function resetState() {
+  steps = [];
+  stepIdx = 0;
+  inversions = 0;
+  stepCount = 0;
+  running = false; paused = false;
+  if (timer) clearInterval(timer);
+  timer = null;
+  document.getElementById('inv-counter').textContent = '0';
+  document.getElementById('s-inv').textContent = '0';
+  document.getElementById('s-depth').textContent = '0';
+  document.getElementById('s-step').textContent = '0';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  highlightPseudo(-1);
+  renderBars(null);
+  renderMergeVis(null, null, null);
+}
+
+function initComputation() {
+  resetState();
+  const workArr = [...arr];
+  mergeSortSteps(workArr, 0, workArr.length, 0);
+  return true;
+}
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  if (arr.length === 0) return;
+  if (!running) initComputation();
+  running = true; paused = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  if (timer) clearInterval(timer);
+  const speed = parseInt(document.getElementById('speed').value);
+  timer = setInterval(() => {
+    if (!paused && !doStep()) clearInterval(timer);
+  }, speed);
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (arr.length === 0) return;
+  if (!running) { initComputation(); running = true; }
+  paused = true;
+  doStep();
+});
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  genArray();
+  resetState();
+  renderBars(null);
+  document.getElementById('s-size').textContent = arr.length;
+  document.getElementById('explain').textContent = `Generated array of ${arr.length} elements. Click "Run" to count inversions.`;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (timer) clearInterval(timer);
+  resetState();
+  renderBars(null);
+  document.getElementById('explain').textContent = 'Reset. Click "Run" or "Step".';
+});
+
+document.getElementById('speed').addEventListener('input', (e) => {
+  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
+});
+
+// Init
+genArray();
+renderBars(null);
+document.getElementById('s-size').textContent = arr.length;
+})();
+</script>
+</body>
+</html>
