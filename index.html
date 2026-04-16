@@ -5,1275 +5,937 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>visual-cs — Algorithm Visualizations</title>
 <style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --border: #30363d;
-    --text: #e6edf3;
-    --text-muted: #8b949e;
-    --accent: #58a6ff;
-    --accent2: #3fb950;
-    --accent3: #f78166;
-    --tag-sorting: #1f3a5f;
-    --tag-sorting-text: #58a6ff;
-    --tag-graph: #1a3a2a;
-    --tag-graph-text: #3fb950;
-    --tag-simulation: #3a1a2a;
-    --tag-simulation-text: #f778ba;
-    --tag-search: #3a2a1a;
-    --tag-search-text: #e3b341;
-    --tag-dp: #2d1a4a;
-    --tag-dp-text: #a371f7;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
-    min-height: 100vh;
-  }
-  header {
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #3fb950;
+  --accent3: #f78166;
+  --cat-sorting: #58a6ff;
+  --cat-graph: #3fb950;
+  --cat-tree: #7ee787;
+  --cat-dp: #a371f7;
+  --cat-string: #67e8f9;
+  --cat-probabilistic: #d2a8ff;
+  --cat-distributed: #2dd4bf;
+  --cat-compression: #fb923c;
+  --cat-geometry: #10b981;
+  --cat-simulation: #f778ba;
+  --cat-search: #e3b341;
+  --cat-datastructure: #79c0ff;
+  --cat-numbertheory: #fbbf24;
+  --cat-optimization: #f97316;
+  --cat-linkedlist: #3fb950;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Header */
+.top-header {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(22,27,34,0.95);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.top-header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.5px; }
+.top-header h1 span { color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-right a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.82rem;
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.header-right a:hover { color: var(--text); border-color: var(--accent); }
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 48px 24px 32px;
+  border-bottom: 1px solid var(--border);
+}
+.hero h2 {
+  font-size: 2.6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #58a6ff, #3fb950, #f778ba, #58a6ff);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+  animation: gradientShift 6s ease infinite;
+}
+@keyframes gradientShift {
+  0%,100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.hero p {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Stats bar */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  padding: 16px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.stat-item { text-align: center; }
+.stat-val { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+.stat-lbl { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Layout: sidebar + main */
+.app-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: calc(100vh - 200px);
+}
+
+/* Sidebar */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 52px;
+  height: calc(100vh - 52px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.sidebar-section h3 {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* Search */
+.search-wrap {
+  position: relative;
+}
+.search-wrap svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+#search-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px 9px 34px;
+  color: var(--text);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+#search-input:focus { border-color: var(--accent); }
+#search-input::placeholder { color: var(--text-muted); }
+
+/* Filter chips */
+.filter-group { display: flex; flex-direction: column; gap: 4px; }
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  user-select: none;
+}
+.filter-chip:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.filter-chip.active { background: rgba(88,166,255,0.1); border-color: var(--accent); color: var(--text); }
+.filter-chip .chip-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.filter-chip .chip-count {
+  margin-left: auto;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.filter-chip.active .chip-count { background: rgba(88,166,255,0.15); color: var(--accent); }
+
+/* Difficulty filter */
+.diff-group { display: flex; flex-direction: column; gap: 4px; }
+.diff-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  user-select: none;
+}
+.diff-chip:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.diff-chip.active { background: rgba(88,166,255,0.1); border-color: var(--accent); color: var(--text); }
+.diff-chip .chip-count {
+  margin-left: auto;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.diff-chip.active .chip-count { background: rgba(88,166,255,0.15); color: var(--accent); }
+.diff-icon { font-size: 0.75rem; }
+
+/* Favorites toggle */
+.fav-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  user-select: none;
+}
+.fav-toggle:hover { border-color: #e3b341; color: #e3b341; }
+.fav-toggle.active { border-color: #e3b341; color: #e3b341; background: rgba(227,179,65,0.1); }
+
+/* Clear filters */
+#clear-filters {
+  display: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  transition: all 0.15s;
+  text-align: center;
+}
+#clear-filters:hover { border-color: var(--accent3); color: var(--accent3); }
+
+/* Main content */
+.main-content {
+  padding: 24px;
+}
+
+/* Results count */
+.results-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+/* Card grid */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid var(--card-cat-color, var(--accent));
+  outline: none;
+}
+.card:hover, .card:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--card-cat-color, var(--accent));
+  border-left-color: var(--card-cat-color, var(--accent));
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+}
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.card.hidden { display: none; }
+
+/* Card header */
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.card-title-area { flex: 1; }
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.card-title .highlight { background: rgba(227,179,65,0.3); border-radius: 2px; padding: 0 1px; }
+.card-icon-area {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-icon {
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.card-icon svg { width: 28px; height: 28px; }
+.fav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  padding: 2px;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.fav-btn:hover { color: #e3b341; }
+.fav-btn.favorited { color: #e3b341; }
+
+/* Tags row */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.badge-new {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(63,185,80,0.15);
+  border: 1px solid #3fb950;
+  color: #3fb950;
+}
+
+/* Complexity badges */
+.complexity-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.complexity {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.complexity .cx-label { color: var(--text-muted); font-family: inherit; }
+
+/* Card description */
+.card-desc {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.card:hover .card-desc,
+.card:focus-visible .card-desc {
+  -webkit-line-clamp: unset;
+}
+.card-desc .highlight { background: rgba(227,179,65,0.3); border-radius: 2px; padding: 0 1px; }
+
+/* View button */
+.view-btn {
+  display: inline-block;
+  background: var(--card-cat-color, var(--accent));
+  color: #000;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  text-align: center;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: auto;
+}
+.view-btn:hover { opacity: 0.85; transform: scale(1.02); }
+
+/* No results */
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  display: none;
+}
+.no-results.visible { display: block; }
+.no-results h3 { font-size: 1.2rem; color: var(--text); margin-bottom: 8px; }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--accent); text-decoration: none; }
+
+/* Mobile responsive */
+@media (max-width: 1100px) {
+  .card-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .app-layout { grid-template-columns: 1fr; }
+  .sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
     border-bottom: 1px solid var(--border);
-    padding: 24px 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--surface);
-  }
-  header h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-  }
-  header h1 span { color: var(--accent); }
-  header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
-  .header-right a {
-    color: var(--text-muted);
-    text-decoration: none;
-    font-size: 0.85rem;
-    border: 1px solid var(--border);
-    padding: 6px 14px;
-    border-radius: 6px;
-    transition: all 0.2s;
-  }
-  .header-right a:hover { color: var(--text); border-color: var(--accent); }
-
-  .hero {
-    text-align: center;
-    padding: 60px 40px 40px;
-  }
-  .hero h2 {
-    font-size: 2.8rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #58a6ff, #3fb950, #f778ba);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 16px;
-  }
-  .hero p {
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    padding: 20px 40px 60px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 12px;
-    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-    position: relative;
-    overflow: hidden;
+    padding: 16px;
+    overflow-y: visible;
   }
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: var(--card-accent, var(--accent));
-    border-radius: 12px 12px 0 0;
-  }
-  .card:hover {
-    transform: translateY(-4px);
-    border-color: var(--card-accent, var(--accent));
-    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-  }
-  .card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .card-title {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text);
-  }
-  .card-icon {
-    font-size: 1.8rem;
-    line-height: 1;
-  }
-  .tag {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-  .tag.sorting { background: var(--tag-sorting); color: var(--tag-sorting-text); }
-  .tag.graph { background: var(--tag-graph); color: var(--tag-graph-text); }
-  .tag.simulation { background: var(--tag-simulation); color: var(--tag-simulation-text); }
-  .tag.search { background: var(--tag-search); color: var(--tag-search-text); }
-  .tag.dp { background: var(--tag-dp); color: var(--tag-dp-text); }
-
-  .card-desc {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    line-height: 1.6;
-    flex: 1;
-  }
-  .card-meta {
-    display: flex;
-    gap: 16px;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-  }
-  .card-meta span { display: flex; align-items: center; gap: 4px; }
-  .view-btn {
-    display: inline-block;
-    background: var(--card-accent, var(--accent));
-    color: #000;
-    font-weight: 700;
-    font-size: 0.85rem;
-    padding: 10px 20px;
-    border-radius: 8px;
-    text-decoration: none;
-    text-align: center;
-    transition: opacity 0.2s, transform 0.1s;
-    margin-top: 4px;
-  }
-  .view-btn:hover { opacity: 0.85; transform: scale(1.02); }
-
-  .stats {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    padding: 20px 40px;
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-  }
-  .stat { text-align: center; }
-  .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-  .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
-
-  footer {
-    text-align: center;
-    padding: 24px;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    border-top: 1px solid var(--border);
-  }
-  footer a { color: var(--accent); text-decoration: none; }
+  .sidebar-section { min-width: 200px; flex: 1; }
+  .sidebar-section.search-section { min-width: 100%; }
+  .card-grid { grid-template-columns: 1fr; }
+  .hero h2 { font-size: 1.8rem; }
+  .stats-bar { gap: 20px; flex-wrap: wrap; }
+}
 </style>
 </head>
 <body>
 
-<header>
+<header class="top-header">
   <div>
     <h1>visual<span>-cs</span></h1>
-    <p>Algorithm & data structure visualizations</p>
   </div>
   <div class="header-right">
-    <a href="https://github.com/bkmashiro/visual-cs" target="_blank">⭐ GitHub</a>
+    <a href="https://github.com/bkmashiro/visual-cs" target="_blank">GitHub</a>
   </div>
 </header>
 
 <div class="hero">
   <h2>See Algorithms Think</h2>
-  <p>Interactive, animated visualizations of classic algorithms. Pure HTML/CSS/JS — no build step, no framework.</p>
+  <p>Interactive, animated visualizations of classic algorithms and data structures. Pure HTML/CSS/JS.</p>
 </div>
 
-<div class="grid">
-  <div class="card" style="--card-accent: #58a6ff;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Bubble Sort</div>
-        <span class="tag sorting">Sorting</span>
-      </div>
-      <div class="card-icon">🫧</div>
-    </div>
-    <div class="card-desc">Watch elements bubble up as adjacent pairs are compared and swapped. Tracks comparisons and swaps in real time with color-coded bars.</div>
-    <div class="card-meta">
-      <span>⏱ Animated</span>
-      <span>🎛 Speed control</span>
-      <span>📊 Stats</span>
-    </div>
-    <a class="view-btn" href="./visualizations/bubble-sort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #e3b341;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Binary Search</div>
-        <span class="tag search">Search</span>
-      </div>
-      <div class="card-icon">🔍</div>
-    </div>
-    <div class="card-desc">Step through the divide-and-conquer search strategy. See the search range narrow with each comparison until the target is found.</div>
-    <div class="card-meta">
-      <span>⏱ Animated</span>
-      <span>🎯 Interactive</span>
-      <span>📊 Step counter</span>
-    </div>
-    <a class="view-btn" style="background:#e3b341" href="./visualizations/binary-search/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #3fb950;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">BFS on Grid</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🗺️</div>
-    </div>
-    <div class="card-desc">Paint walls, set start/end, and watch BFS flood-fill the grid. Frontier expands in orange, explored cells turn blue, path lights up yellow.</div>
-    <div class="card-meta">
-      <span>🖱 Draw walls</span>
-      <span>👣 Path tracing</span>
-      <span>🔢 Step mode</span>
-    </div>
-    <a class="view-btn" style="background:#3fb950" href="./visualizations/bfs-grid/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f78166;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Quicksort</div>
-        <span class="tag sorting">Sorting</span>
-      </div>
-      <div class="card-icon">⚡</div>
-    </div>
-    <div class="card-desc">Watch pivot selection and partitioning recurse through the array. Red pivot, blue/green pointers converge as the array is divided and conquered.</div>
-    <div class="card-meta">
-      <span>⏱ Animated</span>
-      <span>📏 Recursion depth</span>
-      <span>📊 vs Bubble sort</span>
-    </div>
-    <a class="view-btn" style="background:#f78166" href="./visualizations/quicksort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f778ba;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Game of Life</div>
-        <span class="tag simulation">Simulation</span>
-      </div>
-      <div class="card-icon">🧬</div>
-    </div>
-    <div class="card-desc">Conway's cellular automaton on a 60×60 grid. Load classic patterns (Glider, Pulsar, R-pentomino) or draw your own and watch life emerge.</div>
-    <div class="card-meta">
-      <span>🖱 Draw cells</span>
-      <span>🔮 Patterns</span>
-      <span>⏱ 1-60 FPS</span>
-    </div>
-    <a class="view-btn" style="background:#f778ba" href="./visualizations/game-of-life/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #7ee787;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">AVL Tree</div>
-        <span class="tag graph">Tree</span>
-      </div>
-      <div class="card-icon">🌲</div>
-    </div>
-    <div class="card-desc">Insert and delete values in a self-balancing BST. Replay single and double rotations frame by frame while every node shows its height and balance factor.</div>
-    <div class="card-meta">
-      <span>🔁 Single + double rotations</span>
-      <span>⏯ Replay controls</span>
-      <span>📏 Height + BF</span>
-    </div>
-    <a class="view-btn" style="background:#7ee787;color:#0d1117" href="./visualizations/avl-tree/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #34d399;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Floyd-Warshall</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🧮</div>
-    </div>
-    <div class="card-desc">See all-pairs shortest paths emerge as the distance matrix updates. The current pivot node, matrix cell, and best path on the graph stay synchronized step by step.</div>
-    <div class="card-meta">
-      <span>📋 Matrix state</span>
-      <span>🧭 Path highlight</span>
-      <span>⏯ Step replay</span>
-    </div>
-    <a class="view-btn" style="background:#34d399;color:#0d1117" href="./visualizations/floyd-warshall/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f59e0b;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Topological Sort</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🧩</div>
-    </div>
-    <div class="card-desc">Compare Kahn's queue-based algorithm and DFS topological order on the same DAG. Watch edge removal, recursion, and output order side by side.</div>
-    <div class="card-meta">
-      <span>↔ Side by side</span>
-      <span>📚 Queue vs stack</span>
-      <span>🎨 Order coloring</span>
-    </div>
-    <a class="view-btn" style="background:#f59e0b;color:#0d1117" href="./visualizations/topological-sort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #a78bfa;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Segment Tree</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">🌳</div>
-    </div>
-    <div class="card-desc">Inspect range sum queries, point updates, and lazy propagation on a full segment tree. The array and tree stay linked so every covered interval is visible.</div>
-    <div class="card-meta">
-      <span>➕ Lazy tags</span>
-      <span>📍 Update path</span>
-      <span>📦 Segment combine</span>
-    </div>
-    <a class="view-btn" style="background:#a78bfa;color:#0d1117" href="./visualizations/segment-tree/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f2cc60;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Dijkstra</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🧭</div>
-    </div>
-    <div class="card-desc">Build a maze on a 20×20 grid, place start and end points, then watch Dijkstra expand the frontier and trace the shortest path step by step.</div>
-    <div class="card-meta">
-      <span>🧱 Toggle walls</span>
-      <span>⏱ Speed control</span>
-      <span>📍 Path length</span>
-    </div>
-    <a class="view-btn" style="background:#f2cc60;color:#0d1117" href="./visualizations/dijkstra/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #79c0ff;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Heap Sort</div>
-        <span class="tag sorting">Sorting</span>
-      </div>
-      <div class="card-icon">🏗️</div>
-    </div>
-    <div class="card-desc">See heap sort in its two distinct phases: building the max heap and extracting the maximum into the sorted suffix, with pause and resume controls.</div>
-    <div class="card-meta">
-      <span>⏯ Pause/resume</span>
-      <span>📊 40 bars</span>
-      <span>👣 Step counter</span>
-    </div>
-    <a class="view-btn" style="background:#79c0ff;color:#0d1117" href="./visualizations/heap-sort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #58a6ff;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">BFS vs DFS</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🧠</div>
-    </div>
-    <div class="card-desc">Build your own graph, then compare breadth-first and depth-first traversal on the same node set. Queue and stack contents update live as the run advances.</div>
-    <div class="card-meta">
-      <span>🖱 Add nodes</span>
-      <span>🔗 Drag to connect</span>
-      <span>📚 Queue vs stack</span>
-    </div>
-    <a class="view-btn" style="background:#58a6ff" href="./visualizations/bfs-dfs/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #d2a8ff;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Bloom Filter</div>
-        <span class="tag search">Probabilistic</span>
-      </div>
-      <div class="card-icon">🫧</div>
-    </div>
-    <div class="card-desc">Watch three hash functions map words into a compact bit array. Test words to see true negatives, true positives, and occasional false positives.</div>
-    <div class="card-meta">
-      <span>🔣 Word input</span>
-      <span>🎯 Hash animation</span>
-      <span>📈 FPR stats</span>
-    </div>
-    <a class="view-btn" style="background:#d2a8ff;color:#0d1117" href="./visualizations/bloom-filter/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #ff6b6b;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Red-Black Tree</div>
-        <span class="tag graph">Tree</span>
-      </div>
-      <div class="card-icon">🔴</div>
-    </div>
-    <div class="card-desc">Replay insert and delete fix-up step by step. Watch red-black color flips, left/right rotations, search paths, and all five invariants stay in sync.</div>
-    <div class="card-meta">
-      <span>🔁 Rotation replay</span>
-      <span>🎨 Color flips</span>
-      <span>✅ 5 properties</span>
-    </div>
-    <a class="view-btn" style="background:#ff6b6b;color:#0d1117" href="./visualizations/red-black-tree/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #bc8cff;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Merge Sort</div>
-        <span class="tag sorting">Sorting</span>
-      </div>
-      <div class="card-icon">🔀</div>
-    </div>
-    <div class="card-desc">Watch divide and conquer in action. The array splits recursively, then merges back in sorted order with color-coded split and merge phases.</div>
-    <div class="card-meta">
-      <span>⏯ Auto / step</span>
-      <span>🔀 Split & merge</span>
-      <span>📊 Stats</span>
-    </div>
-    <a class="view-btn" style="background:#bc8cff;color:#0d1117" href="./visualizations/merge-sort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f0883e;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">A* Pathfinding</div>
-        <span class="tag search">Search</span>
-      </div>
-      <div class="card-icon">⭐</div>
-    </div>
-    <div class="card-desc">Draw walls on a 20×20 grid, set start and end points, and watch A* use Manhattan distance heuristic to find the shortest path efficiently.</div>
-    <div class="card-meta">
-      <span>🖱 Draw walls</span>
-      <span>🧭 Heuristic</span>
-      <span>👣 Path tracing</span>
-    </div>
-    <a class="view-btn" style="background:#f0883e;color:#0d1117" href="./visualizations/astar/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #a371f7;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Skip List</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">⏭️</div>
-    </div>
-    <div class="card-desc">Layered linked list with fast-lane skipping. Watch coin-flip level promotion during insert and express-lane traversal during search.</div>
-    <div class="card-meta">
-      <span>🎲 Coin flips</span>
-      <span>🔍 Fast search</span>
-      <span>📊 Comparisons</span>
-    </div>
-    <a class="view-btn" style="background:#a371f7;color:#0d1117" href="./visualizations/skip-list/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f778ba;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Trie</div>
-        <span class="tag search">Search</span>
-      </div>
-      <div class="card-icon">🔤</div>
-    </div>
-    <div class="card-desc">Prefix tree that stores words character by character. Type to insert words, search highlights paths, and prefix matches update in real time.</div>
-    <div class="card-meta">
-      <span>⌨️ Type to add</span>
-      <span>🔍 Prefix search</span>
-      <span>📊 Word count</span>
-    </div>
-    <a class="view-btn" style="background:#f778ba;color:#0d1117" href="./visualizations/trie/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #67e8f9;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Suffix Array</div>
-        <span class="tag search">String</span>
-      </div>
-      <div class="card-icon">🧬</div>
-    </div>
-    <div class="card-desc">Build the suffix array round by round with prefix doubling. Rank pairs, sorted suffixes, and the final LCP array stay synchronized through every phase.</div>
-    <div class="card-meta">
-      <span>🧩 Rank pairs</span>
-      <span>⏯ Phase replay</span>
-      <span>📚 SA + LCP</span>
-    </div>
-    <a class="view-btn" style="background:#67e8f9;color:#0d1117" href="./visualizations/suffix-array/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #a78bfa;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Suffix Automaton</div>
-        <span class="tag search">String</span>
-      </div>
-      <div class="card-icon">🤖</div>
-    </div>
-    <div class="card-desc">Watch the online SAM construction add one character at a time. States, suffix links, cloning events, and endpos equivalence classes update live at each step.</div>
-    <div class="card-meta">
-      <span>🔗 Suffix links</span>
-      <span>📦 Clone events</span>
-      <span>⚡ O(n) states</span>
-    </div>
-    <a class="view-btn" style="background:#a78bfa;color:#0d1117" href="./visualizations/suffix-automaton/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #56d364;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">KD-Tree</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">📐</div>
-    </div>
-    <div class="card-desc">2D spatial partitioning with alternating X/Y splits shown as colored lines. Click to add points, toggle NN mode to find nearest neighbors.</div>
-    <div class="card-meta">
-      <span>🖱 Click to add</span>
-      <span>📍 Nearest neighbor</span>
-      <span>🎨 Split planes</span>
-    </div>
-    <a class="view-btn" style="background:#56d364;color:#0d1117" href="./visualizations/kd-tree/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f59e0b;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">B-Tree</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">🗂️</div>
-    </div>
-    <div class="card-desc">Order-4 B-tree with search, insertion, and deletion. Watch keys split upward on insert and merge or borrow during delete to maintain balance.</div>
-    <div class="card-meta">
-      <span>🔀 Split/merge</span>
-      <span>🔍 Search path</span>
-      <span>⏯ Step replay</span>
-    </div>
-    <a class="view-btn" style="background:#f59e0b;color:#0d1117" href="./visualizations/b-tree/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #79c0ff;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">LRU Cache</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">🧠</div>
-    </div>
-    <div class="card-desc">Visualize `get` and `put` on an LRU cache backed by a doubly linked list and hash map. Tail eviction makes the least-recent item disappear on overflow.</div>
-    <div class="card-meta">
-      <span>🗃 Hash map</span>
-      <span>↔ DLL order</span>
-      <span>🧹 Eviction</span>
-    </div>
-    <a class="view-btn" style="background:#79c0ff;color:#0d1117" href="./visualizations/lru-cache/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #58a6ff;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Union-Find</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">🪢</div>
-    </div>
-    <div class="card-desc">See disjoint sets merge with union by rank and flatten with path compression. Parent pointers update live after each find and union.</div>
-    <div class="card-meta">
-      <span>🌲 Forest view</span>
-      <span>📉 Compression</span>
-      <span>🧩 Components</span>
-    </div>
-    <a class="view-btn" style="background:#58a6ff" href="./visualizations/union-find/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #3fb950;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Kruskal MST</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🌉</div>
-    </div>
-    <div class="card-desc">Sort edges by weight, then use Union-Find to grow a minimum spanning tree. Accepted edges turn green, rejected cycle edges flash red.</div>
-    <div class="card-meta">
-      <span>📚 Sorted edges</span>
-      <span>🪢 DSU</span>
-      <span>⚖ MST weight</span>
-    </div>
-    <a class="view-btn" style="background:#3fb950;color:#0d1117" href="./visualizations/mst-kruskal/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #38bdf8;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Ford-Fulkerson Max Flow</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🌊</div>
-    </div>
-    <div class="card-desc">Find maximum flow from source to sink by repeatedly discovering augmenting paths through a residual graph. Compare BFS (Edmonds-Karp) vs DFS strategies on multiple graphs.</div>
-    <div class="card-meta">
-      <span>🔁 Augmenting paths</span>
-      <span>↩️ Residual graph</span>
-      <span>🔪 Min-cut</span>
-    </div>
-    <a class="view-btn" style="background:#38bdf8;color:#0d1117" href="./visualizations/ford-fulkerson/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f78166;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Bellman-Ford</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">⚖️</div>
-    </div>
-    <div class="card-desc">Follow repeated edge relaxations on a directed weighted graph, including negative edges and the extra pass that exposes reachable negative cycles.</div>
-    <div class="card-meta">
-      <span>🔁 Passes</span>
-      <span>➖ Negative edges</span>
-      <span>🚨 Cycle detect</span>
-    </div>
-    <a class="view-btn" style="background:#f78166;color:#0d1117" href="./visualizations/bellman-ford/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #a371f7;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Fenwick Tree</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">🌲</div>
-    </div>
-    <div class="card-desc">Inspect prefix sums in a Binary Indexed Tree. Updates climb upward with `lowbit`, while queries hop downward and accumulate contributing cells.</div>
-    <div class="card-meta">
-      <span>➕ Point update</span>
-      <span>∑ Prefix query</span>
-      <span>🔢 lowbit</span>
-    </div>
-    <a class="view-btn" style="background:#a371f7;color:#0d1117" href="./visualizations/fenwick-tree/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #6366f1;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Radix Sort</div>
-        <span class="tag sorting">Sorting</span>
-      </div>
-      <div class="card-icon">🔢</div>
-    </div>
-    <div class="card-desc">Watch numbers distribute into buckets digit by digit. Non-comparative sorting that processes ones, tens, hundreds — until the array is sorted.</div>
-    <div class="card-meta">
-      <span>🪣 10 buckets</span>
-      <span>🔢 Digit highlight</span>
-      <span>📊 O(d×n)</span>
-    </div>
-    <a class="view-btn" style="background:#6366f1" href="./visualizations/radix-sort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #d2a8ff;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">DP Visualizer</div>
-        <span class="tag search">Dynamic Programming</span>
-      </div>
-      <div class="card-icon">🧩</div>
-    </div>
-    <div class="card-desc">Watch an LCS dynamic programming table fill cell by cell, then backtrack to recover one longest common subsequence through the finished grid.</div>
-    <div class="card-meta">
-      <span>📋 DP table</span>
-      <span>↘ Backtracking</span>
-      <span>⌨️ Custom strings</span>
-    </div>
-    <a class="view-btn" style="background:#d2a8ff;color:#0d1117" href="./visualizations/dp-visualizer/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #22d3ee;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Counting Sort</div>
-        <span class="tag sorting">Sorting</span>
-      </div>
-      <div class="card-icon">🔢</div>
-    </div>
-    <div class="card-desc">Non-comparative linear-time sort for bounded integers. Watch elements get counted, positions cumulated, then placed into sorted output.</div>
-    <div class="card-meta">
-      <span>📊 Count array</span>
-      <span>∑ Cumulative</span>
-      <span>📦 O(n+k)</span>
-    </div>
-    <a class="view-btn" style="background:#22d3ee;color:#0d1117" href="./visualizations/counting-sort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #fbbf24;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Insertion Sort</div>
-        <span class="tag sorting">Sorting</span>
-      </div>
-      <div class="card-icon">🃏</div>
-    </div>
-    <div class="card-desc">Pick up each element and slide it left past all larger values, growing a sorted prefix one card at a time.</div>
-    <div class="card-meta">
-      <span>⏱ Animated</span>
-      <span>🎯 Key element</span>
-      <span>📊 Shift count</span>
-    </div>
-    <a class="view-btn" style="background:#fbbf24;color:#0d1117" href="./visualizations/insertion-sort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #a78bfa;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Shell Sort</div>
-        <span class="tag sorting">Sorting</span>
-      </div>
-      <div class="card-icon">🐚</div>
-    </div>
-    <div class="card-desc">Insertion sort with a shrinking gap. Knuth's 3h+1 sequence pre-sorts distant elements so the final gap-1 pass is nearly free.</div>
-    <div class="card-meta">
-      <span>🔢 Gap sequence</span>
-      <span>🪣 Bucket groups</span>
-      <span>📊 Shifts & comps</span>
-    </div>
-    <a class="view-btn" style="background:#a78bfa;color:#0d1117" href="./visualizations/shell-sort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #4ade80;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Prim's Algorithm</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🌿</div>
-    </div>
-    <div class="card-desc">Grow a minimum spanning tree one vertex at a time. A min-heap tracks the cheapest crossing edge; green nodes join the MST, yellow shows the active frontier.</div>
-    <div class="card-meta">
-      <span>⚖ Min-heap</span>
-      <span>🌿 Greedy cut</span>
-      <span>📊 MST weight</span>
-    </div>
-    <a class="view-btn" style="background:#4ade80;color:#0d1117" href="./visualizations/prims-algorithm/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #ff7b72;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Tarjan's SCC</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🔁</div>
-    </div>
-    <div class="card-desc">Find all Strongly Connected Components in a directed graph with a single DFS. Watch disc/low values propagate and the stack pop entire SCCs at once.</div>
-    <div class="card-meta">
-      <span>📚 DFS stack</span>
-      <span>🔢 disc/low</span>
-      <span>🧩 SCC roots</span>
-    </div>
-    <a class="view-btn" style="background:#ff7b72;color:#0d1117" href="./visualizations/tarjan-scc/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f78166;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Bridge &amp; Articulation Points</div>
-        <span class="tag graph">Graph</span>
-      </div>
-      <div class="card-icon">🌉</div>
-    </div>
-    <div class="card-desc">Find bridges and articulation points in an undirected graph via DFS. Watch disc/low values update, tree vs back edges distinguished, bridges glow red and cut-vertices turn gold.</div>
-    <div class="card-meta">
-      <span>🔢 disc/low</span>
-      <span>🌉 bridges</span>
-      <span>📍 cut-vertices</span>
-    </div>
-    <a class="view-btn" style="background:#f78166;color:#0d1117" href="./visualizations/bridge-articulation/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #10b981;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Convex Hull</div>
-        <span class="tag graph">Geometry</span>
-      </div>
-      <div class="card-icon">🔷</div>
-    </div>
-    <div class="card-desc">Graham Scan vs Jarvis March side by side. Click to add points and watch two algorithms race to wrap the smallest convex polygon around them.</div>
-    <div class="card-meta">
-      <span>🖱 Click to add</span>
-      <span>↔ Side by side</span>
-      <span>📊 Step count</span>
-    </div>
-    <a class="view-btn" style="background:#10b981;color:#0d1117" href="./visualizations/convex-hull/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #fb923c;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Hash Table</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">🗃️</div>
-    </div>
-    <div class="card-desc">Insert, search, and delete keys while the djb2 hash function maps them to buckets. Toggle between Separate Chaining and Open Addressing (linear probe) to see how each strategy resolves collisions.</div>
-    <div class="card-meta">
-      <span>⛓ Chaining</span>
-      <span>🔍 Linear probe</span>
-      <span>📊 Load factor</span>
-    </div>
-    <a class="view-btn" style="background:#fb923c;color:#07111f" href="./visualizations/hash-table/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #67e8f9;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Huffman Coding</div>
-        <span class="tag search">String</span>
-      </div>
-      <div class="card-icon">🧵</div>
-    </div>
-    <div class="card-desc">Count character frequencies, greedily merge the two lightest nodes, then walk the finished prefix tree to generate the optimal Huffman code table.</div>
-    <div class="card-meta">
-      <span>📊 Frequency bars</span>
-      <span>🌲 Tree build</span>
-      <span>0101 Code table</span>
-    </div>
-    <a class="view-btn" style="background:#67e8f9;color:#041018" href="./visualizations/huffman-coding/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #2dd4bf;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Splay Tree</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">🌴</div>
-    </div>
-    <div class="card-desc">Every insert, search, and delete splays the touched node toward the root. Replay zig, zig-zig, and zig-zag rotations to see how locality reshapes the BST over time.</div>
-    <div class="card-meta">
-      <span>🔄 Self-adjusting</span>
-      <span>🎞 Rotation replay</span>
-      <span>📊 Access path</span>
-    </div>
-    <a class="view-btn" style="background:#2dd4bf;color:#04110f" href="./visualizations/splay-tree/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f472b6;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Treap</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">🎲</div>
-    </div>
-    <div class="card-desc">A randomized BST that also obeys heap order on priorities. Watch inserts bubble upward, deletes rotate downward, and both invariants stay visible frame by frame.</div>
-    <div class="card-meta">
-      <span>🎯 Path highlight</span>
-      <span>🔁 Rotation replay</span>
-      <span>🎲 Random priorities</span>
-    </div>
-    <a class="view-btn" style="background:#f472b6;color:#07111f" href="./visualizations/treap/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #22d3ee;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Quadtree</div>
-        <span class="tag graph">Data Structure</span>
-      </div>
-      <div class="card-icon">▦</div>
-    </div>
-    <div class="card-desc">Insert points into a 2D quadtree, then switch to range query or nearest-neighbor mode to watch recursive subdivision and bounding-box pruning cut away most of the search space.</div>
-    <div class="card-meta">
-      <span>🖱 Spatial insert</span>
-      <span>⬛ Range query</span>
-      <span>🎯 NN pruning</span>
-    </div>
-    <a class="view-btn" style="background:#22d3ee;color:#041018" href="./visualizations/quadtree/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #fb923c;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">LZ77 Compression</div>
-        <span class="tag search">String</span>
-      </div>
-      <div class="card-icon">🗜️</div>
-    </div>
-    <div class="card-desc">Sliding-window compression step by step. Watch the search buffer and lookahead buffer scan the input, find back-references, and emit (offset, length, char) tokens.</div>
-    <div class="card-meta">
-      <span>🪟 Sliding window</span>
-      <span>🔗 Back-references</span>
-      <span>📊 Ratio stats</span>
-    </div>
-    <a class="view-btn" style="background:#fb923c;color:#07111f" href="./visualizations/lz77/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #e3b341;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Fibonacci Heap</div>
-        <span class="tag" style="background:#2e2a14;color:#e3b341;">Data Structure</span>
-      </div>
-      <div class="card-icon">🌀</div>
-    </div>
-    <div class="card-desc">Lazy priority queue with amortized O(1) insert, find-min, decrease-key and union. Watch consolidation link equal-degree trees after extract-min, and cascading cuts propagate up marked ancestors on decrease-key.</div>
-    <div class="card-meta">
-      <span>⚡ Amortized O(1) insert</span>
-      <span>🔗 Cascading cut</span>
-      <span>📐 Consolidation</span>
-    </div>
-    <a class="view-btn" style="background:#e3b341;color:#0d1117" href="./visualizations/fibonacci-heap/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #67e8f9;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Levenshtein Distance</div>
-        <span class="tag" style="background:#0f2a2a;color:#67e8f9;">Dynamic Programming</span>
-      </div>
-      <div class="card-icon">📝</div>
-    </div>
-    <div class="card-desc">Watch the edit-distance DP table fill cell by cell. Color-coded cells reveal each operation — match (free), delete, insert, or replace — and the optimal alignment path is traced back through the matrix.</div>
-    <div class="card-meta">
-      <span>📋 DP table</span>
-      <span>🎯 Path trace</span>
-      <span>✏️ Live edit</span>
-    </div>
-    <a class="view-btn" style="background:#67e8f9;color:#0d1117" href="./visualizations/levenshtein-distance/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #3fb950;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Cycle Detection</div>
-        <span class="tag" style="background:#1a3a1a;color:#3fb950;">Linked List</span>
-      </div>
-      <div class="card-icon">🔁</div>
-    </div>
-    <div class="card-desc">Floyd's Tortoise and Hare algorithm in three phases: detect the cycle, locate the exact start node (μ), and measure the cycle length (λ). Configure tail and cycle size, then watch the pointers converge.</div>
-    <div class="card-meta">
-      <span>🐢 Tortoise +1</span>
-      <span>🐇 Hare +2</span>
-      <span>📐 μ + λ</span>
-    </div>
-    <a class="view-btn" style="background:#3fb950;color:#0d1117" href="./visualizations/cycle-detection/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #a371f7;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Longest Common Subsequence</div>
-        <span class="tag dp">DP</span>
-      </div>
-      <div class="card-icon">🧬</div>
-    </div>
-    <div class="card-desc">Watch the DP table fill cell by cell as LCS lengths are computed. Then trace back through the table to recover the actual subsequence — the foundation of diff tools.</div>
-    <div class="card-meta">
-      <span>📊 DP table</span>
-      <span>↩ Traceback</span>
-      <span>🔤 LCS highlight</span>
-    </div>
-    <a class="view-btn" style="background:#a371f7;color:#0d1117" href="./visualizations/lcs/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #a855f7;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Bloom Filter</div>
-        <span class="tag" style="background:#2a1a4a;color:#a855f7;">Data Structure</span>
-      </div>
-      <div class="card-icon">🌸</div>
-    </div>
-    <div class="card-desc">Insert elements and query membership in a probabilistic bit-array filter. Watch k hash functions light up bit positions, observe the theoretical false-positive rate climb as the array fills, and trigger false positives live.</div>
-    <div class="card-meta">
-      <span>🔢 k hash fns</span>
-      <span>⚠ False positives</span>
-      <span>📊 FP rate formula</span>
-    </div>
-    <a class="view-btn" style="background:#a855f7;color:#fff" href="./visualizations/bloom-filter/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #67e8f9;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Manacher's Algorithm</div>
-        <span class="tag search">String</span>
-      </div>
-      <div class="card-icon">🪞</div>
-    </div>
-    <div class="card-desc">Find the longest palindromic substring in O(n). Watch the transformed string, p-array fill, center/boundary window, and free-copy vs. expand decisions step by step.</div>
-    <div class="card-meta">
-      <span>📊 p-array</span>
-      <span>🪟 C/R window</span>
-      <span>⚡ O(n)</span>
-    </div>
-    <a class="view-btn" style="background:#67e8f9;color:#0d1117" href="./visualizations/manacher/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #a371f7;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Coin Change</div>
-        <span class="tag dp">DP</span>
-      </div>
-      <div class="card-icon">🪙</div>
-    </div>
-    <div class="card-desc">Watch the DP table fill amount by amount as each coin denomination is tried. Improved cells light up on every new minimum, then traceback traces the exact coins used.</div>
-    <div class="card-meta">
-      <span>📋 DP table</span>
-      <span>↩ Traceback</span>
-      <span>🪙 Coin highlight</span>
-    </div>
-    <a class="view-btn" style="background:#a371f7;color:#0d1117" href="./visualizations/coin-change/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #3fb950;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Topological Sort</div>
-        <span class="tag" style="background:#1a3a2a;color:#3fb950;">Graph</span>
-      </div>
-      <div class="card-icon">🔢</div>
-    </div>
-    <div class="card-desc">Kahn's BFS-based topological ordering of a DAG. Watch in-degrees update, the queue grow and shrink, and edges get consumed one by one. A cycle graph demonstrates cycle detection with a partial result and red highlights.</div>
-    <div class="card-meta">
-      <span>📥 In-degree table</span>
-      <span>🔄 BFS queue</span>
-      <span>⚠ Cycle detection</span>
-    </div>
-    <a class="view-btn" style="background:#3fb950;color:#0d1117" href="./visualizations/topological-sort/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #7dd3fc;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Rope</div>
-        <span class="tag search">String</span>
-      </div>
-      <div class="card-icon">🪢</div>
-    </div>
-    <div class="card-desc">Strings split into short leaf chunks, with internal nodes storing left-subtree weights. Animate index lookup, split the logical string at any position, then concatenate the two halves back together.</div>
-    <div class="card-meta">
-      <span>✂ Split / concat</span>
-      <span>⚖ Weight-guided index</span>
-      <span>🌿 Chunked leaves</span>
-    </div>
-    <a class="view-btn" style="background:#7dd3fc;color:#08111e" href="./visualizations/rope/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #c084fc;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Burrows-Wheeler Transform</div>
-        <span class="tag search">String</span>
-      </div>
-      <div class="card-icon">🔄</div>
-    </div>
-    <div class="card-desc">Watch the BWT build all rotations, sort them lexicographically, and extract the last column. Then reconstruct the original via LF-mapping inverse transform.</div>
-    <div class="card-meta">
-      <span>📋 Rotation matrix</span>
-      <span>🔀 LF-mapping</span>
-      <span>⏱ Step mode</span>
-    </div>
-    <a class="view-btn" style="background:#c084fc;color:#0d1117" href="./visualizations/burrows-wheeler/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #2dd4bf;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Consistent Hashing</div>
-        <span class="tag" style="background:#1a3a2a;color:#3fb950;">Distributed</span>
-      </div>
-      <div class="card-icon">💍</div>
-    </div>
-    <div class="card-desc">A hash ring with servers, virtual nodes, and keys. Add or remove servers and watch only nearby keys get remapped. Clockwise walk animation shows key-to-server assignment.</div>
-    <div class="card-meta">
-      <span>🔵 Virtual nodes</span>
-      <span>📊 Load balance</span>
-      <span>⏱ Animated</span>
-    </div>
-    <a class="view-btn" style="background:#2dd4bf;color:#0d1117" href="./visualizations/consistent-hashing/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #58a6ff;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Raft Consensus</div>
-        <span class="tag" style="background:#1a3a2a;color:#3fb950;">Distributed</span>
-      </div>
-      <div class="card-icon">🗳️</div>
-    </div>
-    <div class="card-desc">5-node Raft cluster with animated leader election, log replication, and heartbeat RPCs. Kill nodes to trigger re-election and watch the term system advance.</div>
-    <div class="card-meta">
-      <span>🔵 Leader election</span>
-      <span>📋 Log replication</span>
-      <span>💀 Node failure</span>
-    </div>
-    <a class="view-btn" style="background:#58a6ff;color:#0d1117" href="./visualizations/raft-consensus/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f59e0b;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Paxos</div>
-        <span class="tag" style="background:#1a3a2a;color:#3fb950;">Distributed</span>
-      </div>
-      <div class="card-icon">🤝</div>
-    </div>
-    <div class="card-desc">Single-decree Paxos with 3 proposers, 5 acceptors, and 2 learners. Animated Prepare/Promise/Accept/Accepted message flow with conflict scenarios and node failures.</div>
-    <div class="card-meta">
-      <span>📨 Message phases</span>
-      <span>⚔ Conflict preset</span>
-      <span>⏱ Step mode</span>
-    </div>
-    <a class="view-btn" style="background:#f59e0b;color:#0d1117" href="./visualizations/paxos/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f78166;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Cuckoo Hashing</div>
-        <span class="tag" style="background:#1f3a5f;color:#58a6ff;">Data Structure</span>
-      </div>
-      <div class="card-icon">🐦</div>
-    </div>
-    <div class="card-desc">Two hash tables with O(1) worst-case lookup. Insert keys and watch the eviction chain as displaced elements hop between tables. Cycle detection triggers rehash.</div>
-    <div class="card-meta">
-      <span>🔵 Two tables</span>
-      <span>🔗 Eviction chain</span>
-      <span>🔄 Auto rehash</span>
-    </div>
-    <a class="view-btn" style="background:#f78166;color:#0d1117" href="./visualizations/cuckoo-hashing/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #a371f7;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">van Emde Boas Tree</div>
-        <span class="tag" style="background:#1f3a5f;color:#58a6ff;">Data Structure</span>
-      </div>
-      <div class="card-icon">🌲</div>
-    </div>
-    <div class="card-desc">Recursive √U decomposition achieving O(log log U) predecessor queries. Nested box visualization shows summary and cluster structure for universe U=16.</div>
-    <div class="card-meta">
-      <span>🔢 Universe display</span>
-      <span>📦 Nested structure</span>
-      <span>🔍 Successor query</span>
-    </div>
-    <a class="view-btn" style="background:#a371f7;color:#0d1117" href="./visualizations/van-emde-boas/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #fbbf24;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Sieve of Eratosthenes</div>
-        <span class="tag search">Number Theory</span>
-      </div>
-      <div class="card-icon">🔢</div>
-    </div>
-    <div class="card-desc">Watch composites get crossed out as each prime sweeps through its multiples. Numbers that survive every sweep are prime — classic O(n log log n) prime generation.</div>
-    <div class="card-meta">
-      <span>🎯 Prime sweep</span>
-      <span>📊 Prime count</span>
-      <span>⚡ O(n log log n)</span>
-    </div>
-    <a class="view-btn" style="background:#fbbf24;color:#0d1117" href="./visualizations/sieve-of-eratosthenes/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #fbbf24;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Miller-Rabin Primality Test</div>
-        <span class="tag search">Number Theory</span>
-      </div>
-      <div class="card-icon">🔬</div>
-    </div>
-    <div class="card-desc">Watch witness squaring chains reveal composite numbers. Decomposes n−1 = 2ˢ·d, then tracks a^d → a^(2d) → … mod n — any failure to hit n−1 exposes a composite. Beats Carmichael numbers that fool Fermat's test.</div>
-    <div class="card-meta">
-      <span>🎯 Witness test</span>
-      <span>📊 Squaring chain</span>
-      <span>⚡ O(k·log²n)</span>
-    </div>
-    <a class="view-btn" style="background:#fbbf24;color:#0d1117" href="./visualizations/miller-rabin/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #f97316;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Boyer-Moore String Search</div>
-        <span class="tag search">String</span>
-      </div>
-      <div class="card-icon">🔍</div>
-    </div>
-    <div class="card-desc">Right-to-left pattern scan with two powerful shift heuristics. Bad character aligns mismatched text chars with their rightmost pattern occurrence; good suffix reuses already-matched suffixes. Often sub-linear on real text.</div>
-    <div class="card-meta">
-      <span>↔ Bad character</span>
-      <span>✓ Good suffix</span>
-      <span>⚡ O(n/m) best</span>
-    </div>
-    <a class="view-btn" style="background:#f97316;color:#0d1117" href="./visualizations/boyer-moore/index.html">View →</a>
-  </div>
-
-  <div class="card" style="--card-accent: #67e8f9;">
-    <div class="card-header">
-      <div>
-        <div class="card-title">Z-Algorithm</div>
-        <span class="tag search">String</span>
-      </div>
-      <div class="card-icon">🔍</div>
-    </div>
-    <div class="card-desc">Compute the Z-array in O(n): Z[i] is the length of the longest substring starting at i that matches a prefix. A sliding Z-box [l,r] avoids redundant comparisons. Concatenate pattern+"$"+text to find all matches in linear time.</div>
-    <div class="card-meta">
-      <span>📦 Z-box window</span>
-      <span>⚡ O(n+m) total</span>
-      <span>🔎 All matches</span>
-    </div>
-    <a class="view-btn" style="background:#67e8f9;color:#041018" href="./visualizations/z-algorithm/index.html">View →</a>
-  </div>
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-val" id="stat-total">0</div><div class="stat-lbl">Algorithms</div></div>
+  <div class="stat-item"><div class="stat-val" id="stat-categories">0</div><div class="stat-lbl">Categories</div></div>
+  <div class="stat-item"><div class="stat-val" id="stat-newest">—</div><div class="stat-lbl">Newest</div></div>
 </div>
 
-<div class="stats">
-  <div class="stat"><div class="stat-value">59</div><div class="stat-label">Visualizations</div></div>
-  <div class="stat"><div class="stat-value">0</div><div class="stat-label">Dependencies</div></div>
-  <div class="stat"><div class="stat-value">∞</div><div class="stat-label">Fun</div></div>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section search-section">
+      <div class="search-wrap">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 7a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Zm-.82 4.74a6 6 0 1 1 1.06-1.06l3.04 3.04a.75.75 0 1 1-1.06 1.06l-3.04-3.04Z"/></svg>
+        <input type="text" id="search-input" placeholder="Search algorithms..." autocomplete="off">
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="fav-toggle" id="fav-toggle" title="Show favorites only">
+        <span>&#9733;</span> <span>Favorites</span> <span class="chip-count" id="fav-count">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Category</h3>
+      <div class="filter-group" id="category-filters"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Difficulty</h3>
+      <div class="diff-group" id="difficulty-filters"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div id="clear-filters">Clear all filters</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="results-info">
+      <span id="results-count"></span>
+      <span id="keyboard-hint" style="font-size:0.72rem;color:var(--text-muted)">Arrow keys to navigate, Enter to open</span>
+    </div>
+    <div class="card-grid" id="card-grid"></div>
+    <div class="no-results" id="no-results">
+      <h3>No matching algorithms</h3>
+      <p>Try adjusting your search or filters.</p>
+    </div>
+  </main>
 </div>
 
 <footer>
-  <p>Open source · <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS</p>
+  <p>Open source &middot; <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> &middot; Pure HTML/CSS/JS &middot; 0 dependencies</p>
 </footer>
 
+<script>
+(function() {
+'use strict';
+
+// SVG icons for categories
+const ICONS = {
+  Sorting: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="20" width="4" height="8" rx="1" fill="currentColor" opacity=".4"/><rect x="10" y="14" width="4" height="14" rx="1" fill="currentColor" opacity=".6"/><rect x="16" y="8" width="4" height="20" rx="1" fill="currentColor" opacity=".8"/><rect x="22" y="4" width="4" height="24" rx="1" fill="currentColor"/></svg>',
+  Graph: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3" fill="currentColor" opacity=".6"/><circle cx="24" cy="8" r="3" fill="currentColor" opacity=".6"/><circle cx="16" cy="24" r="3" fill="currentColor" opacity=".6"/><line x1="10" y1="9" x2="22" y2="9" opacity=".4"/><line x1="9" y1="11" x2="15" y2="22" opacity=".4"/><line x1="23" y1="11" x2="17" y2="22" opacity=".4"/></svg>',
+  Tree: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><circle cx="16" cy="6" r="3" fill="currentColor" opacity=".6"/><circle cx="8" cy="18" r="3" fill="currentColor" opacity=".6"/><circle cx="24" cy="18" r="3" fill="currentColor" opacity=".6"/><line x1="14" y1="8" x2="10" y2="16" opacity=".4"/><line x1="18" y1="8" x2="22" y2="16" opacity=".4"/></svg>',
+  'Dynamic Programming': '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity=".3"/><rect x="13" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity=".5"/><rect x="23" y="3" width="6" height="8" rx="1.5" fill="currentColor" opacity=".3"/><rect x="3" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity=".5"/><rect x="13" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity=".8"/><rect x="3" y="23" width="8" height="6" rx="1.5" fill="currentColor" opacity=".3"/></svg>',
+  String: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><text x="4" y="22" font-size="14" font-weight="bold" fill="currentColor" opacity=".7" font-family="monospace">abc</text></svg>',
+  Probabilistic: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><circle cx="16" cy="16" r="12" opacity=".3" fill="currentColor"/><circle cx="12" cy="14" r="2" fill="currentColor" opacity=".6"/><circle cx="20" cy="18" r="2" fill="currentColor" opacity=".6"/><circle cx="16" cy="10" r="2" fill="currentColor" opacity=".8"/></svg>',
+  Distributed: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="8" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="20" y="4" width="8" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="12" y="22" width="8" height="6" rx="1.5" fill="currentColor" opacity=".5"/><line x1="10" y1="10" x2="15" y2="22" opacity=".4"/><line x1="22" y1="10" x2="17" y2="22" opacity=".4"/><line x1="12" y1="7" x2="20" y2="7" opacity=".4"/></svg>',
+  Compression: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="8" width="20" height="16" rx="2" fill="currentColor" opacity=".3"/><path d="M13 8v16M16 8v16M19 8v16" stroke-width="1.5" opacity=".5"/></svg>',
+  Geometry: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><polygon points="16,4 28,26 4,26" fill="currentColor" opacity=".3"/><circle cx="16" cy="4" r="2" fill="currentColor"/><circle cx="28" cy="26" r="2" fill="currentColor"/><circle cx="4" cy="26" r="2" fill="currentColor"/></svg>',
+  Simulation: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="4" height="4" rx="1" fill="currentColor" opacity=".6"/><rect x="14" y="6" width="4" height="4" rx="1" fill="currentColor" opacity=".3"/><rect x="14" y="14" width="4" height="4" rx="1" fill="currentColor" opacity=".6"/><rect x="22" y="14" width="4" height="4" rx="1" fill="currentColor" opacity=".6"/><rect x="14" y="22" width="4" height="4" rx="1" fill="currentColor" opacity=".3"/></svg>',
+  Search: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><circle cx="14" cy="14" r="8" opacity=".5"/><line x1="20" y1="20" x2="28" y2="28" stroke-width="3" opacity=".6"/></svg>',
+  'Data Structure': '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="4" width="16" height="7" rx="2" fill="currentColor" opacity=".4"/><rect x="8" y="13" width="16" height="7" rx="2" fill="currentColor" opacity=".6"/><rect x="8" y="22" width="16" height="7" rx="2" fill="currentColor" opacity=".4"/></svg>',
+  'Number Theory': '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><text x="6" y="22" font-size="16" font-weight="bold" fill="currentColor" opacity=".7" font-family="monospace">#</text></svg>',
+  Optimization: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,26 10,18 16,22 22,10 28,6" fill="none" stroke-width="2.5" opacity=".6"/><circle cx="22" cy="10" r="2.5" fill="currentColor" opacity=".8"/></svg>',
+  'Linked List': '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="16" r="4" fill="currentColor" opacity=".5"/><circle cx="16" cy="16" r="4" fill="currentColor" opacity=".5"/><circle cx="26" cy="16" r="4" fill="currentColor" opacity=".5"/><line x1="10" y1="16" x2="12" y2="16" stroke-width="2"/><line x1="20" y1="16" x2="22" y2="16" stroke-width="2"/></svg>'
+};
+
+const CAT_COLORS = {
+  'Sorting': 'var(--cat-sorting)',
+  'Graph': 'var(--cat-graph)',
+  'Tree': 'var(--cat-tree)',
+  'Dynamic Programming': 'var(--cat-dp)',
+  'String': 'var(--cat-string)',
+  'Probabilistic': 'var(--cat-probabilistic)',
+  'Distributed': 'var(--cat-distributed)',
+  'Compression': 'var(--cat-compression)',
+  'Geometry': 'var(--cat-geometry)',
+  'Simulation': 'var(--cat-simulation)',
+  'Search': 'var(--cat-search)',
+  'Data Structure': 'var(--cat-datastructure)',
+  'Number Theory': 'var(--cat-numbertheory)',
+  'Optimization': 'var(--cat-optimization)',
+  'Linked List': 'var(--cat-linkedlist)'
+};
+
+// All algorithm data
+const ALGORITHMS = [
+  { name: "Bubble Sort", slug: "bubble-sort", category: "Sorting", difficulty: "Beginner", time: "O(n\u00b2)", space: "O(1)", desc: "Watch elements bubble up as adjacent pairs are compared and swapped. Tracks comparisons and swaps in real time with color-coded bars.", tags: ["sorting","comparison","swap","animation"] },
+  { name: "Insertion Sort", slug: "insertion-sort", category: "Sorting", difficulty: "Beginner", time: "O(n\u00b2)", space: "O(1)", desc: "Pick up each element and slide it left past all larger values, growing a sorted prefix one card at a time.", tags: ["sorting","comparison","shift"] },
+  { name: "Counting Sort", slug: "counting-sort", category: "Sorting", difficulty: "Beginner", time: "O(n+k)", space: "O(n+k)", desc: "Non-comparative linear-time sort for bounded integers. Watch elements get counted, positions cumulated, then placed into sorted output.", tags: ["sorting","non-comparative","linear"] },
+  { name: "Shell Sort", slug: "shell-sort", category: "Sorting", difficulty: "Intermediate", time: "O(n log\u00b2n)", space: "O(1)", desc: "Insertion sort with a shrinking gap. Knuth's 3h+1 sequence pre-sorts distant elements so the final gap-1 pass is nearly free.", tags: ["sorting","gap-sequence","knuth"] },
+  { name: "Heap Sort", slug: "heap-sort", category: "Sorting", difficulty: "Intermediate", time: "O(n log n)", space: "O(1)", desc: "See heap sort in its two distinct phases: building the max heap and extracting the maximum into the sorted suffix.", tags: ["sorting","heap","in-place"] },
+  { name: "Merge Sort", slug: "merge-sort", category: "Sorting", difficulty: "Intermediate", time: "O(n log n)", space: "O(n)", desc: "Watch divide and conquer in action. The array splits recursively, then merges back in sorted order with color-coded split and merge phases.", tags: ["sorting","divide-and-conquer","merge"] },
+  { name: "Quicksort", slug: "quicksort", category: "Sorting", difficulty: "Intermediate", time: "O(n log n)", space: "O(log n)", desc: "Watch pivot selection and partitioning recurse through the array. Red pivot, blue/green pointers converge as the array is divided and conquered.", tags: ["sorting","partition","pivot","divide-and-conquer"] },
+  { name: "Radix Sort", slug: "radix-sort", category: "Sorting", difficulty: "Intermediate", time: "O(d\u00b7n)", space: "O(n+k)", desc: "Watch numbers distribute into buckets digit by digit. Non-comparative sorting that processes ones, tens, hundreds \u2014 until the array is sorted.", tags: ["sorting","non-comparative","digit","bucket"] },
+  { name: "Binary Search", slug: "binary-search", category: "Search", difficulty: "Beginner", time: "O(log n)", space: "O(1)", desc: "Step through the divide-and-conquer search strategy. See the search range narrow with each comparison until the target is found.", tags: ["search","divide-and-conquer","array"] },
+  { name: "A* Pathfinding", slug: "astar", category: "Search", difficulty: "Advanced", time: "O(E)", space: "O(V)", desc: "Draw walls on a grid, set start and end points, and watch A* use Manhattan distance heuristic to find the shortest path efficiently.", tags: ["search","pathfinding","heuristic","grid"] },
+  { name: "BFS on Grid", slug: "bfs-grid", category: "Graph", difficulty: "Beginner", time: "O(V+E)", space: "O(V)", desc: "Paint walls, set start/end, and watch BFS flood-fill the grid. Frontier expands in orange, explored cells turn blue, path lights up yellow.", tags: ["graph","bfs","grid","pathfinding"] },
+  { name: "BFS vs DFS", slug: "bfs-dfs", category: "Graph", difficulty: "Beginner", time: "O(V+E)", space: "O(V)", desc: "Build your own graph, then compare breadth-first and depth-first traversal. Queue and stack contents update live.", tags: ["graph","bfs","dfs","traversal"] },
+  { name: "Dijkstra", slug: "dijkstra", category: "Graph", difficulty: "Intermediate", time: "O(E log V)", space: "O(V)", desc: "Build a maze on a grid, place start and end points, then watch Dijkstra expand the frontier and trace the shortest path step by step.", tags: ["graph","shortest-path","priority-queue","weighted"] },
+  { name: "Floyd-Warshall", slug: "floyd-warshall", category: "Graph", difficulty: "Advanced", time: "O(V\u00b3)", space: "O(V\u00b2)", desc: "See all-pairs shortest paths emerge as the distance matrix updates. The current pivot node, matrix cell, and best path on the graph stay synchronized.", tags: ["graph","all-pairs","shortest-path","matrix"] },
+  { name: "Bellman-Ford", slug: "bellman-ford", category: "Graph", difficulty: "Intermediate", time: "O(V\u00b7E)", space: "O(V)", desc: "Follow repeated edge relaxations on a directed weighted graph, including negative edges and the extra pass that exposes negative cycles.", tags: ["graph","shortest-path","negative-edges","relaxation"] },
+  { name: "Topological Sort", slug: "topological-sort", category: "Graph", difficulty: "Intermediate", time: "O(V+E)", space: "O(V)", desc: "Compare Kahn's queue-based algorithm and DFS topological order on the same DAG. Watch edge removal, recursion, and output order.", tags: ["graph","dag","ordering","kahn","dfs"] },
+  { name: "Tarjan's SCC", slug: "tarjan-scc", category: "Graph", difficulty: "Advanced", time: "O(V+E)", space: "O(V)", desc: "Find all Strongly Connected Components in a directed graph with a single DFS. Watch disc/low values propagate and the stack pop entire SCCs.", tags: ["graph","scc","strongly-connected","dfs"] },
+  { name: "Bridge & Articulation Points", slug: "bridge-articulation", category: "Graph", difficulty: "Advanced", time: "O(V+E)", space: "O(V)", desc: "Find bridges and articulation points via DFS. Watch disc/low values update, tree vs back edges distinguished, bridges glow red.", tags: ["graph","bridge","cut-vertex","dfs"] },
+  { name: "Kruskal MST", slug: "mst-kruskal", category: "Graph", difficulty: "Intermediate", time: "O(E log E)", space: "O(V)", desc: "Sort edges by weight, then use Union-Find to grow a minimum spanning tree. Accepted edges turn green, rejected cycle edges flash red.", tags: ["graph","mst","union-find","greedy"] },
+  { name: "Prim's Algorithm", slug: "prims-algorithm", category: "Graph", difficulty: "Intermediate", time: "O(E log V)", space: "O(V)", desc: "Grow a minimum spanning tree one vertex at a time. A min-heap tracks the cheapest crossing edge.", tags: ["graph","mst","priority-queue","greedy"] },
+  { name: "Ford-Fulkerson Max Flow", slug: "ford-fulkerson", category: "Graph", difficulty: "Advanced", time: "O(V\u00b7E\u00b2)", space: "O(V\u00b2)", desc: "Find maximum flow from source to sink by repeatedly discovering augmenting paths through a residual graph.", tags: ["graph","max-flow","residual","augmenting-path"] },
+  { name: "Cycle Detection", slug: "cycle-detection", category: "Linked List", difficulty: "Intermediate", time: "O(n)", space: "O(1)", desc: "Floyd's Tortoise and Hare algorithm in three phases: detect the cycle, locate the exact start node, and measure the cycle length.", tags: ["linked-list","floyd","tortoise-hare","cycle"] },
+  { name: "AVL Tree", slug: "avl-tree", category: "Tree", difficulty: "Intermediate", time: "O(log n)", space: "O(n)", desc: "Insert and delete values in a self-balancing BST. Replay single and double rotations frame by frame while every node shows its height and balance factor.", tags: ["tree","bst","balanced","rotation","avl"] },
+  { name: "Red-Black Tree", slug: "red-black-tree", category: "Tree", difficulty: "Advanced", time: "O(log n)", space: "O(n)", desc: "Replay insert and delete fix-up step by step. Watch red-black color flips, left/right rotations, and all five invariants stay in sync.", tags: ["tree","bst","balanced","rotation","red-black"] },
+  { name: "B-Tree", slug: "b-tree", category: "Tree", difficulty: "Advanced", time: "O(log n)", space: "O(n)", desc: "Order-4 B-tree with search, insertion, and deletion. Watch keys split upward on insert and merge or borrow during delete.", tags: ["tree","balanced","split","merge","database"] },
+  { name: "Splay Tree", slug: "splay-tree", category: "Data Structure", difficulty: "Advanced", time: "O(log n) amort.", space: "O(n)", desc: "Every insert, search, and delete splays the touched node toward the root. Replay zig, zig-zig, and zig-zag rotations.", tags: ["tree","bst","self-adjusting","splay","rotation"] },
+  { name: "Treap", slug: "treap", category: "Data Structure", difficulty: "Advanced", time: "O(log n) exp.", space: "O(n)", desc: "A randomized BST that also obeys heap order on priorities. Watch inserts bubble upward, deletes rotate downward.", tags: ["tree","bst","randomized","heap","priority"] },
+  { name: "Segment Tree", slug: "segment-tree", category: "Data Structure", difficulty: "Advanced", time: "O(log n)", space: "O(n)", desc: "Inspect range sum queries, point updates, and lazy propagation on a full segment tree.", tags: ["data-structure","range-query","lazy","segment"] },
+  { name: "Fenwick Tree", slug: "fenwick-tree", category: "Data Structure", difficulty: "Advanced", time: "O(log n)", space: "O(n)", desc: "Inspect prefix sums in a Binary Indexed Tree. Updates climb upward with lowbit, queries hop downward.", tags: ["data-structure","prefix-sum","binary-indexed-tree"] },
+  { name: "Union-Find", slug: "union-find", category: "Data Structure", difficulty: "Intermediate", time: "O(\u03b1(n))", space: "O(n)", desc: "See disjoint sets merge with union by rank and flatten with path compression. Parent pointers update live.", tags: ["data-structure","disjoint-set","union","find","compression"] },
+  { name: "Hash Table", slug: "hash-table", category: "Data Structure", difficulty: "Beginner", time: "O(1) avg.", space: "O(n)", desc: "Insert, search, and delete keys. Toggle between Separate Chaining and Open Addressing to see how each resolves collisions.", tags: ["data-structure","hash","chaining","linear-probing"] },
+  { name: "LRU Cache", slug: "lru-cache", category: "Data Structure", difficulty: "Intermediate", time: "O(1)", space: "O(n)", desc: "Visualize get and put on an LRU cache backed by a doubly linked list and hash map. Tail eviction on overflow.", tags: ["data-structure","cache","linked-list","hashmap","eviction"] },
+  { name: "Skip List", slug: "skip-list", category: "Data Structure", difficulty: "Advanced", time: "O(log n) exp.", space: "O(n)", desc: "Layered linked list with fast-lane skipping. Watch coin-flip level promotion during insert and express-lane traversal during search.", tags: ["data-structure","probabilistic","linked-list","skip"] },
+  { name: "Fibonacci Heap", slug: "fibonacci-heap", category: "Data Structure", difficulty: "Advanced", time: "O(1) amort. insert", space: "O(n)", desc: "Lazy priority queue with amortized O(1) insert. Watch consolidation link equal-degree trees after extract-min.", tags: ["data-structure","heap","amortized","priority-queue"] },
+  { name: "KD-Tree", slug: "kd-tree", category: "Data Structure", difficulty: "Advanced", time: "O(log n)", space: "O(n)", desc: "2D spatial partitioning with alternating X/Y splits. Click to add points, toggle NN mode to find nearest neighbors.", tags: ["data-structure","spatial","nearest-neighbor","partition"] },
+  { name: "Quadtree", slug: "quadtree", category: "Data Structure", difficulty: "Intermediate", time: "O(log n)", space: "O(n)", desc: "Insert points into a 2D quadtree, then switch to range query or nearest-neighbor mode.", tags: ["data-structure","spatial","range-query","subdivision"] },
+  { name: "Cuckoo Hashing", slug: "cuckoo-hashing", category: "Data Structure", difficulty: "Intermediate", time: "O(1) worst lookup", space: "O(n)", desc: "Two hash tables with O(1) worst-case lookup. Watch the eviction chain as displaced elements hop between tables.", tags: ["data-structure","hash","eviction","two-tables"] },
+  { name: "van Emde Boas Tree", slug: "van-emde-boas", category: "Data Structure", difficulty: "Advanced", time: "O(log log U)", space: "O(U)", desc: "Recursive \u221aU decomposition achieving O(log log U) predecessor queries. Nested box visualization.", tags: ["data-structure","universe","predecessor","successor"] },
+  { name: "Trie", slug: "trie", category: "String", difficulty: "Intermediate", time: "O(m)", space: "O(n\u00b7m)", desc: "Prefix tree that stores words character by character. Type to insert words, search highlights paths.", tags: ["string","prefix","trie","search"] },
+  { name: "Suffix Array", slug: "suffix-array", category: "String", difficulty: "Advanced", time: "O(n log\u00b2n)", space: "O(n)", desc: "Build the suffix array round by round with prefix doubling. Rank pairs, sorted suffixes, and the final LCP array.", tags: ["string","suffix","lcp","prefix-doubling"] },
+  { name: "Suffix Automaton", slug: "suffix-automaton", category: "String", difficulty: "Advanced", time: "O(n)", space: "O(n)", desc: "Watch the online SAM construction add one character at a time. States, suffix links, cloning events update live.", tags: ["string","automaton","suffix","online"] },
+  { name: "Knuth-Morris-Pratt", slug: "knuth-morris-pratt", category: "String", difficulty: "Intermediate", time: "O(n+m)", space: "O(m)", desc: "Linear-time pattern matching using the failure function. Watch the pattern shift intelligently on mismatches.", tags: ["string","pattern-matching","kmp","failure-function"] },
+  { name: "Boyer-Moore", slug: "boyer-moore", category: "String", difficulty: "Advanced", time: "O(n/m) best", space: "O(\u03a3)", desc: "Right-to-left pattern scan with bad character and good suffix heuristics. Often sub-linear on real text.", tags: ["string","pattern-matching","bad-character","good-suffix"] },
+  { name: "Rabin-Karp", slug: "rabin-karp", category: "String", difficulty: "Intermediate", time: "O(n+m)", space: "O(1)", desc: "Rolling hash string search. Watch the hash window slide across text, handle collisions, compare with naive search.", tags: ["string","pattern-matching","rolling-hash","fingerprint"] },
+  { name: "Aho-Corasick", slug: "aho-corasick", category: "String", difficulty: "Advanced", time: "O(n+m+z)", space: "O(m)", desc: "Multi-pattern matching automaton. Build a trie with failure links and dictionary links to find all pattern occurrences in one pass.", tags: ["string","multi-pattern","automaton","trie","failure-link"] },
+  { name: "Z-Algorithm", slug: "z-algorithm", category: "String", difficulty: "Intermediate", time: "O(n+m)", space: "O(n)", desc: "Compute the Z-array in O(n). A sliding Z-box avoids redundant comparisons for all-matches linear time search.", tags: ["string","z-array","z-box","pattern-matching"] },
+  { name: "Manacher's Algorithm", slug: "manacher", category: "String", difficulty: "Advanced", time: "O(n)", space: "O(n)", desc: "Find the longest palindromic substring in O(n). Watch the p-array fill, center/boundary window, and expand decisions.", tags: ["string","palindrome","linear","manacher"] },
+  { name: "Rope", slug: "rope", category: "String", difficulty: "Advanced", time: "O(log n)", space: "O(n)", desc: "Strings split into short leaf chunks, with internal nodes storing left-subtree weights. Split and concatenate.", tags: ["string","rope","split","concatenate","balanced"] },
+  { name: "Burrows-Wheeler Transform", slug: "burrows-wheeler", category: "Compression", difficulty: "Advanced", time: "O(n log n)", space: "O(n)", desc: "Watch the BWT build all rotations, sort them, and extract the last column. Then reconstruct via LF-mapping.", tags: ["compression","bwt","transform","rotation","lf-mapping"] },
+  { name: "Huffman Coding", slug: "huffman-coding", category: "Compression", difficulty: "Intermediate", time: "O(n log n)", space: "O(n)", desc: "Count character frequencies, greedily merge the two lightest nodes, then generate the optimal Huffman code table.", tags: ["compression","huffman","prefix-code","greedy","tree"] },
+  { name: "LZ77 Compression", slug: "lz77", category: "Compression", difficulty: "Advanced", time: "O(n\u00b7w)", space: "O(w)", desc: "Sliding-window compression step by step. Watch the search buffer find back-references and emit tokens.", tags: ["compression","lz77","sliding-window","back-reference"] },
+  { name: "Bloom Filter", slug: "bloom-filter", category: "Probabilistic", difficulty: "Intermediate", time: "O(k)", space: "O(m)", desc: "Insert elements and query membership in a probabilistic bit-array filter. Watch k hash functions light up bit positions.", tags: ["probabilistic","bloom","hash","false-positive","membership"] },
+  { name: "Convex Hull", slug: "convex-hull", category: "Geometry", difficulty: "Intermediate", time: "O(n log n)", space: "O(n)", desc: "Graham Scan vs Jarvis March side by side. Click to add points and watch two algorithms race to wrap the convex polygon.", tags: ["geometry","convex-hull","graham-scan","jarvis-march"] },
+  { name: "Game of Life", slug: "game-of-life", category: "Simulation", difficulty: "Beginner", time: "O(cells)", space: "O(cells)", desc: "Conway's cellular automaton on a 60\u00d760 grid. Load classic patterns or draw your own and watch life emerge.", tags: ["simulation","cellular-automaton","conway","patterns"] },
+  { name: "Consistent Hashing", slug: "consistent-hashing", category: "Distributed", difficulty: "Intermediate", time: "O(log n)", space: "O(n)", desc: "A hash ring with servers, virtual nodes, and keys. Add or remove servers and watch only nearby keys get remapped.", tags: ["distributed","hash-ring","virtual-nodes","load-balance"] },
+  { name: "Raft Consensus", slug: "raft-consensus", category: "Distributed", difficulty: "Advanced", time: "O(n)", space: "O(n)", desc: "5-node Raft cluster with animated leader election, log replication, and heartbeat RPCs. Kill nodes to trigger re-election.", tags: ["distributed","consensus","leader-election","log-replication"] },
+  { name: "Paxos", slug: "paxos", category: "Distributed", difficulty: "Advanced", time: "O(n)", space: "O(n)", desc: "Single-decree Paxos with proposers, acceptors, and learners. Animated message flow with conflict scenarios.", tags: ["distributed","consensus","paxos","message-passing"] },
+  { name: "DP Visualizer (LCS)", slug: "dp-visualizer", category: "Dynamic Programming", difficulty: "Intermediate", time: "O(m\u00b7n)", space: "O(m\u00b7n)", desc: "Watch an LCS dynamic programming table fill cell by cell, then backtrack to recover the longest common subsequence.", tags: ["dp","lcs","backtracking","table"] },
+  { name: "Longest Common Subsequence", slug: "lcs", category: "Dynamic Programming", difficulty: "Intermediate", time: "O(m\u00b7n)", space: "O(m\u00b7n)", desc: "Watch the DP table fill cell by cell as LCS lengths are computed. Then trace back to recover the subsequence.", tags: ["dp","lcs","traceback","diff"] },
+  { name: "Levenshtein Distance", slug: "levenshtein-distance", category: "Dynamic Programming", difficulty: "Intermediate", time: "O(m\u00b7n)", space: "O(m\u00b7n)", desc: "Watch the edit-distance DP table fill cell by cell. Color-coded cells reveal each operation and the optimal alignment path.", tags: ["dp","edit-distance","alignment","string"] },
+  { name: "Coin Change", slug: "coin-change", category: "Dynamic Programming", difficulty: "Intermediate", time: "O(n\u00b7m)", space: "O(n)", desc: "Watch the DP table fill amount by amount as each coin denomination is tried. Traceback traces the exact coins used.", tags: ["dp","coin-change","optimization","traceback"] },
+  { name: "Sieve of Eratosthenes", slug: "sieve-of-eratosthenes", category: "Number Theory", difficulty: "Beginner", time: "O(n log log n)", space: "O(n)", desc: "Watch composites get crossed out as each prime sweeps through its multiples. Classic prime generation.", tags: ["number-theory","prime","sieve","eratosthenes"] },
+  { name: "Miller-Rabin", slug: "miller-rabin", category: "Number Theory", difficulty: "Advanced", time: "O(k\u00b7log\u00b2n)", space: "O(1)", desc: "Watch witness squaring chains reveal composite numbers. Beats Carmichael numbers that fool Fermat's test.", tags: ["number-theory","primality","probabilistic","modular"] },
+  // NEW visualizations
+  { name: "Simulated Annealing", slug: "simulated-annealing", category: "Optimization", difficulty: "Advanced", time: "varies", space: "O(n)", desc: "Solve the Traveling Salesman Problem visually. Watch the temperature cooling curve, current vs best solution, and accept/reject probability.", tags: ["optimization","metaheuristic","tsp","temperature","cooling"], isNew: true },
+  { name: "Boyer-Moore Voting", slug: "boyer-moore-voting", category: "Search", difficulty: "Intermediate", time: "O(n)", space: "O(1)", desc: "Find the majority element in an array using the Boyer-Moore voting algorithm. Watch the candidate and count evolve as elements match or mismatch.", tags: ["search","voting","majority","linear","streaming"], isNew: true },
+  { name: "Minimum Spanning Tree", slug: "minimum-spanning-tree", category: "Graph", difficulty: "Intermediate", time: "O(E log V)", space: "O(V)", desc: "Compare Kruskal's and Prim's MST algorithms side by side on the same graph. Toggle between them and watch MST weight build up.", tags: ["graph","mst","kruskal","prim","comparison"], isNew: true },
+  { name: "Reservoir Sampling", slug: "reservoir-sampling", category: "Probabilistic", difficulty: "Intermediate", time: "O(n)", space: "O(k)", desc: "Select k random samples from a stream of unknown length. Watch replacement probabilities and frequency distribution converge.", tags: ["probabilistic","sampling","streaming","random","reservoir"], isNew: true },
+  { name: "Matrix Chain Multiplication", slug: "matrix-chain-multiplication", category: "Dynamic Programming", difficulty: "Advanced", time: "O(n\u00b3)", space: "O(n\u00b2)", desc: "Find the optimal parenthesization for a chain of matrix multiplications. Watch the DP table fill diagonally and trace back the split points.", tags: ["dp","matrix","parenthesization","optimization"], isNew: true },
+  { name: "0/1 Knapsack", slug: "knapsack", category: "Dynamic Programming", difficulty: "Intermediate", time: "O(n\u00b7W)", space: "O(n\u00b7W)", desc: "Pack items to maximize value within a weight limit. Watch the 2D DP table fill and backtrack to reveal the optimal selection.", tags: ["dp","knapsack","optimization","backtracking"], isNew: true },
+  { name: "Karatsuba Multiplication", slug: "karatsuba-multiplication", category: "Sorting", difficulty: "Advanced", time: "O(n^1.585)", space: "O(n)", desc: "Divide-and-conquer integer multiplication. Watch how three recursive multiplications replace four, with animated digit splitting and recombination.", tags: ["divide-and-conquer","multiplication","karatsuba","recursive"], isNew: true },
+  { name: "Interval Scheduling", slug: "interval-scheduling", category: "Optimization", difficulty: "Intermediate", time: "O(n log n)", space: "O(n)", desc: "Greedy interval scheduling maximization. Watch intervals sort by end time and get selected or rejected as overlaps are detected.", tags: ["optimization","greedy","interval","scheduling"], isNew: true },
+  { name: "Hungarian Algorithm", slug: "hungarian-algorithm", category: "Optimization", difficulty: "Advanced", time: "O(n\u00b3)", space: "O(n\u00b2)", desc: "Optimal assignment problem solver. Watch row/column reductions, line covering, and augmenting path adjustments on the cost matrix.", tags: ["optimization","assignment","matrix","bipartite"], isNew: true },
+  { name: "Counting Inversions", slug: "counting-inversions", category: "Sorting", difficulty: "Intermediate", time: "O(n log n)", space: "O(n)", desc: "Count inversions using modified merge sort. Watch pairs cross during the merge step and accumulate the inversion count.", tags: ["sorting","inversions","merge-sort","divide-and-conquer"], isNew: true }
+];
+
+// State
+let favorites = JSON.parse(localStorage.getItem('vcs-favorites') || '[]');
+let activeCategories = new Set();
+let activeDifficulties = new Set();
+let showFavoritesOnly = false;
+let searchQuery = '';
+let focusedCardIndex = -1;
+
+// Build category counts
+function getCategoryCounts() {
+  const counts = {};
+  ALGORITHMS.forEach(a => { counts[a.category] = (counts[a.category] || 0) + 1; });
+  return counts;
+}
+
+function getDifficultyCounts() {
+  const counts = {};
+  ALGORITHMS.forEach(a => { counts[a.difficulty] = (counts[a.difficulty] || 0) + 1; });
+  return counts;
+}
+
+// Render sidebar filters
+function renderFilters() {
+  const catCounts = getCategoryCounts();
+  const catContainer = document.getElementById('category-filters');
+  const sortedCats = Object.keys(catCounts).sort();
+
+  sortedCats.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'filter-chip';
+    chip.dataset.category = cat;
+    const color = CAT_COLORS[cat] || 'var(--accent)';
+    chip.innerHTML = `<span class="chip-dot" style="background:${color}"></span><span>${cat}</span><span class="chip-count">${catCounts[cat]}</span>`;
+    chip.addEventListener('click', () => {
+      if (activeCategories.has(cat)) activeCategories.delete(cat);
+      else activeCategories.add(cat);
+      chip.classList.toggle('active');
+      applyFilters();
+    });
+    catContainer.appendChild(chip);
+  });
+
+  const diffCounts = getDifficultyCounts();
+  const diffContainer = document.getElementById('difficulty-filters');
+  const diffIcons = { 'Beginner': '\u25cf', 'Intermediate': '\u25cf\u25cf', 'Advanced': '\u25cf\u25cf\u25cf' };
+  const diffColors = { 'Beginner': '#3fb950', 'Intermediate': '#e3b341', 'Advanced': '#f85149' };
+  ['Beginner','Intermediate','Advanced'].forEach(diff => {
+    if (!diffCounts[diff]) return;
+    const chip = document.createElement('div');
+    chip.className = 'diff-chip';
+    chip.dataset.difficulty = diff;
+    chip.innerHTML = `<span class="diff-icon" style="color:${diffColors[diff]}">${diffIcons[diff]}</span><span>${diff}</span><span class="chip-count">${diffCounts[diff]}</span>`;
+    chip.addEventListener('click', () => {
+      if (activeDifficulties.has(diff)) activeDifficulties.delete(diff);
+      else activeDifficulties.add(diff);
+      chip.classList.toggle('active');
+      applyFilters();
+    });
+    diffContainer.appendChild(chip);
+  });
+
+  // Stats
+  document.getElementById('stat-total').textContent = ALGORITHMS.length;
+  document.getElementById('stat-categories').textContent = sortedCats.length;
+  const newest = ALGORITHMS.find(a => a.isNew);
+  document.getElementById('stat-newest').textContent = newest ? newest.name : '\u2014';
+}
+
+// Build cards
+function renderCards() {
+  const grid = document.getElementById('card-grid');
+  ALGORITHMS.forEach((algo, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.tabIndex = 0;
+    card.dataset.index = idx;
+    card.dataset.slug = algo.slug;
+    card.dataset.category = algo.category;
+    card.dataset.difficulty = algo.difficulty;
+    card.dataset.name = algo.name.toLowerCase();
+    card.dataset.desc = algo.desc.toLowerCase();
+    card.dataset.tags = algo.tags.join(' ');
+    const color = CAT_COLORS[algo.category] || 'var(--accent)';
+    card.style.setProperty('--card-cat-color', color);
+
+    const isFav = favorites.includes(algo.slug);
+    const icon = ICONS[algo.category] || ICONS['Search'];
+
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-title-area">
+          <div class="card-title">${algo.name}</div>
+          <div class="card-tags">
+            <span class="tag" style="background:color-mix(in srgb, ${color} 20%, transparent);color:${color}">${algo.category}</span>
+            ${algo.isNew ? '<span class="badge-new">New</span>' : ''}
+          </div>
+        </div>
+        <div class="card-icon-area">
+          <button class="fav-btn ${isFav ? 'favorited' : ''}" data-slug="${algo.slug}" title="Toggle favorite">
+            ${isFav ? '\u2605' : '\u2606'}
+          </button>
+          <div class="card-icon" style="color:${color}">${icon}</div>
+        </div>
+      </div>
+      <div class="complexity-row">
+        <span class="complexity"><span class="cx-label">Time</span> ${algo.time}</span>
+        <span class="complexity"><span class="cx-label">Space</span> ${algo.space}</span>
+      </div>
+      <div class="card-desc">${algo.desc}</div>
+      <a class="view-btn" href="./visualizations/${algo.slug}/index.html">View \u2192</a>
+    `;
+
+    // Favorite button
+    const favBtn = card.querySelector('.fav-btn');
+    favBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFavorite(algo.slug, favBtn);
+    });
+
+    // Keyboard: Enter opens
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        window.location.href = `./visualizations/${algo.slug}/index.html`;
+      }
+    });
+
+    grid.appendChild(card);
+  });
+}
+
+function toggleFavorite(slug, btn) {
+  const idx = favorites.indexOf(slug);
+  if (idx >= 0) {
+    favorites.splice(idx, 1);
+    btn.classList.remove('favorited');
+    btn.innerHTML = '\u2606';
+  } else {
+    favorites.push(slug);
+    btn.classList.add('favorited');
+    btn.innerHTML = '\u2605';
+  }
+  localStorage.setItem('vcs-favorites', JSON.stringify(favorites));
+  document.getElementById('fav-count').textContent = favorites.length;
+  if (showFavoritesOnly) applyFilters();
+}
+
+// Highlight search matches in text
+function highlightText(text, query) {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(${escaped})`, 'gi');
+  return text.replace(re, '<span class="highlight">$1</span>');
+}
+
+// Apply all filters
+function applyFilters() {
+  const cards = document.querySelectorAll('.card');
+  const q = searchQuery.toLowerCase().trim();
+  let visibleCount = 0;
+
+  cards.forEach((card, i) => {
+    const algo = ALGORITHMS[i];
+    let show = true;
+
+    // Category filter
+    if (activeCategories.size > 0 && !activeCategories.has(algo.category)) show = false;
+
+    // Difficulty filter
+    if (activeDifficulties.size > 0 && !activeDifficulties.has(algo.difficulty)) show = false;
+
+    // Favorites filter
+    if (showFavoritesOnly && !favorites.includes(algo.slug)) show = false;
+
+    // Search filter
+    if (q) {
+      const searchStr = `${algo.name} ${algo.desc} ${algo.tags.join(' ')} ${algo.category}`.toLowerCase();
+      if (!searchStr.includes(q)) show = false;
+    }
+
+    if (show) {
+      card.classList.remove('hidden');
+      visibleCount++;
+      // Highlight search terms
+      const titleEl = card.querySelector('.card-title');
+      const descEl = card.querySelector('.card-desc');
+      titleEl.innerHTML = highlightText(algo.name, q);
+      descEl.innerHTML = highlightText(algo.desc, q);
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+
+  document.getElementById('results-count').textContent = `${visibleCount} of ${ALGORITHMS.length} algorithms`;
+  document.getElementById('no-results').classList.toggle('visible', visibleCount === 0);
+
+  // Show/hide clear button
+  const hasFilters = activeCategories.size > 0 || activeDifficulties.size > 0 || showFavoritesOnly || q;
+  document.getElementById('clear-filters').style.display = hasFilters ? 'block' : 'none';
+
+  focusedCardIndex = -1;
+}
+
+// Keyboard navigation
+function getVisibleCards() {
+  return [...document.querySelectorAll('.card:not(.hidden)')];
+}
+
+document.addEventListener('keydown', (e) => {
+  // Don't intercept if typing in search
+  if (document.activeElement === document.getElementById('search-input')) {
+    if (e.key === 'Escape') {
+      document.getElementById('search-input').blur();
+      e.preventDefault();
+    }
+    return;
+  }
+
+  const visible = getVisibleCards();
+  if (!visible.length) return;
+
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    focusedCardIndex = Math.min(focusedCardIndex + 1, visible.length - 1);
+    visible[focusedCardIndex].focus();
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    focusedCardIndex = Math.max(focusedCardIndex - 1, 0);
+    visible[focusedCardIndex].focus();
+  } else if (e.key === '/') {
+    e.preventDefault();
+    document.getElementById('search-input').focus();
+  }
+});
+
+// Init
+renderFilters();
+renderCards();
+applyFilters();
+document.getElementById('fav-count').textContent = favorites.length;
+
+// Search input
+document.getElementById('search-input').addEventListener('input', (e) => {
+  searchQuery = e.target.value;
+  applyFilters();
+});
+
+// Favorites toggle
+document.getElementById('fav-toggle').addEventListener('click', () => {
+  showFavoritesOnly = !showFavoritesOnly;
+  document.getElementById('fav-toggle').classList.toggle('active', showFavoritesOnly);
+  applyFilters();
+});
+
+// Clear filters
+document.getElementById('clear-filters').addEventListener('click', () => {
+  activeCategories.clear();
+  activeDifficulties.clear();
+  showFavoritesOnly = false;
+  searchQuery = '';
+  document.getElementById('search-input').value = '';
+  document.getElementById('fav-toggle').classList.remove('active');
+  document.querySelectorAll('.filter-chip.active, .diff-chip.active').forEach(el => el.classList.remove('active'));
+  applyFilters();
+});
+
+})();
+</script>
 </body>
 </html>
