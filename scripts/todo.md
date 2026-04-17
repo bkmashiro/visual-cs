@@ -6,7 +6,7 @@
 - [x] boyer-moore — Boyer-Moore String Search (bad character + good suffix heuristics, right-to-left scan) ✅ 2026-04-11
 - [x] z-algorithm — Z-Algorithm (Z-array linear string matching, prefix vs suffix comparison) ✅ 2026-04-13
 - [x] suffix-automaton — Suffix Automaton (SAM, online construction, endpos sets) ✅ 2026-04-15
-- [ ] suffix-tree — Suffix Tree (Ukkonen's algorithm, compact trie, O(n) construction)
+- [x] suffix-tree — Suffix Tree (Ukkonen's algorithm, compact trie, O(n) construction) ✅ 2026-04-17
 - [ ] arithmetic-coding — Arithmetic Coding (interval subdivision, encoder + decoder)
 
 ### Graphs

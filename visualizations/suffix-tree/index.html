@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suffix Tree (Ukkonen's Algorithm) — visual-cs</title>
+<style>
+:root{
+  --bg:#07111f;
+  --surface:#0d1728;
+  --surface-2:#13213a;
+  --surface-3:#192a48;
+  --border:#284166;
+  --text:#e6eefc;
+  --muted:#90a5c7;
+  --cyan:#67e8f9;
+  --blue:#60a5fa;
+  --violet:#a78bfa;
+  --amber:#fbbf24;
+  --green:#4ade80;
+  --red:#fb7185;
+  --orange:#fb923c;
+  --pink:#f472b6;
+  --shadow:0 24px 80px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left,rgba(103,232,249,.12),transparent 26%),
+    radial-gradient(circle at top right,rgba(167,139,250,.12),transparent 24%),
+    linear-gradient(180deg,#08101d,#050b14 60%);
+}
+header{
+  position:sticky;top:0;z-index:30;
+  backdrop-filter:blur(18px);
+  background:rgba(5,11,20,.72);
+  border-bottom:1px solid rgba(40,65,102,.7);
+}
+.header-inner{
+  max-width:1380px;margin:0 auto;padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+}
+.brand h1{font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase}
+.brand h1 span{color:var(--cyan)}
+.brand p{font-size:.82rem;color:var(--muted);margin-top:4px}
+.back{
+  text-decoration:none;border:1px solid var(--border);border-radius:999px;
+  padding:10px 16px;font-size:.8rem;color:var(--muted);transition:.18s ease;
+}
+.back:hover{color:var(--text);border-color:var(--cyan);transform:translateY(-1px)}
+.shell{
+  max-width:1380px;margin:0 auto;padding:28px 24px 40px;
+  display:grid;grid-template-columns:minmax(0,1.4fr) 340px;gap:22px;
+}
+.panel{
+  background:linear-gradient(180deg,rgba(13,23,40,.95),rgba(8,14,25,.95));
+  border:1px solid rgba(40,65,102,.85);border-radius:24px;box-shadow:var(--shadow);
+}
+.main{padding:24px;display:flex;flex-direction:column;gap:18px}
+.hero{
+  padding:22px;border-radius:22px;
+  background:linear-gradient(135deg,rgba(96,165,250,.14),rgba(103,232,249,.08) 40%,rgba(167,139,250,.14));
+  border:1px solid rgba(103,232,249,.16);
+  display:grid;grid-template-columns:1.3fr .9fr;gap:18px;
+}
+.hero h2{font-size:2.0rem;line-height:1.05;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.6;font-size:.95rem;max-width:58ch}
+.hero-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.metric{background:rgba(9,18,33,.74);border:1px solid rgba(103,232,249,.12);border-radius:18px;padding:14px}
+.metric .label{font-size:.7rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:8px}
+.metric .value{font-size:1.3rem;font-weight:800}
+.metric .hint{font-size:.78rem;color:var(--muted);margin-top:6px;line-height:1.45}
+.toolbar,.status,.graph-panel,.table-wrap,.timeline-wrap{
+  padding:18px;border-radius:20px;
+  background:rgba(10,18,31,.9);border:1px solid rgba(40,65,102,.72);
+}
+.toolbar{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:6px;min-width:150px;flex:1}
+.field.small{flex:.4;min-width:120px}
+.field label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+input[type=text],input[type=range]{width:100%}
+input[type=text]{
+  background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:14px;
+  padding:13px 14px;font-size:1rem;outline:none;transition:border-color .18s ease,box-shadow .18s ease;
+  font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;
+}
+input[type=text]:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(103,232,249,.12)}
+.presets,.buttons{display:flex;flex-wrap:wrap;gap:10px}
+button{
+  border:none;border-radius:14px;padding:11px 16px;font-size:.86rem;font-weight:700;cursor:pointer;
+  color:var(--text);background:var(--surface-2);border:1px solid var(--border);transition:.18s ease;
+}
+button:hover:not(:disabled){transform:translateY(-1px);border-color:var(--cyan)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#04101d;border-color:transparent}
+.secondary{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.45);color:#ddd6fe}
+.ghost{color:var(--muted)}
+.preset{padding:8px 12px;border-radius:999px;font-size:.78rem}
+.speedbox{display:flex;align-items:center;gap:10px;margin-left:auto;min-width:220px}
+.speedbox span{font-size:.78rem;color:var(--muted)}
+input[type=range]{accent-color:var(--cyan)}
+/* Status bar */
+.status{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+.pill{
+  display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;
+  border-radius:999px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;
+  background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.4);color:#bfdbfe;
+  word-break:break-all;text-align:center;white-space:nowrap;
+}
+.pill.phase-extend{background:rgba(103,232,249,.12);border-color:rgba(103,232,249,.45);color:var(--cyan)}
+.pill.phase-link{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.45);color:var(--violet)}
+.pill.phase-done{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.45);color:var(--green)}
+.pill.phase-walk{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.45);color:var(--amber)}
+.status p{color:var(--muted);line-height:1.55;font-size:.88rem}
+.quick-stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat-chip{min-width:76px;padding:10px 12px;border-radius:14px;border:1px solid rgba(40,65,102,.7);background:var(--surface-2)}
+.stat-chip .k{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.stat-chip .v{font-size:1.05rem;font-weight:800;margin-top:4px}
+/* String strip */
+.string-strip{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.char-card{
+  min-width:38px;min-height:52px;
+  background:linear-gradient(180deg,rgba(25,42,72,.96),rgba(16,25,43,.96));
+  border:1px solid rgba(96,165,250,.26);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  transition:all .2s;
+}
+.char-card.processed{border-color:var(--green);background:rgba(74,222,128,.07)}
+.char-card.current{border-color:var(--cyan);background:rgba(103,232,249,.09);box-shadow:0 0 0 2px rgba(103,232,249,.15)}
+.char-card .ch{font-size:1rem;font-weight:800;font-family:"SFMono-Regular",ui-monospace,Menlo,monospace}
+.char-card .ix{font-size:.62rem;color:var(--muted);margin-top:3px}
+/* Active point display */
+.active-point-box{
+  padding:14px 16px;border-radius:14px;
+  background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);
+  display:flex;gap:18px;flex-wrap:wrap;align-items:center;
+}
+.ap-item{display:flex;flex-direction:column;gap:3px}
+.ap-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--amber);font-weight:700}
+.ap-value{font-size:1.05rem;font-weight:800;font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;color:var(--text)}
+.ap-sep{color:var(--border);align-self:center;font-size:1.2rem}
+/* Graph */
+.graph-panel{padding:16px;display:flex;flex-direction:column;gap:12px}
+.graph-section-title{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.graph-section-title h3{font-size:1rem}
+.graph-section-title p{font-size:.8rem;color:var(--muted)}
+.graph-scroll{overflow:auto;border-radius:12px;background:rgba(7,15,26,.8);min-height:320px}
+.graph-scroll::-webkit-scrollbar{height:5px;width:5px}
+.graph-scroll::-webkit-scrollbar-thumb{background:rgba(40,65,102,.9);border-radius:999px}
+#tree-svg{display:block}
+/* Node styles used in SVG */
+.node-circle{transition:all .25s}
+/* Timeline */
+.timeline-wrap{display:flex;flex-direction:column;gap:12px}
+.section-title{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.section-title h3{font-size:1rem}
+.section-title p{font-size:.82rem;color:var(--muted)}
+.timeline-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;padding-right:4px}
+.timeline-list::-webkit-scrollbar{width:5px}
+.timeline-list::-webkit-scrollbar-thumb{background:rgba(40,65,102,.9);border-radius:999px}
+.timeline-item{
+  padding:10px 13px;border-radius:12px;
+  background:rgba(19,33,58,.85);border:1px solid rgba(40,65,102,.65);
+  cursor:pointer;transition:border-color .15s;
+}
+.timeline-item:hover{border-color:rgba(96,165,250,.5)}
+.timeline-item.active{border-color:var(--cyan);background:rgba(96,165,250,.08)}
+.timeline-item .phase{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);margin-bottom:4px}
+.timeline-item p{font-size:.8rem;color:var(--muted);line-height:1.43}
+/* Sidebar */
+.sidebar{padding:20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.side-card{padding:18px;border-radius:20px;background:rgba(10,18,31,.9);border:1px solid rgba(40,65,102,.72)}
+.side-card h3{font-size:.95rem;margin-bottom:10px}
+.side-card p,.side-card li{color:var(--muted);line-height:1.58;font-size:.87rem}
+.side-card p+p{margin-top:8px}
+.side-card ul{padding-left:18px;display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.legend{display:grid;grid-template-columns:1fr;gap:9px}
+.legend-item{display:flex;align-items:center;gap:10px;font-size:.82rem;color:var(--muted)}
+.swatch{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+.mono{font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;color:#dbeafe}
+.step-counter{font-size:.82rem;color:var(--muted);margin-left:auto}
+@media(max-width:1120px){
+  .shell{grid-template-columns:1fr}
+  .hero{grid-template-columns:1fr}
+  .status{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .header-inner,.shell{padding-left:16px;padding-right:16px}
+  .main,.sidebar{padding:16px}
+  .hero{padding:18px}
+  .hero h2{font-size:1.6rem}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>visual<span>-cs</span> / suffix tree</h1>
+      <p>Ukkonen's O(n) online construction — active point, remainder, suffix links, implicit tree.</p>
+    </div>
+    <a class="back" href="../../index.html">← All Visualizations</a>
+  </div>
+</header>
+
+<div class="shell">
+  <section class="panel main">
+
+    <div class="hero">
+      <div>
+        <h2>Build a Suffix Tree one character at a time.</h2>
+        <p>
+          A suffix tree is a compressed trie of all suffixes of a string. Ukkonen's algorithm builds it <span class="mono">online</span>
+          in <span class="mono">O(n)</span> time using three tricks: implicit extensions, the active point, and suffix links.
+          The compact structure enables O(m) pattern search and many O(n) string algorithms.
+        </p>
+      </div>
+      <div class="hero-metrics">
+        <div class="metric">
+          <div class="label">Algorithm</div>
+          <div class="value">Ukkonen's</div>
+          <div class="hint">Online, left-to-right construction using active point and suffix links.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Time / Space</div>
+          <div class="value">O(n)</div>
+          <div class="hint">Linear bound on both construction time and total node/edge count.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Key Trick</div>
+          <div class="value">Active Point</div>
+          <div class="hint">(node, edge, length) triple tracks the frontier of implicit extensions.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Applications</div>
+          <div class="value">LCS, Search</div>
+          <div class="hint">Pattern matching in O(m), LCS, distinct substrings, repeats.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="row">
+        <div class="field">
+          <label for="textInput">String (max 14 chars)</label>
+          <input id="textInput" type="text" maxlength="14" value="banana" spellcheck="false">
+        </div>
+        <div class="field small">
+          <label>Speed</label>
+          <div class="speedbox">
+            <input id="speed" type="range" min="1" max="10" value="5">
+            <span id="speedLabel">5×</span>
+          </div>
+        </div>
+      </div>
+      <div class="presets">
+        <button class="preset" data-text="aab">aab</button>
+        <button class="preset" data-text="abab">abab</button>
+        <button class="preset" data-text="banana">banana</button>
+        <button class="preset" data-text="abcabc">abcabc</button>
+        <button class="preset" data-text="mississippi">mississippi</button>
+        <button class="preset" data-text="abacaba">abacaba</button>
+        <button class="preset" data-text="aaaaaa">aaaaaa</button>
+      </div>
+      <div class="buttons">
+        <button class="primary" id="playBtn">▶ Play</button>
+        <button class="secondary" id="prevBtn" disabled>◀ Prev</button>
+        <button class="secondary" id="nextBtn">Next ▶</button>
+        <button class="ghost" id="resetBtn">Reset</button>
+        <span class="step-counter" id="stepCounter">Step 0 / 0</span>
+      </div>
+    </div>
+
+    <div class="status">
+      <div class="pill" id="phasePill">Ready</div>
+      <p id="statusText">Choose a preset or type a string, then press Play or step through with Prev / Next.</p>
+      <div class="quick-stats">
+        <div class="stat-chip"><div class="k">Step</div><div class="v" id="stepStat">–</div></div>
+        <div class="stat-chip"><div class="k">Nodes</div><div class="v" id="nodesStat">1</div></div>
+        <div class="stat-chip"><div class="k">Remainder</div><div class="v" id="remainStat">0</div></div>
+        <div class="stat-chip"><div class="k">Char</div><div class="v" id="charStat">–</div></div>
+      </div>
+    </div>
+
+    <!-- Active point display -->
+    <div class="active-point-box" id="activePointBox">
+      <div class="ap-item">
+        <div class="ap-label">Active Node</div>
+        <div class="ap-value" id="apNode">root</div>
+      </div>
+      <div class="ap-sep">·</div>
+      <div class="ap-item">
+        <div class="ap-label">Active Edge</div>
+        <div class="ap-value" id="apEdge">—</div>
+      </div>
+      <div class="ap-sep">·</div>
+      <div class="ap-item">
+        <div class="ap-label">Active Length</div>
+        <div class="ap-value" id="apLength">0</div>
+      </div>
+      <div class="ap-sep">·</div>
+      <div class="ap-item">
+        <div class="ap-label">Remainder</div>
+        <div class="ap-value" id="apRemainder">0</div>
+      </div>
+    </div>
+
+    <div class="graph-panel">
+      <div class="graph-section-title">
+        <h3>Suffix Tree</h3>
+        <p id="graphHint">Compact trie — edge labels are substrings · dashed = suffix link · ★ = active node</p>
+      </div>
+      <div class="string-strip" id="stringStrip"></div>
+      <div class="graph-scroll" id="graphScroll">
+        <svg id="tree-svg" xmlns="http://www.w3.org/2000/svg" width="800" height="400">
+          <defs>
+            <marker id="arr-t" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#60a5fa" opacity=".85"/>
+            </marker>
+            <marker id="arr-l" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#a78bfa" opacity=".7"/>
+            </marker>
+            <marker id="arr-new" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#67e8f9" opacity=".9"/>
+            </marker>
+          </defs>
+          <g id="svg-root"></g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="section-title">
+        <h3>Construction Steps</h3>
+        <p>Click any step to jump directly to it</p>
+      </div>
+      <div class="timeline-list" id="timeline"></div>
+    </div>
+
+  </section>
+
+  <aside class="panel sidebar">
+    <div class="side-card">
+      <h3>Ukkonen's Algorithm</h3>
+      <p>Process each character <span class="mono">s[i]</span>. Maintain three state variables:</p>
+      <ul>
+        <li><span class="mono">activeNode</span> — where we start matching from</li>
+        <li><span class="mono">activeEdge</span> — first char of the edge being followed</li>
+        <li><span class="mono">activeLength</span> — how far along that edge</li>
+      </ul>
+      <p>The <span class="mono">remainder</span> counts pending suffixes not yet made explicit. When we can absorb a char implicitly (rule 3), we stop — all remaining suffixes exist implicitly.</p>
+      <p>Suffix links let us jump from a newly created internal node to the next shorter suffix in O(1), enabling linear total work.</p>
+    </div>
+
+    <div class="side-card">
+      <h3>Three Extension Rules</h3>
+      <ul>
+        <li><strong>Rule 1</strong> — Path ends at a leaf: extend the leaf edge label (free via open-ended leaves).</li>
+        <li><strong>Rule 2</strong> — No continuation for current char: create a new leaf (and possibly a new internal node).</li>
+        <li><strong>Rule 3</strong> — Current char already on an edge: do nothing — the suffix exists implicitly. Stop inner loop.</li>
+      </ul>
+    </div>
+
+    <div class="side-card">
+      <h3>Color Legend</h3>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:rgba(103,232,249,.9)"></span> Newly created node/edge</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(74,222,128,.9)"></span> Leaf node (open-ended edge)</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(251,191,36,.9)"></span> Active node (frontier)</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(255,255,255,.55)"></span> Root node</div>
+        <div class="legend-item"><span class="swatch" style="background:rgba(96,165,250,.9)"></span> Internal node</div>
+        <div class="legend-item"><span class="swatch" style="background:#a78bfa;height:3px;border-radius:1px;opacity:.8"></span> Suffix link (dashed)</div>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <h3>Why Suffix Trees?</h3>
+      <ul>
+        <li>Pattern matching in O(m) time (after O(n) build)</li>
+        <li>Longest repeated substring in O(n)</li>
+        <li>Longest common substring of two strings in O(n+m)</li>
+        <li>Count distinct substrings by summing edge lengths</li>
+        <li>Foundation for BWT and FM-index</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ── UKKONEN'S SUFFIX TREE ────────────────────────────────────────────────────
+
+const INF = 1e9;
+
+function buildHistory(text) {
+  // Append terminal character to make all suffixes explicit
+  const s = text + '$';
+  const n = s.length;
+  const steps = [];
+
+  // Node structure: { id, start, end, children:{}, suffixLink, parent }
+  // end can be a number or a reference object {val} for leaves (open end)
+  let nodeCount = 0;
+  const END = { val: -1 }; // open end pointer, updated as we extend
+
+  function newNode(start, end, parent) {
+    return { id: nodeCount++, start, end, children: {}, suffixLink: 0, parent };
+  }
+
+  const root = newNode(-1, -1, -1);
+  root.suffixLink = 0; // root links to itself
+
+  let activeNode = root;
+  let activeEdge = -1;   // index into s
+  let activeLength = 0;
+  let remainder = 0;
+  let needsSuffixLink = null; // last internal node created this phase
+
+  function edgeLen(node) {
+    const e = node.end === END ? END.val : node.end;
+    return e - node.start + 1;
+  }
+
+  function addSuffixLink(node) {
+    if (needsSuffixLink !== null) {
+      needsSuffixLink.suffixLink = node.id;
+    }
+    needsSuffixLink = node;
+  }
+
+  function walkDown(node) {
+    const el = edgeLen(node);
+    if (activeLength >= el) {
+      activeEdge += el;
+      activeLength -= el;
+      activeNode = node;
+      return true;
+    }
+    return false;
+  }
+
+  // We'll snapshot after each sub-step for richer visualization
+  function snapTree() {
+    // Deep clone nodes
+    function cloneNode(nd) {
+      const children = {};
+      for (const [k, v] of Object.entries(nd.children)) {
+        children[k] = v.id; // store id references only
+      }
+      return {
+        id: nd.id,
+        start: nd.start,
+        end: nd.end === END ? END.val : nd.end,
+        isLeaf: nd.end === END,
+        children,
+        suffixLink: nd.suffixLink,
+        parent: nd.parent
+      };
+    }
+    const all = [];
+    function traverse(nd) {
+      all.push(cloneNode(nd));
+      for (const child of Object.values(nd.children)) {
+        traverse(child);
+      }
+    }
+    traverse(root);
+    // Build id -> clone map
+    const map = {};
+    for (const nd of all) map[nd.id] = nd;
+    return map;
+  }
+
+  function push(phase, desc, highlight) {
+    steps.push({
+      phase,
+      desc,
+      highlight: highlight || {},
+      tree: snapTree(),
+      rootId: root.id,
+      activeNodeId: activeNode.id,
+      activeEdge,
+      activeLength,
+      remainder,
+      endVal: END.val,
+      s
+    });
+  }
+
+  push('init', 'The suffix tree starts with just a root node. We will process "' + text + '$" character by character.', {});
+
+  for (let i = 0; i < n; i++) {
+    const c = s[i];
+    END.val = i; // all open-ended leaves extend to position i
+    remainder++;
+    needsSuffixLink = null;
+
+    push('extend-start', `Phase ${i+1}: processing character '${c}' (index ${i}). remainder = ${remainder}.`, { charIdx: i });
+
+    while (remainder > 0) {
+      if (activeLength === 0) {
+        activeEdge = i;
+      }
+
+      const aeChar = s[activeEdge];
+
+      if (!activeNode.children[aeChar]) {
+        // Rule 2: no edge from activeNode starting with activeEdge char → create leaf
+        const leaf = newNode(i, END, activeNode.id);
+        activeNode.children[aeChar] = leaf;
+        addSuffixLink(activeNode);
+
+        push('rule2-leaf',
+          `Rule 2: No edge '${aeChar}' from active node. Create leaf #${leaf.id} with edge starting at position ${i}.`,
+          { newNode: leaf.id, charIdx: i });
+
+        remainder--;
+
+        if (activeNode === root && activeLength > 0) {
+          activeLength--;
+          activeEdge = i - remainder + 1;
+        } else if (activeNode.suffixLink !== activeNode.id && activeNode !== root) {
+          // follow suffix link
+          const prevId = activeNode.id;
+          activeNode = getNodeById(activeNode.suffixLink);
+          push('follow-link',
+            `Follow suffix link from node #${prevId} → node #${activeNode.id}.`,
+            { linkFrom: prevId, linkTo: activeNode.id, charIdx: i });
+        } else {
+          activeNode = root;
+          if (activeLength > 0) activeLength--;
+          activeEdge = i - remainder + 1;
+        }
+      } else {
+        // Edge exists
+        const next = activeNode.children[aeChar];
+        if (walkDown(next)) {
+          push('walk-down',
+            `Walk down: active length ≥ edge length. Move active node to #${activeNode.id}.`,
+            { charIdx: i });
+          continue;
+        }
+
+        // Check if current char matches on the edge
+        if (s[next.start + activeLength] === c) {
+          // Rule 3: char already on edge — do nothing, just extend implicitly
+          activeLength++;
+          addSuffixLink(activeNode);
+          push('rule3',
+            `Rule 3: Character '${c}' already exists on edge (pos ${next.start + activeLength - 1}). Absorb implicitly, stop inner loop.`,
+            { implicitEdge: next.id, charIdx: i });
+          break; // stop — all remaining suffixes exist implicitly
+        }
+
+        // Rule 2 with split: char doesn't match on edge → split
+        const split = newNode(next.start, next.start + activeLength - 1, activeNode.id);
+        activeNode.children[aeChar] = split;
+
+        const leaf = newNode(i, END, split.id);
+        split.children[c] = leaf;
+
+        next.start += activeLength;
+        next.parent = split.id;
+        split.children[s[next.start]] = next;
+
+        addSuffixLink(split);
+
+        push('rule2-split',
+          `Rule 2 (split): Split edge at position ${split.end}. New internal node #${split.id}, new leaf #${leaf.id}.`,
+          { newNode: split.id, newLeaf: leaf.id, charIdx: i });
+
+        remainder--;
+
+        if (activeNode === root && activeLength > 0) {
+          activeLength--;
+          activeEdge = i - remainder + 1;
+        } else if (activeNode !== root) {
+          activeNode = getNodeById(activeNode.suffixLink);
+          push('follow-link',
+            `Follow suffix link to node #${activeNode.id} to handle next pending suffix.`,
+            { linkTo: activeNode.id, charIdx: i });
+        } else {
+          activeEdge = i - remainder + 1;
+        }
+      }
+    }
+
+    push('phase-done',
+      `Phase ${i+1} complete: '${c}' fully processed. remainder = ${remainder}. Tree has ${nodeCount} nodes.`,
+      { charIdx: i });
+  }
+
+  push('done',
+    `Construction complete! The explicit suffix tree for "${text}$" has ${nodeCount} nodes. All ${n} suffixes are represented.`,
+    {});
+
+  // Helper: get node by id (walk tree)
+  function getNodeById(id) {
+    let found = null;
+    function walk(nd) {
+      if (nd.id === id) { found = nd; return; }
+      for (const child of Object.values(nd.children)) {
+        if (!found) walk(child);
+      }
+    }
+    walk(root);
+    return found || root;
+  }
+
+  return steps;
+}
+
+// ── LAYOUT ───────────────────────────────────────────────────────────────────
+// Compute (x,y) for each node using a simple recursive layout
+
+function layoutTree(treeMap, rootId, width, s, endVal) {
+  const positions = {};
+  const PADDING = 50;
+  const NODE_R = 14;
+  const LEVEL_H = 80;
+
+  // Count leaves under each node for width allocation
+  function countLeaves(id) {
+    const nd = treeMap[id];
+    if (!nd) return 1;
+    const kids = Object.values(nd.children);
+    if (kids.length === 0) return 1;
+    return kids.reduce((acc, cid) => acc + countLeaves(cid), 0);
+  }
+
+  const totalLeaves = Math.max(countLeaves(rootId), 1);
+  let maxDepth = 0;
+
+  function assign(id, depth, left, right) {
+    const nd = treeMap[id];
+    if (!nd) return;
+    maxDepth = Math.max(maxDepth, depth);
+    const kids = Object.values(nd.children);
+    const cx = (left + right) / 2;
+    const cy = PADDING + depth * LEVEL_H;
+    positions[id] = { x: cx, y: cy };
+    if (kids.length === 0) return;
+
+    const totalKidLeaves = kids.reduce((acc, cid) => acc + countLeaves(cid), 0);
+    let cur = left;
+    for (const cid of kids) {
+      const frac = countLeaves(cid) / totalKidLeaves;
+      assign(cid, depth + 1, cur, cur + frac * (right - left));
+      cur += frac * (right - left);
+    }
+  }
+
+  assign(rootId, 0, PADDING, width - PADDING);
+
+  const svgHeight = Math.max(300, (maxDepth + 1) * LEVEL_H + PADDING * 2);
+  return { positions, svgHeight };
+}
+
+function getEdgeLabel(nd, treeMap, s) {
+  const start = nd.start;
+  const end = nd.end;
+  if (start < 0) return '';
+  const e = Math.min(end, s.length - 1);
+  return s.slice(start, e + 1);
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+
+function renderTree(step) {
+  const { tree: treeMap, rootId, activeNodeId, activeEdge, activeLength, endVal, s, highlight } = step;
+  const container = document.getElementById('graphScroll');
+  const svgEl = document.getElementById('tree-svg');
+  const g = document.getElementById('svg-root');
+
+  const W = Math.max(container.clientWidth - 10, 700);
+  const { positions, svgHeight } = layoutTree(treeMap, rootId, W, s, endVal);
+
+  svgEl.setAttribute('width', W);
+  svgEl.setAttribute('height', svgHeight);
+  g.innerHTML = '';
+
+  const hl = highlight || {};
+
+  // Draw edges first
+  for (const nd of Object.values(treeMap)) {
+    const pos = positions[nd.id];
+    if (!pos) continue;
+    for (const cid of Object.values(nd.children)) {
+      const cnd = treeMap[cid];
+      if (!cnd) continue;
+      const cpos = positions[cid];
+      if (!cpos) continue;
+
+      const isNew = (cid === hl.newNode || cid === hl.newLeaf);
+      const isImplicit = (cid === hl.implicitEdge);
+      const stroke = isNew ? '#67e8f9' : isImplicit ? '#fbbf24' : '#284166';
+      const sw = isNew ? 2.2 : isImplicit ? 2 : 1.5;
+
+      // Edge line
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', pos.x);
+      line.setAttribute('y1', pos.y + 15);
+      line.setAttribute('x2', cpos.x);
+      line.setAttribute('y2', cpos.y - 15);
+      line.setAttribute('stroke', stroke);
+      line.setAttribute('stroke-width', sw);
+      if (isNew) line.setAttribute('marker-end', 'url(#arr-new)');
+      else line.setAttribute('marker-end', 'url(#arr-t)');
+      g.appendChild(line);
+
+      // Edge label (midpoint)
+      const mx = (pos.x + cpos.x) / 2;
+      const my = (pos.y + cpos.y) / 2 - 4;
+      const label = getEdgeLabel(cnd, treeMap, s);
+      if (label) {
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        const lw = Math.min(label.length * 7.5 + 8, 100);
+        bg.setAttribute('x', mx - lw/2);
+        bg.setAttribute('y', my - 11);
+        bg.setAttribute('width', lw);
+        bg.setAttribute('height', 15);
+        bg.setAttribute('rx', 4);
+        bg.setAttribute('fill', isNew ? 'rgba(103,232,249,.18)' : isImplicit ? 'rgba(251,191,36,.15)' : 'rgba(7,17,31,.9)');
+        g.appendChild(bg);
+
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', mx);
+        txt.setAttribute('y', my);
+        txt.setAttribute('text-anchor', 'middle');
+        txt.setAttribute('font-size', '10');
+        txt.setAttribute('font-family', '"SFMono-Regular",ui-monospace,Menlo,monospace');
+        txt.setAttribute('fill', isNew ? '#67e8f9' : isImplicit ? '#fbbf24' : '#90a5c7');
+        txt.textContent = label.length > 10 ? label.slice(0,9)+'…' : label;
+        g.appendChild(txt);
+      }
+    }
+  }
+
+  // Draw suffix links (dashed, for internal nodes that have explicit links)
+  for (const nd of Object.values(treeMap)) {
+    if (nd.id === rootId) continue;
+    if (nd.suffixLink === 0 && nd.id !== rootId) continue; // link to root is implicit
+    const linkTarget = nd.suffixLink;
+    if (linkTarget === nd.id) continue;
+    const from = positions[nd.id];
+    const to = positions[linkTarget];
+    if (!from || !to) continue;
+    if (from.x === to.x && from.y === to.y) continue;
+
+    const kids = Object.values(nd.children);
+    if (kids.length === 0) continue; // only show suffix links for internal nodes
+
+    const isHighlight = (nd.id === hl.linkFrom || linkTarget === hl.linkTo);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const cx1 = from.x + dx * 0.3;
+    const cy1 = from.y - 30;
+    const cx2 = to.x - dx * 0.3;
+    const cy2 = to.y - 30;
+    line.setAttribute('d', `M${from.x},${from.y} C${cx1},${cy1} ${cx2},${cy2} ${to.x},${to.y}`);
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', isHighlight ? '#a78bfa' : 'rgba(167,139,250,.35)');
+    line.setAttribute('stroke-width', isHighlight ? 1.8 : 1.2);
+    line.setAttribute('stroke-dasharray', '4 3');
+    line.setAttribute('marker-end', 'url(#arr-l)');
+    g.appendChild(line);
+  }
+
+  // Draw nodes
+  for (const nd of Object.values(treeMap)) {
+    const pos = positions[nd.id];
+    if (!pos) continue;
+
+    const isRoot = nd.id === rootId;
+    const isLeaf = nd.isLeaf;
+    const isActive = nd.id === activeNodeId;
+    const isNew = nd.id === hl.newNode || nd.id === hl.newLeaf;
+
+    let fill, stroke, strokeW;
+    if (isRoot) {
+      fill = 'rgba(255,255,255,.18)';
+      stroke = 'rgba(255,255,255,.55)';
+      strokeW = 2;
+    } else if (isNew) {
+      fill = 'rgba(103,232,249,.22)';
+      stroke = '#67e8f9';
+      strokeW = 2;
+    } else if (isLeaf) {
+      fill = 'rgba(74,222,128,.14)';
+      stroke = '#4ade80';
+      strokeW = 1.6;
+    } else {
+      fill = 'rgba(96,165,250,.14)';
+      stroke = '#60a5fa';
+      strokeW = 1.6;
+    }
+
+    if (isActive && !isRoot) {
+      fill = 'rgba(251,191,36,.22)';
+      stroke = '#fbbf24';
+      strokeW = 2.5;
+    }
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', pos.x);
+    circle.setAttribute('cy', pos.y);
+    circle.setAttribute('r', isRoot ? 16 : 13);
+    circle.setAttribute('fill', fill);
+    circle.setAttribute('stroke', stroke);
+    circle.setAttribute('stroke-width', strokeW);
+    g.appendChild(circle);
+
+    // Active star indicator
+    if (isActive) {
+      const star = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      star.setAttribute('x', pos.x);
+      star.setAttribute('y', pos.y - 20);
+      star.setAttribute('text-anchor', 'middle');
+      star.setAttribute('font-size', '12');
+      star.setAttribute('fill', '#fbbf24');
+      star.textContent = '★';
+      g.appendChild(star);
+    }
+
+    // Node id label
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', pos.x);
+    label.setAttribute('y', pos.y + 4);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', isRoot ? '10' : '9');
+    label.setAttribute('font-family', '"SFMono-Regular",ui-monospace,Menlo,monospace');
+    label.setAttribute('fill', isRoot ? '#fff' : isNew ? '#67e8f9' : isLeaf ? '#4ade80' : '#90a5c7');
+    label.setAttribute('font-weight', '700');
+    label.textContent = isRoot ? 'root' : String(nd.id);
+    g.appendChild(label);
+  }
+}
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+
+let steps = [];
+let currentStep = 0;
+let playInterval = null;
+let isPlaying = false;
+
+function buildAndReset() {
+  const text = document.getElementById('textInput').value.trim();
+  if (!text) return;
+  steps = buildHistory(text);
+  currentStep = 0;
+  renderStep();
+  buildTimeline();
+  stopPlay();
+  updateButtons();
+}
+
+function renderStep() {
+  if (!steps.length) return;
+  const step = steps[currentStep];
+
+  // Phase pill
+  const pill = document.getElementById('phasePill');
+  pill.textContent = step.phase.replace(/-/g, ' ').toUpperCase();
+  pill.className = 'pill';
+  if (step.phase.includes('rule3')) pill.classList.add('phase-link');
+  else if (step.phase.includes('done') || step.phase === 'done') pill.classList.add('phase-done');
+  else if (step.phase.includes('extend') || step.phase.includes('rule')) pill.classList.add('phase-extend');
+  else if (step.phase.includes('walk') || step.phase.includes('follow')) pill.classList.add('phase-walk');
+
+  document.getElementById('statusText').textContent = step.desc;
+  document.getElementById('stepStat').textContent = currentStep + 1;
+  document.getElementById('nodesStat').textContent = Object.keys(step.tree).length;
+  document.getElementById('remainStat').textContent = step.remainder;
+  document.getElementById('charStat').textContent = step.highlight.charIdx !== undefined ? step.s[step.highlight.charIdx] : '–';
+
+  // Active point
+  document.getElementById('apNode').textContent = step.activeNodeId === step.rootId ? 'root' : '#' + step.activeNodeId;
+  const aeChar = step.activeEdge >= 0 && step.activeEdge < step.s.length ? step.s[step.activeEdge] : '—';
+  document.getElementById('apEdge').textContent = aeChar;
+  document.getElementById('apLength').textContent = step.activeLength;
+  document.getElementById('apRemainder').textContent = step.remainder;
+
+  document.getElementById('stepCounter').textContent = `Step ${currentStep + 1} / ${steps.length}`;
+
+  // String strip
+  const ci = step.highlight.charIdx;
+  const strip = document.getElementById('stringStrip');
+  strip.innerHTML = '';
+  const text = step.s.slice(0, -1); // without $
+  for (let i = 0; i < step.s.length; i++) {
+    const card = document.createElement('div');
+    card.className = 'char-card';
+    if (ci !== undefined && i < ci) card.classList.add('processed');
+    if (ci !== undefined && i === ci) card.classList.add('current');
+    card.innerHTML = `<span class="ch">${step.s[i]}</span><span class="ix">${i}</span>`;
+    strip.appendChild(card);
+  }
+
+  renderTree(step);
+
+  // Update timeline active
+  const items = document.querySelectorAll('.timeline-item');
+  items.forEach((el, idx) => {
+    el.classList.toggle('active', idx === currentStep);
+  });
+  // Scroll active into view
+  if (items[currentStep]) {
+    items[currentStep].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  updateButtons();
+}
+
+function buildTimeline() {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '';
+  steps.forEach((step, idx) => {
+    const item = document.createElement('div');
+    item.className = 'timeline-item' + (idx === 0 ? ' active' : '');
+    item.innerHTML = `<div class="phase">${step.phase.replace(/-/g, ' ')}</div><p>${step.desc}</p>`;
+    item.addEventListener('click', () => { currentStep = idx; renderStep(); stopPlay(); });
+    tl.appendChild(item);
+  });
+}
+
+function updateButtons() {
+  document.getElementById('prevBtn').disabled = currentStep === 0;
+  document.getElementById('nextBtn').disabled = currentStep >= steps.length - 1;
+  document.getElementById('playBtn').textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+}
+
+function startPlay() {
+  if (currentStep >= steps.length - 1) { currentStep = 0; renderStep(); }
+  isPlaying = true;
+  updateButtons();
+  const speedVal = parseInt(document.getElementById('speed').value);
+  const delay = Math.round(1200 / speedVal);
+  playInterval = setInterval(() => {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      renderStep();
+    } else {
+      stopPlay();
+    }
+  }, delay);
+}
+
+function stopPlay() {
+  isPlaying = false;
+  clearInterval(playInterval);
+  playInterval = null;
+  updateButtons();
+}
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  if (isPlaying) stopPlay(); else startPlay();
+});
+document.getElementById('prevBtn').addEventListener('click', () => {
+  stopPlay();
+  if (currentStep > 0) { currentStep--; renderStep(); }
+});
+document.getElementById('nextBtn').addEventListener('click', () => {
+  stopPlay();
+  if (currentStep < steps.length - 1) { currentStep++; renderStep(); }
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  stopPlay();
+  buildAndReset();
+});
+document.getElementById('speed').addEventListener('input', e => {
+  document.getElementById('speedLabel').textContent = e.target.value + '×';
+  if (isPlaying) { stopPlay(); startPlay(); }
+});
+document.getElementById('textInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { stopPlay(); buildAndReset(); }
+});
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('textInput').value = btn.dataset.text;
+    stopPlay();
+    buildAndReset();
+  });
+});
+
+// Init
+buildAndReset();
+</script>
+</body>
+</html>
