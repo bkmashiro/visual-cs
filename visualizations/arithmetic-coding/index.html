@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arithmetic Coding — visual-cs</title>
+<style>
+:root{
+  --bg:#050816;
+  --surface:#0c1428;
+  --surface-2:#121d36;
+  --surface-3:#172646;
+  --border:#263a67;
+  --text:#edf4ff;
+  --muted:#94a8c9;
+  --cyan:#67e8f9;
+  --blue:#60a5fa;
+  --violet:#a78bfa;
+  --amber:#fbbf24;
+  --green:#4ade80;
+  --red:#fb7185;
+  --orange:#fb923c;
+  --pink:#f472b6;
+  --shadow:0 24px 80px rgba(0,0,0,.34);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left,rgba(103,232,249,.12),transparent 26%),
+    radial-gradient(circle at top right,rgba(167,139,250,.12),transparent 22%),
+    linear-gradient(180deg,#070c18,#03060e 62%);
+}
+a{color:inherit}
+header{
+  position:sticky;top:0;z-index:20;
+  backdrop-filter:blur(18px);
+  background:rgba(3,6,14,.76);
+  border-bottom:1px solid rgba(38,58,103,.65);
+}
+.header-inner{
+  max-width:1420px;margin:0 auto;padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+}
+.brand h1{font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase}
+.brand h1 span{color:var(--cyan)}
+.brand p{margin-top:5px;font-size:.82rem;color:var(--muted)}
+.back{
+  text-decoration:none;font-size:.82rem;color:var(--muted);
+  border:1px solid var(--border);border-radius:999px;padding:10px 16px;transition:.18s ease;
+}
+.back:hover{color:var(--text);border-color:var(--cyan);transform:translateY(-1px)}
+.shell{
+  max-width:1420px;margin:0 auto;padding:28px 24px 42px;
+  display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;
+}
+.panel{
+  background:linear-gradient(180deg,rgba(11,18,33,.96),rgba(7,12,22,.96));
+  border:1px solid rgba(38,58,103,.82);border-radius:24px;box-shadow:var(--shadow);
+}
+.main{padding:24px;display:flex;flex-direction:column;gap:18px;}
+.hero{
+  padding:24px;border-radius:22px;
+  border:1px solid rgba(103,232,249,.16);
+  background:linear-gradient(135deg,rgba(96,165,250,.14),rgba(103,232,249,.06) 40%,rgba(167,139,250,.16));
+}
+.hero h2{font-size:2rem;line-height:1.1;margin-bottom:10px}
+.hero p{color:var(--muted);line-height:1.65;font-size:.92rem;max-width:72ch}
+.input-row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;}
+.input-row input{
+  flex:1;min-width:180px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:12px;color:var(--text);font-size:.95rem;padding:12px 16px;outline:none;
+  font-family:inherit;transition:.18s ease;
+}
+.input-row input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(103,232,249,.12);}
+.btn{
+  border:none;border-radius:12px;cursor:pointer;font-size:.9rem;font-weight:600;
+  padding:12px 20px;transition:.18s ease;font-family:inherit;white-space:nowrap;
+}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#030610;}
+.btn-primary:hover{filter:brightness(1.15);transform:translateY(-1px);}
+.btn-secondary{background:var(--surface-2);color:var(--muted);border:1px solid var(--border);}
+.btn-secondary:hover{color:var(--text);border-color:var(--cyan);}
+.btn-sm{padding:8px 14px;font-size:.8rem;}
+
+/* Tabs */
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);padding-bottom:0;}
+.tab{
+  background:transparent;border:none;color:var(--muted);font-size:.88rem;font-weight:600;
+  padding:10px 18px;cursor:pointer;border-radius:10px 10px 0 0;transition:.18s ease;
+  font-family:inherit;letter-spacing:.04em;text-transform:uppercase;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab:hover:not(.active){color:var(--text);}
+.tab-content{display:none;}
+.tab-content.active{display:flex;flex-direction:column;gap:18px;}
+
+/* Step bar */
+.step-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--surface-2);border-radius:14px;padding:12px 16px;
+  border:1px solid var(--border);
+}
+.step-bar .step-info{flex:1;font-size:.85rem;color:var(--muted);}
+.step-bar .step-info strong{color:var(--text);}
+.step-counter{font-size:.82rem;color:var(--muted);white-space:nowrap;}
+.step-slider{flex:1;min-width:80px;accent-color:var(--cyan);}
+
+/* Probability intervals header bar */
+.prob-header{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;
+}
+.prob-header-label{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;}
+.prob-bar-wrap{position:relative;height:42px;border-radius:8px;overflow:hidden;display:flex;}
+.prob-segment{
+  height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:.75rem;font-weight:700;color:#030610;transition:opacity .25s;
+  overflow:hidden;position:relative;flex-shrink:0;
+}
+.prob-ticks{display:flex;justify-content:space-between;margin-top:6px;font-size:.7rem;color:var(--muted);font-family:monospace;}
+
+/* Main interval visualization */
+.interval-viz{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.interval-label{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.interval-track-wrap{position:relative;padding:0 2px;}
+.interval-track{
+  height:56px;background:var(--surface-3);border-radius:10px;overflow:hidden;
+  position:relative;border:1px solid rgba(38,58,103,.6);
+}
+.interval-fill{
+  position:absolute;top:0;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:700;color:#030610;
+  border-radius:4px;
+  transition:left .45s cubic-bezier(.4,0,.2,1), width .45s cubic-bezier(.4,0,.2,1);
+}
+.interval-annotations{
+  display:flex;justify-content:space-between;margin-top:6px;
+  font-size:.72rem;font-family:monospace;color:var(--muted);
+}
+.interval-annotations span{color:var(--cyan);font-weight:700;}
+
+/* Subdivisions inside current interval */
+.sub-bar-wrap{position:relative;height:36px;border-radius:8px;overflow:hidden;display:flex;border:1px solid rgba(38,58,103,.5);}
+.sub-segment{
+  height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:.73rem;font-weight:700;color:#030610;overflow:hidden;
+  transition:outline .2s;cursor:default;
+}
+.sub-segment.active-char{outline:3px solid rgba(255,255,255,.6);outline-offset:-3px;}
+
+/* Zoom chain */
+.zoom-chain{display:flex;flex-direction:column;gap:6px;}
+.zoom-row{display:flex;align-items:center;gap:8px;}
+.zoom-label{font-size:.72rem;color:var(--muted);width:36px;text-align:right;flex-shrink:0;font-family:monospace;}
+.zoom-bar{flex:1;height:18px;background:var(--surface-3);border-radius:4px;overflow:hidden;position:relative;border:1px solid rgba(38,58,103,.4);}
+.zoom-fill{position:absolute;top:0;height:100%;border-radius:2px;}
+.zoom-active{outline:2px solid rgba(255,255,255,.5);}
+
+/* Step description */
+.step-desc{
+  background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:16px;
+}
+.step-desc-phase{
+  font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--violet);margin-bottom:6px;font-weight:700;
+}
+.step-desc-title{font-size:1.05rem;font-weight:700;margin-bottom:6px;}
+.step-desc-body{font-size:.88rem;color:var(--muted);line-height:1.65;}
+.step-desc-body strong{color:var(--text);}
+.formula-box{
+  margin-top:10px;background:var(--surface-3);border:1px solid var(--border);
+  border-radius:10px;padding:10px 14px;font-family:monospace;font-size:.85rem;line-height:1.8;color:var(--cyan);
+}
+.formula-box .f-comment{color:var(--muted);}
+.formula-box .f-highlight{color:var(--amber);}
+
+/* Encode result */
+.encode-result{
+  background:var(--surface-3);border:1px solid rgba(74,222,128,.3);border-radius:12px;
+  padding:14px 16px;
+}
+.er-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:8px;font-weight:700;}
+.er-value{font-size:1.4rem;font-weight:700;font-family:monospace;color:var(--text);}
+.er-sub{font-size:.8rem;color:var(--muted);margin-top:4px;}
+
+/* Decode tab */
+.decode-input-row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;}
+.decode-input-row input{
+  flex:1;min-width:160px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:12px;color:var(--text);font-size:.95rem;padding:12px 16px;outline:none;
+  font-family:monospace;transition:.18s ease;
+}
+.decode-input-row input:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(251,191,36,.12);}
+.decoded-so-far{
+  font-family:monospace;font-size:1.3rem;letter-spacing:.1em;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
+  padding:14px 18px;min-height:52px;
+}
+.decoded-so-far .dc{color:var(--cyan);}
+.decoded-so-far .dc-new{color:var(--amber);}
+
+/* Stats row */
+.stats-row{display:flex;gap:10px;flex-wrap:wrap;}
+.stat-pill{
+  flex:1;min-width:100px;background:var(--surface-3);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;
+}
+.sp-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;}
+.sp-val{font-size:1.2rem;font-weight:700;color:var(--cyan);}
+.sp-sub{font-size:.75rem;color:var(--muted);margin-top:2px;}
+
+/* Sidebar */
+.sidebar{padding:22px;display:flex;flex-direction:column;gap:18px;}
+.side-section{background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:16px;}
+.side-section h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;}
+.algo-step{
+  display:flex;gap:10px;align-items:flex-start;padding:8px 0;
+  border-bottom:1px solid rgba(38,58,103,.4);
+}
+.algo-step:last-child{border-bottom:none;}
+.algo-step .sn{
+  width:22px;height:22px;border-radius:50%;background:var(--surface-3);
+  border:1px solid var(--border);font-size:.75rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--cyan);
+}
+.algo-step .sn.active-step{background:rgba(103,232,249,.2);border-color:var(--cyan);}
+.algo-step .st{font-size:.82rem;color:var(--muted);line-height:1.5;}
+.algo-step .st strong{color:var(--text);}
+.complexity{display:flex;flex-direction:column;gap:8px;}
+.cx-row{display:flex;justify-content:space-between;align-items:center;}
+.cx-label{font-size:.82rem;color:var(--muted);}
+.cx-val{font-size:.88rem;font-weight:700;font-family:monospace;color:var(--green);}
+.props{display:flex;flex-direction:column;gap:8px;}
+.prop{display:flex;align-items:flex-start;gap:8px;background:var(--surface-3);border-radius:8px;padding:8px 10px;}
+.prop-icon{font-size:.9rem;flex-shrink:0;margin-top:1px;}
+.prop-text{font-size:.82rem;color:var(--muted);line-height:1.45;}
+.prop-text strong{color:var(--text);}
+
+/* Symbol legend */
+.sym-legend{display:flex;flex-wrap:wrap;gap:6px;}
+.sym-chip{
+  display:flex;align-items:center;gap:5px;background:var(--surface-3);
+  border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.82rem;
+}
+.sym-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.sym-name{font-family:monospace;font-weight:700;color:var(--cyan);}
+.sym-prob{color:var(--muted);}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fadein{animation:fadeIn .3s ease forwards;}
+
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>visual<span>-cs</span></h1>
+      <p>Algorithm Visualizations</p>
+    </div>
+    <a class="back" href="../../index.html">← All Visualizations</a>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- Main panel -->
+  <div class="panel main">
+    <div class="hero">
+      <h2>Arithmetic Coding</h2>
+      <p>Compress a message into a single real number in <strong>[0, 1)</strong>. Each symbol narrows the interval proportionally to its probability — high-frequency symbols shrink it less, yielding fewer bits. The decoder recovers symbols by repeatedly finding which sub-interval contains the encoded value.</p>
+    </div>
+
+    <!-- Input -->
+    <div class="input-row">
+      <input id="inp-text" type="text" value="hello" maxlength="20" placeholder="Enter text (max 20 chars)" />
+      <button class="btn btn-primary" onclick="encodeInput()">Encode ▶</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadExample('banana')">banana</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadExample('abracadabra')">abracadabra</button>
+    </div>
+
+    <!-- Probability bar (always visible after encoding) -->
+    <div class="prob-header" id="prob-header" style="display:none">
+      <div class="prob-header-label">Symbol probability intervals  <span style="color:var(--muted);font-size:.75rem;">(sorted alphabetically, ∑ = 1)</span></div>
+      <div class="prob-bar-wrap" id="prob-bar"></div>
+      <div class="prob-ticks" id="prob-ticks"></div>
+      <div class="sym-legend" id="sym-legend" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div id="main-tabs" style="display:none">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('encode')">Encode</button>
+        <button class="tab" onclick="switchTab('decode')">Decode</button>
+      </div>
+
+      <!-- ENCODE TAB -->
+      <div class="tab-content active" id="tab-encode">
+        <!-- Step controls -->
+        <div class="step-bar">
+          <button class="btn btn-secondary btn-sm" onclick="stepEnc(-1)">◀ Prev</button>
+          <button class="btn btn-secondary btn-sm" id="btn-play-enc" onclick="togglePlayEnc()">▶ Play</button>
+          <button class="btn btn-secondary btn-sm" onclick="stepEnc(1)">Next ▶</button>
+          <input type="range" class="step-slider" id="slider-enc" min="0" value="0" oninput="gotoEnc(+this.value)">
+          <span class="step-counter" id="ctr-enc">Step 1 / 1</span>
+        </div>
+
+        <!-- Main interval visualization -->
+        <div class="interval-viz" id="interval-viz">
+          <div class="interval-label">Current interval  <span id="interval-bounds" style="color:var(--cyan);font-family:monospace;font-size:.85rem;"></span></div>
+          <!-- Full [0,1) track -->
+          <div style="position:relative;">
+            <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Full [0, 1) — highlighted region is current interval</div>
+            <div class="interval-track" id="full-track">
+              <!-- background prob segments -->
+              <div id="full-track-segs" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;"></div>
+              <!-- current window overlay -->
+              <div id="full-window" style="position:absolute;top:0;height:100%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.55);border-radius:4px;transition:left .4s ease,width .4s ease;pointer-events:none;"></div>
+            </div>
+            <div class="interval-annotations">
+              <span>0</span>
+              <span style="color:var(--muted)">→ probability space →</span>
+              <span>1</span>
+            </div>
+          </div>
+
+          <!-- Zoom: current interval subdivided by symbol probs -->
+          <div style="position:relative;">
+            <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Current interval subdivided by symbol probabilities — <em>next character picks a sub-interval</em></div>
+            <div style="height:50px;border-radius:10px;overflow:hidden;display:flex;border:1px solid rgba(38,58,103,.6);" id="zoom-bar"></div>
+            <div class="interval-annotations" id="zoom-ticks"></div>
+          </div>
+        </div>
+
+        <!-- Step description -->
+        <div class="step-desc" id="step-desc">
+          <div class="step-desc-phase" id="sd-phase">SETUP</div>
+          <div class="step-desc-title" id="sd-title">Building symbol intervals</div>
+          <div class="step-desc-body" id="sd-body">Enter text and press Encode to begin.</div>
+          <div class="formula-box" id="sd-formula" style="display:none;"></div>
+        </div>
+
+        <!-- Encode result (shown at final step) -->
+        <div class="encode-result" id="encode-result" style="display:none">
+          <div class="er-label">✓ Encoded value</div>
+          <div class="er-value" id="er-value"></div>
+          <div class="er-sub" id="er-sub"></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row" id="enc-stats" style="display:none">
+          <div class="stat-pill">
+            <div class="sp-label">Message length</div>
+            <div class="sp-val" id="stat-msglen">—</div>
+          </div>
+          <div class="stat-pill">
+            <div class="sp-label">Unique symbols</div>
+            <div class="sp-val" id="stat-syms">—</div>
+          </div>
+          <div class="stat-pill">
+            <div class="sp-label">Entropy (bits/sym)</div>
+            <div class="sp-val" id="stat-entropy">—</div>
+            <div class="sp-sub">Shannon lower bound</div>
+          </div>
+          <div class="stat-pill">
+            <div class="sp-label">Final interval width</div>
+            <div class="sp-val" id="stat-width">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DECODE TAB -->
+      <div class="tab-content" id="tab-decode">
+        <div style="font-size:.88rem;color:var(--muted);line-height:1.6;">
+          Decode the encoded value back into the original message. The decoder re-runs the same interval narrowing and checks which sub-interval the value falls in at each step.
+        </div>
+        <div class="decode-input-row">
+          <input type="text" id="inp-decode" placeholder="Encoded value (auto-filled from Encode tab)" style="font-family:monospace;" />
+          <input type="number" id="inp-msglen" placeholder="Msg length" min="1" max="30" style="max-width:130px;" />
+          <button class="btn btn-primary" onclick="startDecode()">Decode ▶</button>
+        </div>
+
+        <!-- Decode step bar -->
+        <div class="step-bar" id="dec-step-bar" style="display:none">
+          <button class="btn btn-secondary btn-sm" onclick="stepDec(-1)">◀ Prev</button>
+          <button class="btn btn-secondary btn-sm" id="btn-play-dec" onclick="togglePlayDec()">▶ Play</button>
+          <button class="btn btn-secondary btn-sm" onclick="stepDec(1)">Next ▶</button>
+          <input type="range" class="step-slider" id="slider-dec" min="0" value="0" oninput="gotoDec(+this.value)">
+          <span class="step-counter" id="ctr-dec">Step 1 / 1</span>
+        </div>
+
+        <!-- Decode interval viz -->
+        <div class="interval-viz" id="dec-interval-viz" style="display:none">
+          <div class="interval-label">Tracking the encoded value  <span id="dec-interval-bounds" style="color:var(--amber);font-family:monospace;font-size:.85rem;"></span></div>
+          <div style="position:relative;">
+            <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Value within current interval — find which symbol sub-interval it falls in</div>
+            <div style="height:50px;border-radius:10px;overflow:hidden;display:flex;border:1px solid rgba(38,58,103,.6);position:relative;" id="dec-zoom-bar">
+              <div id="dec-value-marker" style="position:absolute;top:0;height:100%;width:2px;background:white;z-index:5;transition:left .4s ease;box-shadow:0 0 6px rgba(255,255,255,.8);"></div>
+            </div>
+            <div class="interval-annotations" id="dec-zoom-ticks"></div>
+          </div>
+        </div>
+
+        <!-- Decoded so far -->
+        <div id="dec-output-wrap" style="display:none">
+          <div style="font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px;">Decoded so far</div>
+          <div class="decoded-so-far" id="decoded-so-far"></div>
+        </div>
+
+        <!-- Decode step description -->
+        <div class="step-desc" id="dec-step-desc" style="display:none">
+          <div class="step-desc-phase" id="dsd-phase">DECODE</div>
+          <div class="step-desc-title" id="dsd-title">—</div>
+          <div class="step-desc-body" id="dsd-body">—</div>
+          <div class="formula-box" id="dsd-formula" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="panel sidebar">
+    <div class="side-section">
+      <h3>How It Works</h3>
+      <div class="algo-step">
+        <div class="sn" id="sn1">1</div>
+        <div class="st"><strong>Count frequencies</strong> of each symbol in the message.</div>
+      </div>
+      <div class="algo-step">
+        <div class="sn" id="sn2">2</div>
+        <div class="st"><strong>Assign intervals</strong> [cumLow, cumHigh) proportional to probability.</div>
+      </div>
+      <div class="algo-step">
+        <div class="sn" id="sn3">3</div>
+        <div class="st"><strong>Encode:</strong> start with [0,1). For each symbol, zoom into its sub-interval.</div>
+      </div>
+      <div class="algo-step">
+        <div class="sn" id="sn4">4</div>
+        <div class="st"><strong>Output</strong> any value in the final interval (e.g. midpoint).</div>
+      </div>
+      <div class="algo-step">
+        <div class="sn" id="sn5">5</div>
+        <div class="st"><strong>Decode:</strong> find which sub-interval the value falls in, emit symbol, rescale.</div>
+      </div>
+    </div>
+    <div class="side-section">
+      <h3>Complexity</h3>
+      <div class="complexity">
+        <div class="cx-row"><span class="cx-label">Encode time</span><span class="cx-val">O(n · |Σ|)</span></div>
+        <div class="cx-row"><span class="cx-label">Decode time</span><span class="cx-val">O(n · |Σ|)</span></div>
+        <div class="cx-row"><span class="cx-label">Precision needed</span><span class="cx-val">O(n) bits</span></div>
+        <div class="cx-row"><span class="cx-label">Code length</span><span class="cx-val">≈ H(X) + 2</span></div>
+      </div>
+    </div>
+    <div class="side-section">
+      <h3>Key Properties</h3>
+      <div class="props">
+        <div class="prop"><span class="prop-icon">📐</span><div class="prop-text"><strong>Near-optimal</strong> — achieves within 2 bits of the entropy lower bound.</div></div>
+        <div class="prop"><span class="prop-icon">🔢</span><div class="prop-text"><strong>Single output value</strong> — unlike Huffman which outputs per-symbol codes.</div></div>
+        <div class="prop"><span class="prop-icon">⚡</span><div class="prop-text"><strong>Adaptive variant</strong> — probabilities can update as symbols are seen.</div></div>
+        <div class="prop"><span class="prop-icon">⚠️</span><div class="prop-text"><strong>Precision</strong> — practical implementations use integer interval rescaling to avoid floating-point underflow.</div></div>
+      </div>
+    </div>
+    <div class="side-section">
+      <h3>vs. Huffman Coding</h3>
+      <div class="props">
+        <div class="prop"><span class="prop-icon">✅</span><div class="prop-text">Arithmetic coding handles <strong>non-power-of-2 probabilities</strong> without wasting bits.</div></div>
+        <div class="prop"><span class="prop-icon">✅</span><div class="prop-text">Better compression for <strong>highly skewed</strong> distributions (e.g. 99%/1%).</div></div>
+        <div class="prop"><span class="prop-icon">⚖️</span><div class="prop-text">Huffman is simpler and patent-free; arithmetic coding requires integer scaling tricks.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── palette for symbols ──────────────────────────────────────────
+const COLORS = [
+  '#67e8f9','#a78bfa','#4ade80','#fbbf24','#fb923c',
+  '#f472b6','#60a5fa','#fb7185','#34d399','#c084fc',
+  '#facc15','#38bdf8','#f97316','#86efac','#e879f9',
+];
+
+// ── state ─────────────────────────────────────────────────────────
+let symMap = {};     // char → {prob, cumLow, cumHigh, color, index}
+let encSteps = [];   // array of step objects
+let decSteps = [];
+let encIdx = 0;
+let decIdx = 0;
+let playTimerEnc = null;
+let playTimerDec = null;
+let lastEncodedValue = null;
+let lastMsgLen = 0;
+
+// ── utilities ─────────────────────────────────────────────────────
+function fmt(v, d=8){ return v.toFixed(d); }
+function fmtShort(v){ return v.toPrecision(6); }
+
+function buildSymMap(text){
+  const freq = {};
+  for(const c of text) freq[c] = (freq[c]||0)+1;
+  const syms = Object.keys(freq).sort();
+  const total = text.length;
+  let cum = 0;
+  const map = {};
+  syms.forEach((c,i)=>{
+    const p = freq[c]/total;
+    map[c] = {prob:p, cumLow:cum, cumHigh:cum+p, color:COLORS[i%COLORS.length], index:i, freq:freq[c]};
+    cum += p;
+  });
+  return map;
+}
+
+function computeEncSteps(text, map){
+  const steps = [];
+  // Step 0: setup
+  steps.push({
+    phase:'SETUP', title:'Symbol probability intervals',
+    body:`Counting frequencies in <strong>"${text}"</strong> (${text.length} symbols, ${Object.keys(map).length} unique). Each symbol gets an interval [cumLow, cumHigh) proportional to its probability.`,
+    low:0, high:1, charIdx:-1, charSym:null, formulaHtml:null, done:false
+  });
+
+  let low = 0, high = 1;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    const s = map[c];
+    const range = high - low;
+    const newLow  = low + range * s.cumLow;
+    const newHigh = low + range * s.cumHigh;
+    steps.push({
+      phase:`ENCODE  ${i+1}/${text.length}`,
+      title:`Encoding symbol '${c}'`,
+      body:`Current interval <strong>[${fmt(low)}, ${fmt(high)})</strong> has width <strong>${fmt(range)}</strong>. Symbol '<strong>${c}</strong>' has probability <strong>${s.prob.toFixed(4)}</strong>, occupying [${s.cumLow.toFixed(4)}, ${s.cumHigh.toFixed(4)}) of any interval.`,
+      formulaHtml:`<span class='f-comment'>// Update interval for '${c}'</span>\nrange  = ${fmt(range)}\nnew_low  = <span class='f-highlight'>${fmt(low)} + ${fmt(range)} × ${s.cumLow.toFixed(6)} = ${fmt(newLow)}</span>\nnew_high = <span class='f-highlight'>${fmt(low)} + ${fmt(range)} × ${s.cumHigh.toFixed(6)} = ${fmt(newHigh)}</span>`,
+      low: newLow, high: newHigh, prevLow: low, prevHigh: high,
+      charIdx: i, charSym: c, done: false
+    });
+    low = newLow;
+    high = newHigh;
+  }
+
+  // Final step
+  const mid = (low+high)/2;
+  steps.push({
+    phase:'RESULT',
+    title:'Encoding complete',
+    body:`Final interval is <strong>[${fmt(low,10)}, ${fmt(high,10)})</strong>. We output the midpoint as the encoded value. The decoder, knowing the original message length (${text.length}) and symbol probabilities, can recover all symbols.`,
+    formulaHtml:`<span class='f-comment'>// Output any value in [low, high)</span>\nencoded = (low + high) / 2\n        = <span class='f-highlight'>${fmt(mid,10)}</span>`,
+    low, high, charIdx:text.length, charSym:null, done:true, encoded:mid
+  });
+
+  return steps;
+}
+
+function computeDecSteps(encodedVal, map, msgLen){
+  const steps = [];
+  const syms = Object.keys(map).sort();
+  let value = encodedVal;
+  let decoded = '';
+
+  steps.push({
+    phase:'DECODE SETUP', title:'Starting decoder',
+    body:`Encoded value: <strong>${fmt(encodedVal,10)}</strong>. We need to recover <strong>${msgLen}</strong> symbols. At each step we find which symbol sub-interval [cumLow, cumHigh) contains the current value, output that symbol, then rescale.`,
+    value, decoded:'', charSym:null, formulaHtml:null
+  });
+
+  for(let i=0;i<msgLen;i++){
+    // find which symbol
+    let foundSym = null;
+    for(const c of syms){
+      const s = map[c];
+      if(value >= s.cumLow && value < s.cumHigh){
+        foundSym = c; break;
+      }
+    }
+    if(!foundSym){ foundSym = syms[syms.length-1]; }
+    const s = map[foundSym];
+    const newValue = (value - s.cumLow) / (s.cumHigh - s.cumLow);
+    decoded += foundSym;
+    steps.push({
+      phase:`DECODE  ${i+1}/${msgLen}`,
+      title:`Symbol ${i+1}: '${foundSym}'`,
+      body:`Value <strong>${fmt(value,8)}</strong> falls in sub-interval [<strong>${s.cumLow.toFixed(6)}</strong>, <strong>${s.cumHigh.toFixed(6)}</strong>) → symbol '<strong>${foundSym}</strong>'. Rescale to get the next value.`,
+      formulaHtml:`<span class='f-comment'>// Rescale the value</span>\nnew_value = (value − cumLow) / (cumHigh − cumLow)\n          = (${fmt(value,8)} − ${s.cumLow.toFixed(6)}) / ${(s.cumHigh-s.cumLow).toFixed(6)}\n          = <span class='f-highlight'>${fmt(newValue,8)}</span>`,
+      value: newValue, prevValue: value, decoded, charSym: foundSym, s
+    });
+    value = newValue;
+  }
+  return steps;
+}
+
+// ── render prob header bar ─────────────────────────────────────────
+function renderProbHeader(map){
+  const bar = document.getElementById('prob-bar');
+  const ticks = document.getElementById('prob-ticks');
+  const legend = document.getElementById('sym-legend');
+  bar.innerHTML = '';
+  ticks.innerHTML = '';
+  legend.innerHTML = '';
+  const syms = Object.keys(map).sort();
+  syms.forEach(c=>{
+    const s = map[c];
+    const seg = document.createElement('div');
+    seg.className = 'prob-segment';
+    seg.style.width = (s.prob*100)+'%';
+    seg.style.background = s.color;
+    seg.style.opacity = '0.9';
+    if(s.prob > 0.07) seg.textContent = c;
+    seg.title = `'${c}': [${s.cumLow.toFixed(4)}, ${s.cumHigh.toFixed(4)}) p=${s.prob.toFixed(4)}`;
+    bar.appendChild(seg);
+  });
+  // ticks at 0 and each cumHigh
+  const tickVals = [0,...syms.map(c=>map[c].cumHigh)];
+  tickVals.forEach(v=>{
+    const t = document.createElement('span');
+    t.textContent = v.toFixed(2);
+    ticks.appendChild(t);
+  });
+  // legend
+  syms.forEach(c=>{
+    const s = map[c];
+    const chip = document.createElement('div');
+    chip.className = 'sym-chip';
+    chip.innerHTML = `<span class="sym-dot" style="background:${s.color}"></span><span class="sym-name">'${c}'</span><span class="sym-prob">${(s.prob*100).toFixed(1)}%  [${s.cumLow.toFixed(3)},${s.cumHigh.toFixed(3)})</span>`;
+    legend.appendChild(chip);
+  });
+  document.getElementById('prob-header').style.display = '';
+}
+
+// ── render a single encode step ───────────────────────────────────
+function renderEncStep(idx){
+  const st = encSteps[idx];
+  if(!st) return;
+  encIdx = idx;
+
+  // update counter / slider
+  document.getElementById('ctr-enc').textContent = `Step ${idx+1} / ${encSteps.length}`;
+  const sl = document.getElementById('slider-enc');
+  sl.value = idx;
+
+  // step description
+  document.getElementById('sd-phase').textContent = st.phase;
+  document.getElementById('sd-title').textContent = st.title;
+  document.getElementById('sd-body').innerHTML = st.body;
+  const fEl = document.getElementById('sd-formula');
+  if(st.formulaHtml){ fEl.style.display=''; fEl.innerHTML=st.formulaHtml; }
+  else { fEl.style.display='none'; }
+
+  // encode result
+  const er = document.getElementById('encode-result');
+  if(st.done && st.encoded !== undefined){
+    er.style.display='';
+    document.getElementById('er-value').textContent = fmt(st.encoded,10);
+    document.getElementById('er-sub').textContent = `Interval: [${fmt(st.low,10)},  ${fmt(st.high,10)})  — width: ${fmt(st.high-st.low,10)}`;
+    // also fill decode input
+    document.getElementById('inp-decode').value = fmt(st.encoded,10);
+  } else {
+    er.style.display='none';
+  }
+
+  // interval bounds label
+  document.getElementById('interval-bounds').textContent = `[${fmtShort(st.low)},  ${fmtShort(st.high)})`;
+
+  // full track: window overlay
+  const low = st.low, high = st.high;
+  const win = document.getElementById('full-window');
+  win.style.left = (low*100)+'%';
+  win.style.width = Math.max((high-low)*100, 0.3)+'%';
+
+  // zoom bar: subdivide current interval by sym probs
+  const zBar = document.getElementById('zoom-bar');
+  const zTicks = document.getElementById('zoom-ticks');
+  zBar.innerHTML='';
+  zTicks.innerHTML='';
+
+  const syms = Object.keys(symMap).sort();
+  const range = high - low;
+
+  // tick values
+  const tickVals = [low];
+  syms.forEach(c=>{
+    const s = symMap[c];
+    const seg = document.createElement('div');
+    seg.className = 'sub-segment';
+    const segW = s.prob * 100;
+    seg.style.width = segW+'%';
+    seg.style.background = s.color;
+    seg.style.opacity = st.charSym === c ? '1' : '0.55';
+    if(st.charSym === c) seg.classList.add('active-char');
+    if(segW > 6) seg.textContent = c;
+    seg.title = `'${c}': [${(low+range*s.cumLow).toFixed(6)}, ${(low+range*s.cumHigh).toFixed(6)})`;
+    zBar.appendChild(seg);
+    tickVals.push(low + range*s.cumHigh);
+  });
+
+  // tick labels (just show low, active char bounds, high)
+  const tFirst = document.createElement('span');
+  tFirst.innerHTML = `<span>${fmtShort(low)}</span>`;
+  const tLast = document.createElement('span');
+  tLast.innerHTML = `<span>${fmtShort(high)}</span>`;
+  zTicks.appendChild(tFirst);
+  if(st.charSym){
+    const s = symMap[st.charSym];
+    const mid = document.createElement('span');
+    mid.style.color = s.color;
+    mid.textContent = `'${st.charSym}': [${fmtShort(low+range*s.cumLow)}, ${fmtShort(low+range*s.cumHigh)})`;
+    zTicks.appendChild(mid);
+  } else {
+    zTicks.appendChild(document.createElement('span'));
+  }
+  zTicks.appendChild(tLast);
+
+  // sidebar step numbers
+  const phase = st.phase;
+  for(let i=1;i<=5;i++) document.getElementById('sn'+i).classList.remove('active-step');
+  if(phase.startsWith('SETUP')) document.getElementById('sn1').classList.add('active-step'), document.getElementById('sn2').classList.add('active-step');
+  else if(phase.startsWith('ENCODE')) document.getElementById('sn3').classList.add('active-step');
+  else if(phase.startsWith('RESULT')) document.getElementById('sn4').classList.add('active-step');
+}
+
+// ── render a single decode step ───────────────────────────────────
+function renderDecStep(idx){
+  const st = decSteps[idx];
+  if(!st) return;
+  decIdx = idx;
+
+  document.getElementById('ctr-dec').textContent = `Step ${idx+1} / ${decSteps.length}`;
+  document.getElementById('slider-dec').value = idx;
+
+  // description
+  document.getElementById('dsd-phase').textContent = st.phase;
+  document.getElementById('dsd-title').textContent = st.title;
+  document.getElementById('dsd-body').innerHTML = st.body;
+  const fEl = document.getElementById('dsd-formula');
+  if(st.formulaHtml){ fEl.style.display=''; fEl.innerHTML=st.formulaHtml; }
+  else { fEl.style.display='none'; }
+
+  // decoded string
+  const dEl = document.getElementById('decoded-so-far');
+  if(idx===0){
+    dEl.textContent = '';
+  } else {
+    const prev = st.decoded.slice(0,-1);
+    const newC = st.charSym;
+    dEl.innerHTML = `<span class="dc">${prev}</span><span class="dc-new">${newC||''}</span>`;
+  }
+
+  // decode interval viz: show where value falls in sym probs
+  const syms = Object.keys(symMap).sort();
+  const dBar = document.getElementById('dec-zoom-bar');
+  const dTicks = document.getElementById('dec-zoom-ticks');
+  // clear existing segments (keep marker)
+  const marker = document.getElementById('dec-value-marker');
+  dBar.innerHTML = '';
+  dBar.appendChild(marker);
+  dTicks.innerHTML = '';
+
+  const value = st.prevValue !== undefined ? st.prevValue : st.value;
+
+  syms.forEach(c=>{
+    const s = symMap[c];
+    const seg = document.createElement('div');
+    seg.className = 'sub-segment';
+    seg.style.width = (s.prob*100)+'%';
+    seg.style.background = s.color;
+    seg.style.opacity = st.charSym === c ? '1' : '0.5';
+    if(st.charSym === c) seg.classList.add('active-char');
+    if(s.prob > 0.07) seg.textContent = c;
+    dBar.appendChild(seg);
+  });
+
+  // position the value marker
+  marker.style.left = (value*100)+'%';
+  document.getElementById('dec-interval-bounds').textContent = `value = ${fmt(value,8)}`;
+
+  // ticks
+  const t0 = document.createElement('span'); t0.textContent='0'; dTicks.appendChild(t0);
+  if(st.charSym){
+    const s = symMap[st.charSym];
+    const mid2 = document.createElement('span');
+    mid2.style.color = s.color;
+    mid2.textContent = `→ '${st.charSym}' [${s.cumLow.toFixed(4)}, ${s.cumHigh.toFixed(4)})`;
+    dTicks.appendChild(mid2);
+  } else {
+    dTicks.appendChild(document.createElement('span'));
+  }
+  const t1 = document.createElement('span'); t1.textContent='1'; dTicks.appendChild(t1);
+
+  // sidebar step 5
+  for(let i=1;i<=5;i++) document.getElementById('sn'+i).classList.remove('active-step');
+  document.getElementById('sn5').classList.add('active-step');
+}
+
+// ── encode entry point ────────────────────────────────────────────
+function encodeInput(){
+  const text = document.getElementById('inp-text').value.trim();
+  if(!text){ alert('Please enter some text.'); return; }
+  if(new Set(text).size < 2 && text.length > 1){
+    // single unique character — pad for demonstration
+  }
+
+  symMap = buildSymMap(text);
+  encSteps = computeEncSteps(text, symMap);
+
+  renderProbHeader(symMap);
+  document.getElementById('main-tabs').style.display = '';
+  document.getElementById('enc-stats').style.display = '';
+
+  // stats
+  document.getElementById('stat-msglen').textContent = text.length;
+  document.getElementById('stat-syms').textContent = Object.keys(symMap).length;
+  const entropy = -Object.values(symMap).reduce((a,s)=>a+s.prob*Math.log2(s.prob),0);
+  document.getElementById('stat-entropy').textContent = entropy.toFixed(4);
+
+  // fill full track background
+  const ftSegs = document.getElementById('full-track-segs');
+  ftSegs.innerHTML='';
+  Object.keys(symMap).sort().forEach(c=>{
+    const s=symMap[c];
+    const seg=document.createElement('div');
+    seg.style.cssText=`width:${s.prob*100}%;height:100%;background:${s.color};opacity:.35;flex-shrink:0;`;
+    ftSegs.appendChild(seg);
+  });
+
+  const sl = document.getElementById('slider-enc');
+  sl.max = encSteps.length-1;
+  sl.value = 0;
+
+  // init decode fields
+  document.getElementById('inp-msglen').value = text.length;
+  lastMsgLen = text.length;
+
+  encIdx = 0;
+  switchTab('encode');
+  renderEncStep(0);
+}
+
+// ── decode entry point ────────────────────────────────────────────
+function startDecode(){
+  const val = parseFloat(document.getElementById('inp-decode').value);
+  const mlen = parseInt(document.getElementById('inp-msglen').value);
+  if(isNaN(val)||isNaN(mlen)){ alert('Enter a valid encoded value and message length.'); return; }
+  if(Object.keys(symMap).length===0){ alert('Please encode a message first to build the symbol table.'); return; }
+  if(val<0||val>=1){ alert('Encoded value must be in [0, 1).'); return; }
+
+  decSteps = computeDecSteps(val, symMap, mlen);
+
+  document.getElementById('dec-step-bar').style.display='';
+  document.getElementById('dec-interval-viz').style.display='';
+  document.getElementById('dec-output-wrap').style.display='';
+  document.getElementById('dec-step-desc').style.display='';
+
+  const sl = document.getElementById('slider-dec');
+  sl.max = decSteps.length-1;
+  sl.value = 0;
+  decIdx = 0;
+  renderDecStep(0);
+}
+
+// ── navigation ────────────────────────────────────────────────────
+function stepEnc(d){
+  const next = Math.max(0, Math.min(encSteps.length-1, encIdx+d));
+  renderEncStep(next);
+}
+function gotoEnc(i){ renderEncStep(i); }
+
+function stepDec(d){
+  const next = Math.max(0, Math.min(decSteps.length-1, decIdx+d));
+  renderDecStep(next);
+}
+function gotoDec(i){ renderDecStep(i); }
+
+function togglePlayEnc(){
+  if(playTimerEnc){
+    clearInterval(playTimerEnc); playTimerEnc=null;
+    document.getElementById('btn-play-enc').textContent='▶ Play';
+  } else {
+    document.getElementById('btn-play-enc').textContent='⏸ Pause';
+    playTimerEnc=setInterval(()=>{
+      if(encIdx >= encSteps.length-1){
+        clearInterval(playTimerEnc); playTimerEnc=null;
+        document.getElementById('btn-play-enc').textContent='▶ Play';
+      } else { renderEncStep(encIdx+1); }
+    },900);
+  }
+}
+function togglePlayDec(){
+  if(playTimerDec){
+    clearInterval(playTimerDec); playTimerDec=null;
+    document.getElementById('btn-play-dec').textContent='▶ Play';
+  } else {
+    document.getElementById('btn-play-dec').textContent='⏸ Pause';
+    playTimerDec=setInterval(()=>{
+      if(decIdx >= decSteps.length-1){
+        clearInterval(playTimerDec); playTimerDec=null;
+        document.getElementById('btn-play-dec').textContent='▶ Play';
+      } else { renderDecStep(decIdx+1); }
+    },1000);
+  }
+}
+
+// ── tabs ──────────────────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const names=['encode','decode'];
+    t.classList.toggle('active', names[i]===name);
+  });
+  document.querySelectorAll('.tab-content').forEach(tc=>{
+    tc.classList.remove('active');
+  });
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ── example loader ────────────────────────────────────────────────
+function loadExample(txt){
+  document.getElementById('inp-text').value = txt;
+  encodeInput();
+}
+
+// ── auto-start with default ───────────────────────────────────────
+window.addEventListener('load', ()=>{ encodeInput(); });
+</script>
+</body>
+</html>
