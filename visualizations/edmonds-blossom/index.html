@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edmonds' Blossom Algorithm — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #111720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #7ee787;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+    --red: #ff7b72;
+    --pink: #f778ba;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: rgba(22,27,34,0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  header a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+  header h1 { font-size: 1.3rem; }
+  .main { max-width: 1320px; margin: 0 auto; padding: 28px 22px 40px; }
+  .toolbar, .stats, .panel, .explain {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 16px; margin-bottom: 16px; }
+  select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; }
+  input[type=range] { background: var(--panel); accent-color: var(--accent); }
+  button { border: none; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; font: inherit; background: var(--accent); color: #08111b; }
+  button.sec { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider-group { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 12px; padding: 14px 16px; margin-bottom: 16px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.25rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; }
+  .workspace { position: relative; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 580px; background: radial-gradient(circle at top, rgba(88,166,255,0.07), transparent 24%), #09111a; border-radius: 14px; }
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  .panel { padding: 16px; }
+  .panel h3 { font-size: 0.95rem; margin-bottom: 12px; }
+  .log-list { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow: auto; }
+  .log-item { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 0.84rem; color: var(--muted); }
+  .log-item.active { border-color: var(--accent); color: var(--text); }
+  .log-item.blossom { border-color: var(--pink); }
+  .log-item.augment { border-color: var(--green); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 16px; margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--muted); font-size: 0.82rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; margin-top: 8px; }
+  .explain code { background: var(--panel); padding: 1px 6px; border-radius: 4px; color: var(--text); font-size: 0.88em; }
+  @media (max-width: 1080px) {
+    .layout { grid-template-columns: 1fr; }
+    canvas { height: 420px; }
+    .stats { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🌸 Edmonds' Blossom Algorithm</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Maximum Matching · Blossom Contraction · Augmenting Paths</span>
+</header>
+
+<div class="main">
+  <div class="toolbar">
+    <label style="color:var(--muted);font-size:0.86rem">Graph</label>
+    <select id="graph-sel">
+      <option value="0">Blossom Example (8 nodes)</option>
+      <option value="1">Simple Matching (6 nodes)</option>
+      <option value="2">Double Blossom (10 nodes)</option>
+    </select>
+    <button id="play-btn">&#9654; Play</button>
+    <button class="sec" id="pause-btn" disabled>&#9646;&#9646; Pause</button>
+    <button class="sec" id="prev-btn">&#9664; Prev</button>
+    <button class="sec" id="next-btn">&#9654;&#9654; Next</button>
+    <button class="sec" id="reset-btn">&#8635; Reset</button>
+    <div class="slider-group">
+      <label>Speed <span id="spd-lbl">800</span>ms</label>
+      <input id="spd-in" type="range" min="150" max="2000" step="50" value="800">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="s-matching">0</div><div class="stat-label">Matching Size</div></div>
+    <div class="stat"><div class="stat-value" id="s-aug">0</div><div class="stat-label">Augmentations</div></div>
+    <div class="stat"><div class="stat-value" id="s-blossoms">0</div><div class="stat-label">Blossoms Found</div></div>
+    <div class="stat"><div class="stat-value" id="s-frame">—</div><div class="stat-label">Frame</div></div>
+    <div class="stat"><div class="stat-value" id="s-status" style="font-size:0.82rem;color:var(--muted)">Ready</div><div class="stat-label">Phase</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel workspace">
+      <canvas id="cv"></canvas>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>Step Log</h3>
+        <div class="log-list" id="log-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#30363d"></div>Unmatched edge</div>
+    <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Matched edge</div>
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>BFS tree edge</div>
+    <div class="legend-item"><div class="swatch" style="background:#f778ba"></div>Blossom cycle</div>
+    <div class="legend-item"><div class="swatch" style="background:#7ee787"></div>Augmenting path</div>
+    <div class="legend-item"><div class="swatch" style="background:#a371f7"></div>Augmented (matched)</div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Edmonds' Blossom Algorithm finds a <strong>maximum matching</strong> in a general (non-bipartite) graph. A matching is a set of edges where no two edges share a vertex. A <em>maximum</em> matching has the largest possible number of edges.</p>
+    <ul>
+      <li><strong>Augmenting path</strong> — an alternating path (unmatched → matched → unmatched → …) that starts and ends at unmatched vertices. Flipping matched/unmatched along it increases matching size by 1.</li>
+      <li><strong>BFS tree</strong> — from each free (unmatched) vertex, build an alternating BFS tree to search for an augmenting path. Even-depth nodes are "outer", odd-depth are "inner".</li>
+      <li><strong>Blossom detection</strong> — when two outer nodes from the <em>same</em> BFS tree are connected by an edge, this creates an odd cycle called a <em>blossom</em>. The blossom's base is the LCA (lowest common ancestor) of the two endpoints in the tree.</li>
+      <li><strong>Blossom contraction</strong> — contract the blossom into a single super-node, then continue searching. If an augmenting path is found in the contracted graph, it can be lifted back to the original graph.</li>
+      <li><strong>Augmentation</strong> — once found, flip all matched/unmatched edges along the augmenting path. Repeat until no augmenting path exists.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  var cv  = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+
+  function resizeCv() {
+    cv.width  = cv.parentElement.clientWidth;
+    cv.height = cv.offsetHeight;
+  }
+  resizeCv();
+  window.addEventListener('resize', function () { resizeCv(); drawFrame(); });
+
+  var P = {
+    bg:'#09111a', surf:'#161b22', panel:'#111720', border:'#30363d',
+    text:'#e6edf3', muted:'#8b949e',
+    blue:'#58a6ff', green:'#7ee787', warn:'#f78166',
+    gold:'#e3b341', violet:'#a371f7', red:'#ff7b72',
+    pink:'#f778ba', cyan:'#67e8f9',
+  };
+
+  // ── Graph definitions ───────────────────────────────────────────────────────
+  // Graph 0: Classic blossom example where blossom contraction is required
+  // A graph with a clear blossom: 0-1-2-3-4-2 triangle at node 2 (the blossom is 2-3-4)
+  // Nodes: 0(free), 1, 2, 3, 4, 5(free), 6, 7
+  // Layout: designed to show blossom visually
+  var GRAPHS = [
+    {
+      name: 'Blossom Example (8 nodes)',
+      nodes: [
+        {id:0,label:'0'},{id:1,label:'1'},{id:2,label:'2'},
+        {id:3,label:'3'},{id:4,label:'4'},{id:5,label:'5'},
+        {id:6,label:'6'},{id:7,label:'7'},
+      ],
+      pos: [
+        [0.10, 0.50], // 0 (left anchor)
+        [0.28, 0.50], // 1
+        [0.50, 0.50], // 2 (blossom base)
+        [0.64, 0.28], // 3
+        [0.64, 0.72], // 4
+        [0.78, 0.50], // 5 (blossom top)
+        [0.88, 0.28], // 6
+        [0.88, 0.72], // 7
+      ],
+      edges: [
+        [0,1],[1,2],[2,3],[3,5],[4,5],[2,4], // path + blossom (3-5-4-2... odd cycle via 2-3-5-4-2)
+        [5,6],[5,7],  // extend beyond blossom
+      ]
+    },
+    {
+      name: 'Simple Matching (6 nodes)',
+      nodes: [
+        {id:0,label:'A'},{id:1,label:'B'},{id:2,label:'C'},
+        {id:3,label:'D'},{id:4,label:'E'},{id:5,label:'F'},
+      ],
+      pos: [
+        [0.12,0.28],[0.38,0.14],[0.62,0.28],
+        [0.12,0.72],[0.38,0.86],[0.62,0.72],
+      ],
+      edges: [
+        [0,1],[1,2],[0,3],[1,4],[2,5],[3,4],[4,5]
+      ]
+    },
+    {
+      name: 'Double Blossom (10 nodes)',
+      nodes: [
+        {id:0,label:'0'},{id:1,label:'1'},{id:2,label:'2'},
+        {id:3,label:'3'},{id:4,label:'4'},{id:5,label:'5'},
+        {id:6,label:'6'},{id:7,label:'7'},{id:8,label:'8'},
+        {id:9,label:'9'},
+      ],
+      pos: [
+        [0.08,0.50],[0.22,0.50],[0.38,0.50],
+        [0.50,0.24],[0.50,0.76],[0.62,0.50],
+        [0.72,0.50],[0.82,0.24],[0.82,0.76],[0.92,0.50],
+      ],
+      edges: [
+        [0,1],[1,2],[2,3],[3,5],[4,5],[2,4],
+        [5,6],[6,7],[7,9],[8,9],[6,8],
+      ]
+    }
+  ];
+
+  // ── Blossom Algorithm ────────────────────────────────────────────────────────
+  // Full implementation of Edmonds' Blossom algorithm with step recording
+
+  var frames = [];
+  var frameIdx = 0;
+  var stepLog = [];
+  var timer = null;
+  var speed = 800;
+  var currentGraph = 0;
+
+  function computeFrames(gidx) {
+    frames = []; frameIdx = 0; stepLog = [];
+    var gdata = GRAPHS[gidx];
+    var N = gdata.nodes.length;
+    var edges = gdata.edges;
+
+    // Build adjacency list
+    var adj = [];
+    for (var i = 0; i < N; i++) adj.push([]);
+    edges.forEach(function(e) {
+      adj[e[0]].push(e[1]);
+      adj[e[1]].push(e[0]);
+    });
+
+    // matching[v] = u if v is matched to u, else -1
+    var matching = new Array(N).fill(-1);
+
+    var totalAug = 0;
+    var totalBlossoms = 0;
+
+    function snap(phase, desc, highlight, blossomNodes, pathEdges, matchedEdges, augPath) {
+      frames.push({
+        phase: phase,
+        desc: desc,
+        matching: matching.slice(),
+        highlight: highlight || [],       // currently explored edges/nodes
+        blossomNodes: blossomNodes || [], // nodes forming blossom
+        pathEdges: pathEdges || [],       // BFS tree edges
+        augPath: augPath || [],           // augmenting path nodes
+        matchedEdges: matchedEdges || [], // currently matched edge pairs
+        totalAug: totalAug,
+        totalBlossoms: totalBlossoms,
+        logIdx: stepLog.length - 1,
+        gdata: gdata,
+      });
+    }
+
+    // Record initial state
+    snap('init', 'Initial graph — empty matching. We will find maximum matching using Edmonds\' Blossom algorithm.', [], [], [], [], []);
+
+    // Find augmenting path using BFS + blossom contraction
+    // Returns the path as array of nodes, or null
+    function findAugmentingPath(matching) {
+      // DSU for blossom contraction
+      var dsu = [];
+      for (var i = 0; i < N; i++) dsu.push(i);
+      function find(x) { return dsu[x] === x ? x : (dsu[x] = find(dsu[x])); }
+      function unite(x, y) { dsu[find(x)] = find(y); }
+
+      // BFS state
+      var label = new Array(N).fill(-1); // -1 = not visited, >=0 = parent in BFS tree
+      var inQueue = new Array(N).fill(false);
+      var queue = [];
+
+      // parent for augmenting path reconstruction
+      var parent = new Array(N).fill(-1);
+
+      // Mark all free vertices as BFS roots (outer nodes, "even" depth)
+      for (var v = 0; v < N; v++) {
+        if (matching[v] === -1) {
+          label[v] = v; // root of its own tree
+          queue.push(v);
+          inQueue[v] = true;
+        }
+      }
+
+      var bfsTreeEdges = []; // [[u,v]] edges in BFS tree
+
+      while (queue.length > 0) {
+        var u = queue.shift();
+        var uRoot = find(u);
+
+        for (var ni = 0; ni < adj[u].length; ni++) {
+          var v = adj[u][ni];
+          var vRoot = find(v);
+
+          if (uRoot === vRoot) continue; // same blossom, skip
+
+          if (label[vRoot] === -1) {
+            // v is unvisited
+            if (matching[v] === -1) {
+              // Found augmenting path!
+              parent[v] = u;
+              // Reconstruct path
+              var path = [v];
+              var cur = u;
+              while (cur !== -1) {
+                path.push(cur);
+                cur = parent[cur];
+              }
+              path.reverse();
+              return { path: path, bfsEdges: bfsTreeEdges.slice(), blossoms: [] };
+            }
+            // v is matched: add v and its match to BFS
+            var w = matching[v];
+            label[v] = u; // v is inner node
+            parent[v] = u;
+            label[w] = v; // w is outer node
+            parent[w] = v;
+            bfsTreeEdges.push([u, v]);
+            bfsTreeEdges.push([v, w]);
+            if (!inQueue[find(w)]) {
+              queue.push(w);
+              inQueue[find(w)] = true;
+            }
+          } else if (label[vRoot] !== -1) {
+            // Both u and v are outer nodes — check if different trees (augmenting path)
+            // or same tree (blossom)
+            // Find LCA
+            var pathU = [];
+            var pathV = [];
+            var cu = u, cv2 = v;
+            // trace roots
+            while (cu !== -1) { pathU.push(find(cu)); cu = parent[cu] !== undefined ? parent[cu] : -1; }
+            while (cv2 !== -1) { pathV.push(find(cv2)); cv2 = parent[cv2] !== undefined ? parent[cv2] : -1; }
+
+            var setU = {};
+            pathU.forEach(function(n, i) { setU[n] = i; });
+            var lca = -1;
+            for (var pi = 0; pi < pathV.length; pi++) {
+              if (setU[pathV[pi]] !== undefined) { lca = pathV[pi]; break; }
+            }
+
+            if (lca === -1) {
+              // Different trees — augmenting path through (u, v)
+              parent[v] = u;
+              var path2 = [v];
+              var cur2 = u;
+              while (cur2 !== -1) { path2.push(cur2); cur2 = parent[cur2] !== undefined ? parent[cur2] : -1; }
+              path2.reverse();
+              return { path: path2, bfsEdges: bfsTreeEdges.slice(), blossoms: [] };
+            }
+
+            // Same tree — blossom found, contract it
+            // Collect blossom nodes
+            var blossomNodes = [];
+            var cuu = u, cvv = v;
+            while (find(cuu) !== lca) {
+              blossomNodes.push(find(cuu));
+              unite(cuu, lca);
+              cuu = parent[cuu] !== undefined ? parent[cuu] : -1;
+              if (cuu === -1) break;
+            }
+            while (find(cvv) !== lca) {
+              blossomNodes.push(find(cvv));
+              unite(cvv, lca);
+              cvv = parent[cvv] !== undefined ? parent[cvv] : -1;
+              if (cvv === -1) break;
+            }
+            blossomNodes.push(lca);
+
+            totalBlossoms++;
+            return { blossom: blossomNodes, bfsEdges: bfsTreeEdges.slice(), continueWith: { adj, matching, dsu, label, inQueue, queue, parent, bfsTreeEdges } };
+          }
+        }
+      }
+      return null;
+    }
+
+    // Full augmenting path search with step-by-step BFS and blossom recording
+    function findAugmentingPathFull(matchingState) {
+      var dsu = [];
+      for (var i = 0; i < N; i++) dsu.push(i);
+      function find(x) { return dsu[x] === x ? x : (dsu[x] = find(dsu[x])); }
+
+      var label = new Array(N).fill(-1);
+      var parent = new Array(N).fill(-1);
+      var inQueue = new Array(N).fill(false);
+      var queue = [];
+      var bfsEdges = [];
+      var allBlossomNodes = [];
+
+      for (var v = 0; v < N; v++) {
+        if (matchingState[v] === -1) {
+          label[v] = v;
+          queue.push(v);
+          inQueue[v] = true;
+        }
+      }
+
+      while (queue.length > 0) {
+        var u = queue.shift();
+
+        for (var ni = 0; ni < adj[u].length; ni++) {
+          var v = adj[u][ni];
+          if (find(u) === find(v)) continue;
+
+          var vr = find(v);
+          if (label[vr] === -1) {
+            if (matchingState[v] === -1) {
+              // Augmenting path found
+              parent[v] = u;
+              var path = [];
+              var c = v;
+              while (c !== -1) { path.unshift(c); c = parent[c] !== undefined && parent[c] >= 0 ? parent[c] : -1; }
+              return { path: path, bfsEdges: bfsEdges.slice(), blossomNodes: allBlossomNodes.slice() };
+            }
+            var w = matchingState[v];
+            label[v] = u;
+            parent[v] = u;
+            label[w] = v;
+            parent[w] = v;
+            bfsEdges.push([u, v]);
+            bfsEdges.push([v, w]);
+            var wr = find(w);
+            if (!inQueue[wr]) {
+              queue.push(w);
+              inQueue[wr] = true;
+            }
+          } else {
+            // Both outer — find LCA, contract blossom
+            var pu = [], pv = [];
+            var visited = new Array(N).fill(false);
+            var cu = u;
+            while (cu >= 0) {
+              visited[find(cu)] = true;
+              pu.push(cu);
+              cu = (parent[cu] >= 0) ? parent[cu] : -1;
+            }
+            var lcaNode = find(u);
+            var cvv = v;
+            while (cvv >= 0) {
+              var fr = find(cvv);
+              if (visited[fr]) { lcaNode = fr; break; }
+              pv.push(cvv);
+              cvv = (parent[cvv] >= 0) ? parent[cvv] : -1;
+            }
+
+            // Contract blossom
+            var blossomSet = [];
+            var cu2 = u;
+            while (find(cu2) !== lcaNode) {
+              blossomSet.push(cu2);
+              var nxt = parent[cu2];
+              dsu[find(cu2)] = lcaNode;
+              cu2 = (nxt >= 0) ? nxt : -1;
+              if (cu2 < 0) break;
+            }
+            var cv2 = v;
+            while (find(cv2) !== lcaNode) {
+              blossomSet.push(cv2);
+              var nxt2 = parent[cv2];
+              dsu[find(cv2)] = lcaNode;
+              cv2 = (nxt2 >= 0) ? nxt2 : -1;
+              if (cv2 < 0) break;
+            }
+            blossomSet.push(lcaNode);
+
+            allBlossomNodes = allBlossomNodes.concat(blossomSet);
+            totalBlossoms++;
+
+            // Re-enqueue contracted node if not already queued
+            if (!inQueue[lcaNode]) {
+              queue.push(lcaNode);
+              inQueue[lcaNode] = true;
+            }
+          }
+        }
+      }
+      return null; // no augmenting path
+    }
+
+    // Now actually run the algorithm and record detailed steps
+    // We'll do a simplified but correct step-by-step recording
+
+    function runBlossomWithSteps() {
+      // We simulate the algorithm phase by phase
+
+      var M = matching.slice(); // current matching
+
+      function getMatchedEdges(m) {
+        var me = [];
+        for (var i = 0; i < N; i++) {
+          if (m[i] > i) me.push([i, m[i]]);
+        }
+        return me;
+      }
+
+      function augmentAlongPath(m, path) {
+        // path is array of nodes: unmatched, matched, unmatched, ...
+        for (var i = 0; i < path.length - 1; i++) {
+          if (i % 2 === 0) {
+            // was unmatched — make matched
+            m[path[i]] = path[i+1];
+            m[path[i+1]] = path[i];
+          } else {
+            // was matched — unmatch
+            m[path[i]] = -1;
+            m[path[i+1]] = -1;
+          }
+        }
+      }
+
+      // Phase-by-phase steps
+      while (true) {
+        // Find a free vertex to start BFS from
+        var freeVerts = [];
+        for (var i = 0; i < N; i++) {
+          if (M[i] === -1) freeVerts.push(i);
+        }
+
+        if (freeVerts.length === 0) break;
+
+        snap('search',
+          'Searching for augmenting path. Free vertices: [' + freeVerts.map(function(v){ return gdata.nodes[v].label; }).join(', ') + ']. Starting BFS from free vertices.',
+          freeVerts,
+          [],
+          [],
+          getMatchedEdges(M),
+          []
+        );
+
+        // Run blossom algorithm
+        // Build adjacency with DSU for blossom contraction
+        var dsu2 = [];
+        for (var i2 = 0; i2 < N; i2++) dsu2.push(i2);
+        function find2(x) { return dsu2[x] === x ? x : (dsu2[x] = find2(dsu2[x])); }
+
+        var label2 = new Array(N).fill(-1);
+        var parent2 = new Array(N).fill(-1);
+        var inQueue2 = new Array(N).fill(false);
+        var queue2 = [];
+        var bfsEdges2 = [];
+        var foundBlossomNodes = [];
+        var foundPath = null;
+        var augIteration = false;
+
+        for (var fi = 0; fi < N; fi++) {
+          if (M[fi] === -1) {
+            label2[fi] = fi;
+            queue2.push(fi);
+            inQueue2[fi] = true;
+          }
+        }
+
+        var steps_done = false;
+        var blossom_recorded = false;
+
+        outer:
+        while (queue2.length > 0) {
+          var u2 = queue2.shift();
+
+          for (var ni2 = 0; ni2 < adj[u2].length; ni2++) {
+            var v2 = adj[u2][ni2];
+            if (find2(u2) === find2(v2)) continue;
+
+            var vr2 = find2(v2);
+            if (label2[vr2] === -1) {
+              // v2 unvisited
+              if (M[v2] === -1) {
+                // Found augmenting path
+                parent2[v2] = u2;
+                var path2 = [];
+                var c2 = v2;
+                while (c2 >= 0) {
+                  path2.unshift(c2);
+                  c2 = parent2[c2] >= 0 ? parent2[c2] : -1;
+                }
+                // Record BFS found path
+                snap('found',
+                  'Augmenting path found: ' + path2.map(function(n){ return gdata.nodes[n].label; }).join(' → '),
+                  path2,
+                  foundBlossomNodes,
+                  bfsEdges2.slice(),
+                  getMatchedEdges(M),
+                  path2
+                );
+                foundPath = path2;
+                stepLog.push({ text: 'Path: ' + path2.map(function(n){ return gdata.nodes[n].label; }).join('→'), type: 'augment' });
+                break outer;
+              }
+
+              var w2 = M[v2];
+              label2[v2] = u2;
+              parent2[v2] = u2;
+              label2[w2] = v2;
+              parent2[w2] = v2;
+              bfsEdges2.push([u2, v2]);
+              bfsEdges2.push([v2, w2]);
+              var wr2 = find2(w2);
+              if (!inQueue2[wr2]) {
+                queue2.push(w2);
+                inQueue2[wr2] = true;
+              }
+            } else {
+              // Both outer nodes — potential blossom
+              var visited2 = new Array(N).fill(false);
+              var cu3 = u2;
+              while (cu3 >= 0) {
+                visited2[find2(cu3)] = true;
+                cu3 = (parent2[cu3] >= 0) ? parent2[cu3] : -1;
+              }
+              var lcaNode2 = find2(u2);
+              var cv3 = v2;
+              while (cv3 >= 0) {
+                var fr2 = find2(cv3);
+                if (visited2[fr2]) { lcaNode2 = fr2; break; }
+                cv3 = (parent2[cv3] >= 0) ? parent2[cv3] : -1;
+              }
+
+              // Collect blossom nodes
+              var blossomSet2 = [];
+              var bcu = u2;
+              while (find2(bcu) !== lcaNode2) {
+                blossomSet2.push(bcu);
+                var bnxt = parent2[bcu];
+                dsu2[find2(bcu)] = lcaNode2;
+                bcu = (bnxt >= 0) ? bnxt : -1;
+                if (bcu < 0) break;
+              }
+              var bcv = v2;
+              while (find2(bcv) !== lcaNode2) {
+                blossomSet2.push(bcv);
+                var bnxt2 = parent2[bcv];
+                dsu2[find2(bcv)] = lcaNode2;
+                bcv = (bnxt2 >= 0) ? bnxt2 : -1;
+                if (bcv < 0) break;
+              }
+              blossomSet2.push(lcaNode2);
+              foundBlossomNodes = foundBlossomNodes.concat(blossomSet2);
+              totalBlossoms++;
+
+              if (!blossom_recorded) {
+                blossom_recorded = true;
+                var blossomLabels = blossomSet2.map(function(n){ return gdata.nodes[n].label; }).join(', ');
+                snap('blossom',
+                  'Blossom detected! Odd cycle at nodes: [' + blossomLabels + ']. Base (LCA): ' + gdata.nodes[lcaNode2].label + '. Contracting blossom and continuing BFS.',
+                  blossomSet2,
+                  blossomSet2,
+                  bfsEdges2.slice(),
+                  getMatchedEdges(M),
+                  []
+                );
+                stepLog.push({ text: 'Blossom: [' + blossomLabels + '] base=' + gdata.nodes[lcaNode2].label, type: 'blossom' });
+              }
+
+              if (!inQueue2[lcaNode2]) {
+                queue2.push(lcaNode2);
+                inQueue2[lcaNode2] = true;
+              }
+            }
+          }
+        }
+
+        if (!foundPath) {
+          // No augmenting path — done
+          snap('done',
+            'No augmenting path found. Maximum matching achieved! Size = ' + totalAug + ' edges.',
+            [],
+            [],
+            [],
+            getMatchedEdges(M),
+            []
+          );
+          stepLog.push({ text: 'Done: maximum matching = ' + totalAug, type: 'done' });
+          break;
+        }
+
+        // Augment along path
+        // First show the path
+        // then augment
+        augmentAlongPath(M, foundPath);
+        totalAug++;
+        matching = M.slice();
+
+        snap('augmented',
+          'Augmented! Flipped matched/unmatched along path. Matching size = ' + totalAug + '.',
+          foundPath,
+          foundBlossomNodes,
+          bfsEdges2,
+          getMatchedEdges(M),
+          foundPath
+        );
+      }
+
+      // Final frame
+      snap('done',
+        'Maximum matching complete. Matching size = ' + totalAug + ' edges.',
+        [],
+        [],
+        [],
+        getMatchedEdges(matching),
+        []
+      );
+    }
+
+    runBlossomWithSteps();
+  }
+
+  // ── Drawing ─────────────────────────────────────────────────────────────────
+  function nodePos(gdata, i) {
+    var W = cv.width, H = cv.height;
+    var padX = 70, padY = 60;
+    var p = gdata.pos[i];
+    return { x: padX + p[0]*(W-2*padX), y: padY + p[1]*(H-2*padY) };
+  }
+
+  function drawEdge(x1, y1, x2, y2, color, lw, dashed) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw || 1.8;
+    if (dashed) ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  function drawNode(x, y, label, fillColor, strokeColor, glowColor, r) {
+    r = r || 22;
+    if (glowColor) {
+      ctx.save();
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 18;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 2*Math.PI);
+      ctx.fillStyle = 'transparent'; ctx.fill();
+      ctx.restore();
+    }
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 2*Math.PI);
+    ctx.fillStyle = fillColor; ctx.fill();
+    ctx.strokeStyle = strokeColor; ctx.lineWidth = 2; ctx.stroke();
+
+    ctx.font = '700 13px -apple-system,sans-serif';
+    ctx.fillStyle = P.text;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y);
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  }
+
+  function drawFrame() {
+    var W = cv.width, H = cv.height;
+    ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
+
+    if (!frames.length) {
+      ctx.fillStyle = P.muted;
+      ctx.font = '15px -apple-system,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Loading...', W/2, H/2);
+      ctx.textAlign = 'left';
+      return;
+    }
+
+    var fi = Math.max(0, Math.min(frameIdx, frames.length-1));
+    var fr = frames[fi];
+    var gd = fr.gdata;
+    var NR = 22;
+
+    // Build sets for fast lookup
+    var matchedSet = {};
+    fr.matchedEdges.forEach(function(e) { matchedSet[e[0]+'-'+e[1]] = true; matchedSet[e[1]+'-'+e[0]] = true; });
+    var blossomSet = {};
+    fr.blossomNodes.forEach(function(n) { blossomSet[n] = true; });
+    var augSet = {};
+    if (fr.augPath) fr.augPath.forEach(function(n) { augSet[n] = true; });
+    var bfsEdgeSet = {};
+    fr.pathEdges.forEach(function(e) { bfsEdgeSet[e[0]+'-'+e[1]] = true; bfsEdgeSet[e[1]+'-'+e[0]] = true; });
+    var augPathEdgeSet = {};
+    if (fr.augPath && fr.augPath.length > 1) {
+      for (var i = 0; i < fr.augPath.length-1; i++) {
+        var pa = fr.augPath[i], pb = fr.augPath[i+1];
+        augPathEdgeSet[pa+'-'+pb] = true;
+        augPathEdgeSet[pb+'-'+pa] = true;
+      }
+    }
+
+    // Draw edges
+    gd.edges.forEach(function(e) {
+      var u = e[0], v = e[1];
+      var pu = nodePos(gd, u), pv = nodePos(gd, v);
+      var key = u+'-'+v;
+
+      var color, lw;
+      if (fr.phase === 'done' || fr.phase === 'augmented') {
+        if (matchedSet[key]) {
+          color = (fr.phase === 'done') ? P.violet : P.green;
+          lw = 3.5;
+        } else {
+          color = P.border;
+          lw = 1.5;
+        }
+      } else if (augPathEdgeSet[key]) {
+        color = P.green; lw = 3.5;
+      } else if (matchedSet[key]) {
+        color = P.gold; lw = 3;
+      } else if (bfsEdgeSet[key]) {
+        color = P.blue; lw = 2.2;
+      } else {
+        color = P.border; lw = 1.5;
+      }
+
+      // Draw blossom edges in pink
+      var uInBlossom = blossomSet[u], vInBlossom = blossomSet[v];
+      if (uInBlossom && vInBlossom && !augPathEdgeSet[key] && fr.phase === 'blossom') {
+        color = P.pink; lw = 2.5;
+      }
+
+      drawEdge(pu.x, pu.y, pv.x, pv.y, color, lw, false);
+    });
+
+    // Draw nodes
+    gd.nodes.forEach(function(nd, i) {
+      var p = nodePos(gd, i);
+      var isFree = (fr.matching[i] === -1);
+      var inBlossom = blossomSet[i];
+      var inAugPath = augSet[i];
+      var inHighlight = fr.highlight && fr.highlight.indexOf(i) >= 0;
+
+      var fillColor, strokeColor, glowColor = null;
+
+      if (fr.phase === 'done') {
+        fillColor = isFree ? P.panel : 'rgba(163,113,247,0.18)';
+        strokeColor = isFree ? P.border : P.violet;
+        if (!isFree) glowColor = P.violet;
+      } else if (fr.phase === 'augmented') {
+        fillColor = inAugPath ? 'rgba(126,231,135,0.20)' : P.panel;
+        strokeColor = inAugPath ? P.green : P.border;
+        if (inAugPath) glowColor = P.green;
+      } else if (inBlossom && fr.phase === 'blossom') {
+        fillColor = 'rgba(247,120,186,0.18)';
+        strokeColor = P.pink;
+        glowColor = P.pink;
+      } else if (inAugPath && fr.phase === 'found') {
+        fillColor = 'rgba(126,231,135,0.18)';
+        strokeColor = P.green;
+        glowColor = P.green;
+      } else if (inHighlight) {
+        fillColor = isFree ? 'rgba(88,166,255,0.18)' : 'rgba(227,179,65,0.18)';
+        strokeColor = isFree ? P.blue : P.gold;
+        if (isFree) glowColor = P.blue;
+      } else {
+        fillColor = P.panel;
+        strokeColor = isFree ? P.muted : P.border;
+      }
+
+      drawNode(p.x, p.y, nd.label, fillColor, strokeColor, glowColor, NR);
+
+      // free vertex indicator
+      if (isFree && fr.phase !== 'done') {
+        ctx.beginPath();
+        ctx.arc(p.x + NR - 3, p.y - NR + 3, 5, 0, 2*Math.PI);
+        ctx.fillStyle = P.warn;
+        ctx.fill();
+      }
+    });
+
+    // Status bar
+    var sbY = H - 24;
+    ctx.fillStyle = 'rgba(9,17,26,0.92)'; ctx.fillRect(0, sbY-8, W, 36);
+    ctx.font = '600 12px -apple-system,sans-serif';
+    var sc = fr.phase === 'done' ? P.violet :
+             fr.phase === 'augmented' ? P.green :
+             fr.phase === 'found' ? P.green :
+             fr.phase === 'blossom' ? P.pink :
+             fr.phase === 'search' ? P.blue : P.muted;
+    ctx.fillStyle = sc;
+    ctx.textAlign = 'center';
+    ctx.fillText(fr.desc, W/2, sbY + 11);
+    ctx.textAlign = 'left';
+    ctx.font = '10px -apple-system,sans-serif';
+    ctx.fillStyle = 'rgba(139,148,158,0.4)';
+    ctx.textAlign = 'right';
+    ctx.fillText('frame ' + (fi+1) + '/' + frames.length, W-12, sbY+11);
+    ctx.textAlign = 'left';
+
+    updateDom(fr);
+  }
+
+  function updateDom(fr) {
+    fr = fr || {};
+    document.getElementById('s-matching').textContent = fr.totalAug != null ? fr.totalAug : 0;
+    document.getElementById('s-aug').textContent = fr.totalAug != null ? fr.totalAug : 0;
+    document.getElementById('s-blossoms').textContent = fr.totalBlossoms != null ? fr.totalBlossoms : 0;
+    document.getElementById('s-frame').textContent = (frameIdx+1) + ' / ' + frames.length;
+
+    var phase = fr.phase || 'Ready';
+    var phaseLabels = {
+      init: 'Init', search: 'BFS Search', blossom: 'Blossom!',
+      found: 'Path Found', augmented: 'Augmented', done: 'Done ✓'
+    };
+    var st = phaseLabels[phase] || phase;
+    document.getElementById('s-status').textContent = st;
+
+    var ll = document.getElementById('log-list');
+    ll.innerHTML = stepLog.map(function(op, i) {
+      var cls = 'log-item';
+      if (fr.logIdx != null && i === fr.logIdx) cls += ' active';
+      if (op.type === 'blossom') cls += ' blossom';
+      if (op.type === 'augment') cls += ' augment';
+      return '<div class="' + cls + '">' + op.text + '</div>';
+    }).join('');
+    var active = ll.querySelector('.active');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+  }
+
+  // ── Playback ─────────────────────────────────────────────────────────────────
+  function play() {
+    if (!frames.length) return;
+    document.getElementById('play-btn').disabled = true;
+    document.getElementById('pause-btn').disabled = false;
+    timer = setInterval(function() {
+      if (frameIdx >= frames.length-1) { stopPlay(); return; }
+      frameIdx++; drawFrame();
+    }, speed);
+  }
+
+  function stopPlay() {
+    if (timer) { clearInterval(timer); timer = null; }
+    document.getElementById('play-btn').disabled = false;
+    document.getElementById('pause-btn').disabled = true;
+  }
+
+  function rebuild() {
+    stopPlay();
+    currentGraph = parseInt(document.getElementById('graph-sel').value, 10);
+    computeFrames(currentGraph);
+    frameIdx = 0;
+    drawFrame();
+  }
+
+  // ── Event handlers ───────────────────────────────────────────────────────────
+  document.getElementById('graph-sel').addEventListener('change', rebuild);
+  document.getElementById('play-btn').addEventListener('click', function() {
+    if (frameIdx >= frames.length-1) frameIdx = 0;
+    play();
+  });
+  document.getElementById('pause-btn').addEventListener('click', stopPlay);
+  document.getElementById('prev-btn').addEventListener('click', function() {
+    stopPlay();
+    if (frameIdx > 0) { frameIdx--; drawFrame(); }
+  });
+  document.getElementById('next-btn').addEventListener('click', function() {
+    stopPlay();
+    if (frameIdx < frames.length-1) { frameIdx++; drawFrame(); }
+  });
+  document.getElementById('reset-btn').addEventListener('click', function() {
+    stopPlay(); frameIdx = 0; drawFrame();
+  });
+  document.getElementById('spd-in').addEventListener('input', function() {
+    speed = parseInt(this.value, 10);
+    document.getElementById('spd-lbl').textContent = speed;
+    if (timer) { stopPlay(); play(); }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      e.preventDefault();
+      if (frameIdx < frames.length-1) { frameIdx++; drawFrame(); }
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (frameIdx > 0) { frameIdx--; drawFrame(); }
+    }
+    if (e.key === 'r' || e.key === 'R') { stopPlay(); frameIdx = 0; drawFrame(); }
+    if (e.key === 'p' || e.key === 'P') {
+      if (timer) stopPlay();
+      else { if (frameIdx >= frames.length-1) frameIdx = 0; play(); }
+    }
+  });
+
+  rebuild();
+})();
+</script>
+</body>
+</html>

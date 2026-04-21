@@ -10,7 +10,7 @@
 - [x] arithmetic-coding — Arithmetic Coding (interval subdivision, encoder + decoder) ✅ 2026-04-19
 
 ### Graphs
-- [ ] edmonds-blossom — Edmonds' Blossom (maximum matching, blossom contraction)
+- [x] edmonds-blossom — Edmonds' Blossom (maximum matching, blossom contraction) ✅ 2026-04-21
 - [ ] karger-mincut — Karger's Min Cut (randomized contraction, edge collapse)
 - [ ] hungarian — Hungarian Algorithm (assignment problem, augmenting path)
 - [ ] pagerank — PageRank (iterative power method, dangling nodes, damping factor)
