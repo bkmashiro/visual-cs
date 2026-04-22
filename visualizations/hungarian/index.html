@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hungarian Algorithm — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #111720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #f97316;
+    --green: #7ee787;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+    --blue: #58a6ff;
+    --pink: #f778ba;
+    --cyan: #67e8f9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(249,115,22,0.07), transparent 30%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: rgba(22,27,34,0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    position: sticky; top: 0; z-index: 20;
+  }
+  header a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+  header h1 { font-size: 1.3rem; }
+  .main { max-width: 1400px; margin: 0 auto; padding: 28px 22px 48px; }
+  .toolbar, .stats-bar, .panel, .explain {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 14px 18px; margin-bottom: 14px; }
+  select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; }
+  input[type=range] { accent-color: var(--accent); }
+  button { border: none; border-radius: 8px; padding: 9px 14px; font-weight: 700; cursor: pointer; font: inherit; background: var(--accent); color: #08111b; transition: opacity .15s; }
+  button.sec { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  .slider-group { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.85rem; }
+
+  .stats-bar { display: grid; grid-template-columns: repeat(5, minmax(110px, 1fr)); gap: 10px; padding: 12px 16px; margin-bottom: 14px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
+  .stat-value { font-size: 1.2rem; font-weight: 800; }
+  .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; }
+  .workspace { display: flex; flex-direction: column; gap: 14px; }
+  .panel { padding: 18px; }
+  .panel h3 { font-size: 0.92rem; margin-bottom: 12px; font-weight: 700; }
+  .side { display: flex; flex-direction: column; gap: 14px; }
+
+  /* Phase badge */
+  .phase-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 14px; border-radius: 20px; font-size: 0.74rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px;
+    background: rgba(249,115,22,0.12); border: 1px solid var(--accent); color: var(--accent);
+    transition: all 0.3s;
+  }
+  .phase-badge.green { background: rgba(126,231,135,0.1); border-color: var(--green); color: var(--green); }
+  .phase-badge.blue  { background: rgba(88,166,255,0.1);  border-color: var(--blue);  color: var(--blue);  }
+  .phase-badge.gold  { background: rgba(227,179,65,0.1);  border-color: var(--gold);  color: var(--gold);  }
+  .phase-badge.violet{ background: rgba(163,113,247,0.1); border-color: var(--violet);color: var(--violet);}
+
+  /* Cost matrix grid */
+  .matrix-container { overflow-x: auto; padding-bottom: 4px; }
+  .matrix-grid {
+    display: grid;
+    gap: 3px;
+  }
+  .m-cell {
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-weight: 700;
+    height: 52px; min-width: 52px;
+    border: 1.5px solid var(--border); background: var(--panel); color: var(--text);
+    transition: all 0.35s; font-size: 0.95rem; position: relative;
+    user-select: none;
+  }
+  .m-cell.lbl { background: transparent; border: none; color: var(--muted); font-size: 0.72rem; font-weight: 700; }
+  .m-cell.zero { color: var(--green); background: rgba(126,231,135,0.08); border-color: rgba(126,231,135,0.3); }
+  .m-cell.assigned { color: #0a1628; background: var(--green); border-color: var(--green); font-size: 1.05rem; }
+  .m-cell.cov-row { background: rgba(88,166,255,0.07); border-color: rgba(88,166,255,0.25); }
+  .m-cell.cov-col { background: rgba(163,113,247,0.07); border-color: rgba(163,113,247,0.25); }
+  .m-cell.cov-both { background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.35); }
+  .m-cell.uncov-min { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(227,179,65,0.3); color: var(--gold); }
+  .m-cell.row-lbl.active { color: var(--blue); }
+  .m-cell.col-lbl.active { color: var(--violet); }
+
+  /* Cover lines overlay */
+  .matrix-outer { position: relative; display: inline-block; }
+
+  /* Bipartite graph canvas */
+  canvas { display: block; width: 100%; height: 340px; border-radius: 12px; background: #09111a; border: 1px solid var(--border); }
+
+  /* Log list */
+  .log-list { display: flex; flex-direction: column; gap: 7px; max-height: 460px; overflow-y: auto; }
+  .log-item {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 11px; font-size: 0.82rem; color: var(--muted); line-height: 1.45;
+    transition: border-color 0.2s;
+  }
+  .log-item.active { border-color: var(--accent); color: var(--text); }
+  .log-item.phase-row { border-color: var(--blue); }
+  .log-item.phase-col { border-color: var(--violet); }
+  .log-item.phase-cover { border-color: var(--gold); }
+  .log-item.phase-adjust { border-color: var(--warn); }
+  .log-item.phase-done { border-color: var(--green); }
+
+  /* Assignment chips */
+  .assign-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .chip {
+    padding: 4px 11px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+    font-family: monospace; background: rgba(126,231,135,0.1); border: 1px solid var(--green); color: var(--green);
+  }
+
+  /* Legend */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 18px; margin-top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--muted); font-size: 0.82rem; }
+  .leg-item { display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+
+  /* Explain section */
+  .explain { margin-top: 16px; padding: 22px 26px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; font-size: 1.1rem; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.75; font-size: 0.91rem; }
+  .explain ul { padding-left: 22px; margin-top: 8px; }
+  .explain li { margin-bottom: 6px; }
+  .explain code { background: var(--panel); padding: 1px 6px; border-radius: 4px; color: var(--text); font-size: 0.88em; }
+  .explain strong { color: var(--text); }
+
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
+  }
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>⚖️ Hungarian Algorithm</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Assignment Problem · Cost Matrix Reduction · Optimal Matching</span>
+</header>
+
+<div class="main">
+  <div class="toolbar">
+    <label style="color:var(--muted);font-size:0.86rem">Example</label>
+    <select id="ex-sel">
+      <option value="0">4×4 — Workers &amp; Tasks</option>
+      <option value="1">5×5 — Project Teams</option>
+      <option value="2">4×4 — Machine Jobs</option>
+    </select>
+    <button id="play-btn">&#9654; Play</button>
+    <button class="sec" id="pause-btn" disabled>&#9646;&#9646; Pause</button>
+    <button class="sec" id="prev-btn">&#9664; Prev</button>
+    <button class="sec" id="next-btn">&#9654;&#9654; Next</button>
+    <button class="sec" id="reset-btn">&#8635; Reset</button>
+    <div class="slider-group">
+      <label>Speed <span id="spd-lbl">900</span>ms</label>
+      <input id="spd-in" type="range" min="200" max="2500" step="100" value="900" style="width:90px">
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-value" id="s-size">4×4</div><div class="stat-label">Matrix Size</div></div>
+    <div class="stat"><div class="stat-value" id="s-iter" style="color:var(--gold)">0</div><div class="stat-label">Iterations</div></div>
+    <div class="stat"><div class="stat-value" id="s-lines" style="color:var(--blue)">—</div><div class="stat-label">Lines Used</div></div>
+    <div class="stat"><div class="stat-value" id="s-cost" style="color:var(--green)">—</div><div class="stat-label">Min Total Cost</div></div>
+    <div class="stat"><div class="stat-value" id="s-frame" style="color:var(--muted)">—</div><div class="stat-label">Frame</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="workspace">
+      <!-- Matrix panel -->
+      <div class="panel">
+        <div id="phase-badge" class="phase-badge">Original Cost Matrix</div>
+        <div class="matrix-container" id="matrix-wrap"></div>
+      </div>
+      <!-- Bipartite graph panel -->
+      <div class="panel">
+        <h3>Assignment Graph</h3>
+        <canvas id="graph-cv"></canvas>
+      </div>
+      <!-- Assignment result -->
+      <div class="panel" id="assign-panel" style="display:none">
+        <h3 style="color:var(--green)">✓ Optimal Assignment</h3>
+        <div class="assign-chips" id="assign-chips"></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="panel">
+        <h3>Step Log</h3>
+        <div class="log-list" id="log-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="leg-item"><div class="swatch" style="background:var(--panel);border:1.5px solid #30363d"></div>Regular cell</div>
+    <div class="leg-item"><div class="swatch" style="background:rgba(126,231,135,0.08);border:1.5px solid rgba(126,231,135,0.3)"></div>Zero (potential match)</div>
+    <div class="leg-item"><div class="swatch" style="background:var(--green)"></div>Assigned zero</div>
+    <div class="leg-item"><div class="swatch" style="background:rgba(88,166,255,0.07);border:1.5px solid rgba(88,166,255,0.25)"></div>Row covered</div>
+    <div class="leg-item"><div class="swatch" style="background:rgba(163,113,247,0.07);border:1.5px solid rgba(163,113,247,0.25)"></div>Col covered</div>
+    <div class="leg-item"><div class="swatch" style="background:rgba(249,115,22,0.1);border:1.5px solid rgba(249,115,22,0.35)"></div>Double-covered</div>
+    <div class="leg-item"><div class="swatch" style="background:rgba(227,179,65,0.1);border:1.5px solid var(--gold)"></div>Min uncovered</div>
+  </div>
+
+  <div class="explain">
+    <h2>How the Hungarian Algorithm Works</h2>
+    <p>The <strong>Hungarian Algorithm</strong> (Kuhn–Munkres, 1955) solves the <em>assignment problem</em> in <code>O(n³)</code> time: given an <code>n×n</code> cost matrix, find a perfect matching between rows and columns that minimises the total cost.</p>
+    <ul>
+      <li><strong>Row reduction</strong> — subtract each row's minimum value. This shifts costs without changing the optimal structure, creating at least one zero per row.</li>
+      <li><strong>Column reduction</strong> — subtract each column's minimum value. Creates at least one zero per column.</li>
+      <li><strong>Line covering</strong> — find the <em>minimum</em> number of horizontal/vertical lines that cover all zeros (König's theorem: this equals the size of the maximum bipartite matching in the zero-pattern graph).</li>
+      <li><strong>Optimality check</strong> — if the number of covering lines equals <code>n</code>, a complete zero-based assignment exists → extract it and stop.</li>
+      <li><strong>Matrix adjustment</strong> — otherwise, let <code>θ</code> = minimum uncovered value. Subtract <code>θ</code> from all uncovered cells; add <code>θ</code> to double-covered cells. This creates new zeros without destroying existing ones, then repeat from step 3.</li>
+      <li><strong>Assignment extraction</strong> — once <code>n</code> lines suffice, use augmenting paths on the zero-graph (bipartite matching) to extract the optimal assignment.</li>
+    </ul>
+    <p style="margin-top:10px">The algorithm is guaranteed to converge in at most <code>n</code> adjustment rounds. The total cost of the optimal assignment equals the sum of all row and column reductions applied plus the sum of the values in the original matrix at the assigned positions.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ── Examples ─────────────────────────────────────────── */
+const EXAMPLES = [
+  {
+    name: "4×4 — Workers & Tasks",
+    labels: { rows: ["Alice","Bob","Carol","Dan"], cols: ["Task A","Task B","Task C","Task D"] },
+    matrix: [
+      [9,  2,  7,  8],
+      [6,  4,  3,  7],
+      [5,  8,  1,  8],
+      [7,  6,  9,  4]
+    ]
+  },
+  {
+    name: "5×5 — Project Teams",
+    labels: { rows: ["Team 1","Team 2","Team 3","Team 4","Team 5"], cols: ["Proj A","Proj B","Proj C","Proj D","Proj E"] },
+    matrix: [
+      [12, 7,  9,  7,  9],
+      [8,  7,  9,  6,  5],
+      [7,  11, 11, 11, 11],
+      [9,  11, 8,  9,  11],
+      [7,  6,  12, 9,  14]
+    ]
+  },
+  {
+    name: "4×4 — Machine Jobs",
+    labels: { rows: ["M1","M2","M3","M4"], cols: ["J1","J2","J3","J4"] },
+    matrix: [
+      [1, 2, 3, 4],
+      [2, 4, 6, 8],
+      [3, 6, 9, 12],
+      [4, 8, 12, 16]
+    ]
+  }
+];
+
+/* ── State ─────────────────────────────────────────────── */
+let ex = EXAMPLES[0];
+let frames = [];
+let frameIdx = -1;
+let timer = null;
+let playing = false;
+
+/* ── Algorithm ─────────────────────────────────────────── */
+function clone2d(m) { return m.map(r => r.slice()); }
+
+function hungarian(original) {
+  const n = original.length;
+  const steps = [];
+  let m = clone2d(original);
+
+  steps.push({
+    type: 'init',
+    mat: clone2d(m),
+    covR: null, covC: null, assign: null, minCells: null,
+    desc: `Start with ${n}×${n} cost matrix. We will reduce it until all zeros can be covered by exactly ${n} lines.`,
+    logClass: '',
+    phase: 'Original Cost Matrix'
+  });
+
+  // Step 1 – row reduction
+  for (let i = 0; i < n; i++) {
+    const mn = Math.min(...m[i]);
+    if (mn > 0) for (let j = 0; j < n; j++) m[i][j] -= mn;
+  }
+  steps.push({
+    type: 'row-reduce',
+    mat: clone2d(m),
+    covR: null, covC: null, assign: null, minCells: null,
+    desc: 'Row reduction: subtract the minimum value of each row. Each row now has at least one zero.',
+    logClass: 'phase-row',
+    phase: 'Phase 1 — Row Reduction'
+  });
+
+  // Step 2 – column reduction
+  for (let j = 0; j < n; j++) {
+    let mn = Infinity;
+    for (let i = 0; i < n; i++) mn = Math.min(mn, m[i][j]);
+    if (mn > 0) for (let i = 0; i < n; i++) m[i][j] -= mn;
+  }
+  steps.push({
+    type: 'col-reduce',
+    mat: clone2d(m),
+    covR: null, covC: null, assign: null, minCells: null,
+    desc: 'Column reduction: subtract the minimum value of each column. Now every column has at least one zero.',
+    logClass: 'phase-col',
+    phase: 'Phase 2 — Column Reduction'
+  });
+
+  // Iteration loop
+  for (let iter = 0; iter < n + 2; iter++) {
+    const { rowMatch, colMatch } = bipartiteMatch(m, n);
+    const { covR, covC } = buildLineCover(m, n, rowMatch, colMatch);
+    const lineCount = covR.filter(Boolean).length + covC.filter(Boolean).length;
+
+    steps.push({
+      type: 'cover',
+      mat: clone2d(m),
+      covR: covR.slice(), covC: covC.slice(), assign: null, minCells: null,
+      lineCount, iter,
+      desc: `Iteration ${iter + 1}: Cover all zeros with ${lineCount} line(s). Need ${n} lines for an optimal assignment.`,
+      logClass: 'phase-cover',
+      phase: `Iter ${iter + 1} — Line Covering (${lineCount}/${n})`
+    });
+
+    if (lineCount >= n) {
+      // Extract assignment
+      const assignment = [];
+      for (let i = 0; i < n; i++) {
+        if (rowMatch[i] >= 0) assignment.push([i, rowMatch[i]]);
+      }
+      let totalCost = 0;
+      assignment.forEach(([i, j]) => totalCost += original[i][j]);
+      steps.push({
+        type: 'done',
+        mat: clone2d(m),
+        covR: null, covC: null,
+        assign: assignment.map(p => p.slice()),
+        minCells: null,
+        totalCost,
+        desc: `${lineCount} lines = ${n}! Optimal assignment found with total cost = ${totalCost}.`,
+        logClass: 'phase-done',
+        phase: 'Optimal Assignment Found ✓'
+      });
+      break;
+    }
+
+    // Find minimum uncovered value
+    let theta = Infinity;
+    const minCells = [];
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        if (!covR[i] && !covC[j]) {
+          if (m[i][j] < theta) { theta = m[i][j]; minCells.length = 0; }
+          if (m[i][j] === theta) minCells.push([i, j]);
+        }
+      }
+    }
+
+    steps.push({
+      type: 'find-min',
+      mat: clone2d(m),
+      covR: covR.slice(), covC: covC.slice(), assign: null,
+      minCells: minCells.map(p => p.slice()),
+      theta,
+      desc: `Minimum uncovered value θ = ${theta}. Highlighted cells are uncovered minimums.`,
+      logClass: 'phase-adjust',
+      phase: `Iter ${iter + 1} — θ = ${theta}`
+    });
+
+    // Adjust matrix
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        if (!covR[i] && !covC[j]) m[i][j] -= theta;
+        else if (covR[i] && covC[j]) m[i][j] += theta;
+      }
+    }
+    steps.push({
+      type: 'adjust',
+      mat: clone2d(m),
+      covR: null, covC: null, assign: null, minCells: null,
+      theta,
+      desc: `Subtract θ=${theta} from uncovered cells; add θ=${theta} to double-covered intersections. New zeros created.`,
+      logClass: 'phase-adjust',
+      phase: `Iter ${iter + 1} — Matrix Adjusted (−θ/+θ)`
+    });
+  }
+
+  return steps;
+}
+
+function bipartiteMatch(m, n) {
+  const rowMatch = Array(n).fill(-1);
+  const colMatch = Array(n).fill(-1);
+  for (let i = 0; i < n; i++) {
+    const vis = Array(n).fill(false);
+    tryAugment(m, n, i, rowMatch, colMatch, vis);
+  }
+  return { rowMatch, colMatch };
+}
+
+function tryAugment(m, n, r, rowMatch, colMatch, vis) {
+  for (let j = 0; j < n; j++) {
+    if (m[r][j] === 0 && !vis[j]) {
+      vis[j] = true;
+      if (colMatch[j] === -1 || tryAugment(m, n, colMatch[j], rowMatch, colMatch, vis)) {
+        rowMatch[r] = j;
+        colMatch[j] = r;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function buildLineCover(m, n, rowMatch, colMatch) {
+  // König's theorem: minimum line cover = maximum matching
+  // Mark unmatched rows; propagate alternating columns/rows
+  const markedRows = new Set();
+  const markedCols = new Set();
+  const queue = [];
+  for (let i = 0; i < n; i++) {
+    if (rowMatch[i] === -1) { markedRows.add(i); queue.push(i); }
+  }
+  while (queue.length) {
+    const r = queue.shift();
+    for (let j = 0; j < n; j++) {
+      if (m[r][j] === 0 && !markedCols.has(j)) {
+        markedCols.add(j);
+        const mr = colMatch[j];
+        if (mr >= 0 && !markedRows.has(mr)) {
+          markedRows.add(mr);
+          queue.push(mr);
+        }
+      }
+    }
+  }
+  const covR = Array(n).fill(false);
+  const covC = Array(n).fill(false);
+  for (let i = 0; i < n; i++) if (!markedRows.has(i)) covR[i] = true;
+  for (let j = 0; j < n; j++) if (markedCols.has(j)) covC[j] = true;
+  return { covR, covC };
+}
+
+/* ── Render Matrix ─────────────────────────────────────── */
+function renderMatrix(frame) {
+  const wrap = document.getElementById('matrix-wrap');
+  wrap.innerHTML = '';
+  if (!frame) return;
+  const mat = frame.mat;
+  const n = mat.length;
+  const covR = frame.covR;
+  const covC = frame.covC;
+  const assign = frame.assign;
+  const minCells = frame.minCells;
+
+  const grid = document.createElement('div');
+  grid.className = 'matrix-grid';
+  grid.style.gridTemplateColumns = `64px repeat(${n}, 1fr)`;
+  grid.style.width = 'max-content';
+  grid.style.minWidth = '100%';
+
+  // Corner
+  const corner = document.createElement('div');
+  corner.className = 'm-cell lbl';
+  grid.appendChild(corner);
+  // Col headers
+  for (let j = 0; j < n; j++) {
+    const h = document.createElement('div');
+    h.className = 'm-cell lbl col-lbl' + (covC && covC[j] ? ' active' : '');
+    h.textContent = ex.labels.cols[j];
+    h.style.fontSize = '0.68rem';
+    grid.appendChild(h);
+  }
+
+  for (let i = 0; i < n; i++) {
+    // Row header
+    const rh = document.createElement('div');
+    rh.className = 'm-cell lbl row-lbl' + (covR && covR[i] ? ' active' : '');
+    rh.textContent = ex.labels.rows[i];
+    rh.style.fontSize = '0.68rem';
+    grid.appendChild(rh);
+
+    for (let j = 0; j < n; j++) {
+      const cell = document.createElement('div');
+      const isAssigned = assign && assign.some(([r, c]) => r === i && c === j);
+      const isZero = mat[i][j] === 0;
+      const isCovR = covR && covR[i];
+      const isCovC = covC && covC[j];
+      const isMin = minCells && minCells.some(([r, c]) => r === i && c === j);
+
+      let cls = 'm-cell';
+      if (isAssigned) cls += ' assigned';
+      else if (isMin) cls += ' uncov-min';
+      else if (isZero) cls += ' zero';
+
+      if (!isAssigned && !isMin) {
+        if (isCovR && isCovC) cls += ' cov-both';
+        else if (isCovR) cls += ' cov-row';
+        else if (isCovC) cls += ' cov-col';
+      }
+
+      cell.className = cls;
+      cell.textContent = mat[i][j];
+      grid.appendChild(cell);
+    }
+  }
+
+  wrap.appendChild(grid);
+}
+
+/* ── Render Graph (bipartite) ──────────────────────────── */
+function renderGraph(frame) {
+  const cv = document.getElementById('graph-cv');
+  const ctx = cv.getContext('2d');
+  const W = cv.offsetWidth || 700;
+  const H = cv.offsetHeight || 340;
+  cv.width = W * devicePixelRatio;
+  cv.height = H * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  ctx.clearRect(0, 0, W, H);
+
+  if (!frame) return;
+  const mat = frame.mat;
+  const n = mat.length;
+  const assign = frame.assign;
+
+  const lx = 120, rx = W - 120;
+  const rowY = (i) => 40 + i * (H - 80) / (n - 1 || 1);
+  const colY = (j) => 40 + j * (H - 80) / (n - 1 || 1);
+
+  // Draw zero edges (faint)
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (mat[i][j] === 0) {
+        const isA = assign && assign.some(([r, c]) => r === i && c === j);
+        ctx.beginPath();
+        ctx.moveTo(lx, rowY(i));
+        ctx.lineTo(rx, colY(j));
+        if (isA) {
+          ctx.strokeStyle = '#7ee787';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = 'rgba(88,166,255,0.22)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }
+
+  // Draw row nodes
+  for (let i = 0; i < n; i++) {
+    const y = rowY(i);
+    ctx.beginPath();
+    ctx.arc(lx, y, 20, 0, Math.PI * 2);
+    const matched = assign && assign.some(([r]) => r === i);
+    ctx.fillStyle = matched ? 'rgba(126,231,135,0.18)' : 'rgba(249,115,22,0.12)';
+    ctx.strokeStyle = matched ? '#7ee787' : '#f97316';
+    ctx.lineWidth = 1.5;
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = matched ? '#7ee787' : '#f97316';
+    ctx.font = `bold ${n > 4 ? '0.65rem' : '0.72rem'} sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(ex.labels.rows[i], lx, y);
+
+    ctx.fillStyle = 'rgba(139,148,158,0.7)';
+    ctx.font = '0.72rem sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('row', lx - 26, y);
+  }
+
+  // Draw col nodes
+  for (let j = 0; j < n; j++) {
+    const y = colY(j);
+    ctx.beginPath();
+    ctx.arc(rx, y, 20, 0, Math.PI * 2);
+    const matched = assign && assign.some(([, c]) => c === j);
+    ctx.fillStyle = matched ? 'rgba(126,231,135,0.18)' : 'rgba(163,113,247,0.12)';
+    ctx.strokeStyle = matched ? '#7ee787' : '#a371f7';
+    ctx.lineWidth = 1.5;
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = matched ? '#7ee787' : '#a371f7';
+    ctx.font = `bold ${n > 4 ? '0.65rem' : '0.72rem'} sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(ex.labels.cols[j], rx, y);
+
+    ctx.fillStyle = 'rgba(139,148,158,0.7)';
+    ctx.font = '0.72rem sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('col', rx + 26, y);
+  }
+
+  // Label
+  ctx.fillStyle = 'rgba(139,148,158,0.5)';
+  ctx.font = '0.72rem sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Bipartite matching on zero-entries', W / 2, H - 10);
+}
+
+/* ── UI helpers ────────────────────────────────────────── */
+function updateStats(frame) {
+  if (!frame) return;
+  document.getElementById('s-iter').textContent = frame.iter !== undefined ? frame.iter + 1 : '—';
+  document.getElementById('s-lines').textContent = frame.lineCount !== undefined ? frame.lineCount : '—';
+  document.getElementById('s-cost').textContent = frame.totalCost !== undefined ? frame.totalCost : '—';
+  document.getElementById('s-frame').textContent = `${frameIdx + 1} / ${frames.length}`;
+
+  const badge = document.getElementById('phase-badge');
+  badge.textContent = frame.phase;
+  badge.className = 'phase-badge';
+  if (frame.type === 'row-reduce') badge.classList.add('blue');
+  else if (frame.type === 'col-reduce') badge.classList.add('violet');
+  else if (frame.type === 'cover') badge.classList.add('gold');
+  else if (frame.type === 'find-min' || frame.type === 'adjust') badge.classList.add('');
+  else if (frame.type === 'done') badge.classList.add('green');
+}
+
+function buildLog() {
+  const list = document.getElementById('log-list');
+  list.innerHTML = '';
+  frames.forEach((f, i) => {
+    const el = document.createElement('div');
+    el.className = 'log-item ' + f.logClass + (i === frameIdx ? ' active' : '');
+    el.textContent = `[${i + 1}] ${f.desc}`;
+    el.addEventListener('click', () => { frameIdx = i; applyFrame(); });
+    list.appendChild(el);
+  });
+}
+
+function scrollLogToActive() {
+  const list = document.getElementById('log-list');
+  const active = list.querySelector('.active');
+  if (active) active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function applyFrame() {
+  const frame = frames[frameIdx];
+  renderMatrix(frame);
+  renderGraph(frame);
+  updateStats(frame);
+
+  // Highlight log item
+  const items = document.querySelectorAll('.log-item');
+  items.forEach((el, i) => {
+    el.classList.toggle('active', i === frameIdx);
+  });
+  scrollLogToActive();
+
+  // Show assignment panel
+  const assignPanel = document.getElementById('assign-panel');
+  if (frame.type === 'done' && frame.assign) {
+    assignPanel.style.display = '';
+    const chips = document.getElementById('assign-chips');
+    chips.innerHTML = '';
+    frame.assign.forEach(([r, c]) => {
+      const cost = ex.matrix[r][c];
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = `${ex.labels.rows[r]} → ${ex.labels.cols[c]} ($${cost})`;
+      chips.appendChild(chip);
+    });
+    // Cost total chip
+    const tot = document.createElement('span');
+    tot.className = 'chip';
+    tot.style.background = 'rgba(249,115,22,0.12)';
+    tot.style.borderColor = 'var(--accent)';
+    tot.style.color = 'var(--accent)';
+    tot.textContent = `Total: $${frame.totalCost}`;
+    chips.appendChild(tot);
+  } else {
+    assignPanel.style.display = 'none';
+  }
+
+  // Buttons
+  document.getElementById('prev-btn').disabled = frameIdx <= 0;
+  document.getElementById('next-btn').disabled = frameIdx >= frames.length - 1;
+}
+
+/* ── Init ──────────────────────────────────────────────── */
+function loadExample(idx) {
+  ex = EXAMPLES[idx];
+  frames = hungarian(ex.matrix);
+  frameIdx = 0;
+  document.getElementById('s-size').textContent = `${ex.matrix.length}×${ex.matrix.length}`;
+  buildLog();
+  applyFrame();
+  stopPlay();
+  document.getElementById('assign-panel').style.display = 'none';
+}
+
+function stopPlay() {
+  if (timer) { clearInterval(timer); timer = null; }
+  playing = false;
+  document.getElementById('play-btn').textContent = '▶ Play';
+  document.getElementById('pause-btn').disabled = true;
+}
+
+function startPlay() {
+  const ms = parseInt(document.getElementById('spd-in').value);
+  playing = true;
+  document.getElementById('play-btn').textContent = '⏹ Stop';
+  document.getElementById('pause-btn').disabled = false;
+  timer = setInterval(() => {
+    if (frameIdx < frames.length - 1) {
+      frameIdx++;
+      applyFrame();
+    } else {
+      stopPlay();
+    }
+  }, ms);
+}
+
+document.getElementById('play-btn').addEventListener('click', () => {
+  if (playing) stopPlay();
+  else { if (frameIdx >= frames.length - 1) frameIdx = 0; startPlay(); }
+});
+document.getElementById('pause-btn').addEventListener('click', () => {
+  if (timer) { clearInterval(timer); timer = null; playing = false; document.getElementById('play-btn').textContent = '▶ Play'; }
+  else startPlay();
+});
+document.getElementById('prev-btn').addEventListener('click', () => {
+  if (frameIdx > 0) { frameIdx--; applyFrame(); }
+});
+document.getElementById('next-btn').addEventListener('click', () => {
+  if (frameIdx < frames.length - 1) { frameIdx++; applyFrame(); }
+});
+document.getElementById('reset-btn').addEventListener('click', () => {
+  stopPlay();
+  frameIdx = 0;
+  buildLog();
+  applyFrame();
+});
+document.getElementById('ex-sel').addEventListener('change', (e) => loadExample(+e.target.value));
+document.getElementById('spd-in').addEventListener('input', (e) => {
+  document.getElementById('spd-lbl').textContent = e.target.value;
+  if (playing) { clearInterval(timer); startPlay(); }
+});
+
+// Keyboard nav
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' && frameIdx < frames.length - 1) { frameIdx++; applyFrame(); }
+  if (e.key === 'ArrowLeft'  && frameIdx > 0)                 { frameIdx--; applyFrame(); }
+  if (e.key === ' ') { e.preventDefault(); if (playing) stopPlay(); else startPlay(); }
+});
+
+// Resize redraws graph
+window.addEventListener('resize', () => { if (frames.length) renderGraph(frames[frameIdx]); });
+
+// Boot
+loadExample(0);
+})();
+</script>
+</body>
+</html>

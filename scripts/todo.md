@@ -12,7 +12,7 @@
 ### Graphs
 - [x] edmonds-blossom — Edmonds' Blossom (maximum matching, blossom contraction) ✅ 2026-04-21
 - [x] karger-mincut — Karger's Min Cut (randomized contraction, edge collapse) ✅ 2026-04-22
-- [ ] hungarian — Hungarian Algorithm (assignment problem, augmenting path)
+- [x] hungarian — Hungarian Algorithm (assignment problem, augmenting path) ✅ 2026-04-22
 - [ ] pagerank — PageRank (iterative power method, dangling nodes, damping factor)
 - [ ] scc-kosaraju — Kosaraju's SCC (two-pass DFS, transpose graph)
 
