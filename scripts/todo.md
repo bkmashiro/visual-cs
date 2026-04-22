@@ -13,8 +13,8 @@
 - [x] edmonds-blossom — Edmonds' Blossom (maximum matching, blossom contraction) ✅ 2026-04-21
 - [x] karger-mincut — Karger's Min Cut (randomized contraction, edge collapse) ✅ 2026-04-22
 - [x] hungarian — Hungarian Algorithm (assignment problem, augmenting path) ✅ 2026-04-22
-- [ ] pagerank — PageRank (iterative power method, dangling nodes, damping factor)
-- [ ] scc-kosaraju — Kosaraju's SCC (two-pass DFS, transpose graph)
+- [x] pagerank — PageRank (iterative power method, dangling nodes, damping factor) ✅ 2026-04-22
+- [x] scc-kosaraju — Kosaraju's SCC (two-pass DFS, transpose graph) ✅ 2026-04-22
 
 ### Dynamic Programming
 - [ ] knapsack — 0/1 Knapsack (DP table fill, item selection traceback)

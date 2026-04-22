@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PageRank — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #111720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #7ee787;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+    --red: #ff7b72;
+    --pink: #f778ba;
+    --cyan: #67e8f9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: rgba(22,27,34,0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  header a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+  header h1 { font-size: 1.3rem; }
+  .main { max-width: 1320px; margin: 0 auto; padding: 28px 22px 40px; }
+  .toolbar, .stats, .panel, .explain {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 16px; margin-bottom: 16px; }
+  select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; }
+  input[type=range] { background: var(--panel); accent-color: var(--accent); }
+  button { border: none; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; font: inherit; background: var(--accent); color: #08111b; }
+  button.sec { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider-group { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 12px; padding: 14px 16px; margin-bottom: 16px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.25rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; }
+  .workspace { position: relative; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 580px; background: radial-gradient(circle at top, rgba(88,166,255,0.07), transparent 24%), #09111a; border-radius: 14px; }
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  .panel { padding: 16px; }
+  .panel h3 { font-size: 0.95rem; margin-bottom: 12px; color: var(--text); }
+  .rank-list { display: flex; flex-direction: column; gap: 6px; }
+  .rank-item {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; font-size: 0.84rem; display: flex; align-items: center; gap: 10px;
+    transition: border-color 0.2s;
+  }
+  .rank-item.top { border-color: var(--gold); }
+  .rank-item .node-badge {
+    width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-weight: 800; font-size: 0.8rem; flex-shrink: 0;
+  }
+  .rank-item .rank-bar-wrap {
+    flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+  }
+  .rank-item .rank-bar { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .rank-item .rank-val { font-weight: 700; font-size: 0.88rem; min-width: 52px; text-align: right; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; margin-top: 8px; }
+  .explain code { background: var(--panel); padding: 1px 6px; border-radius: 4px; color: var(--text); font-size: 0.88em; }
+  .step-desc { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+  .step-desc strong { color: var(--text); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 16px; margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--muted); font-size: 0.82rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  @media (max-width: 1080px) {
+    .layout { grid-template-columns: 1fr; }
+    canvas { height: 420px; }
+    .stats { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>📊 PageRank Algorithm</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Iterative Power Method · Dangling Nodes · Damping Factor</span>
+</header>
+
+<div class="main">
+  <div class="toolbar">
+    <label style="color:var(--muted);font-size:0.86rem">Graph</label>
+    <select id="graph-sel">
+      <option value="0">Web Graph (6 nodes)</option>
+      <option value="1">Dense Hub (7 nodes)</option>
+      <option value="2">Chain + Dangling (6 nodes)</option>
+    </select>
+    <div class="slider-group">
+      <label>d = <span id="d-lbl">0.85</span></label>
+      <input id="d-in" type="range" min="0.50" max="0.99" step="0.01" value="0.85">
+    </div>
+    <button id="play-btn">&#9654; Play</button>
+    <button class="sec" id="pause-btn" disabled>&#9646;&#9646; Pause</button>
+    <button class="sec" id="prev-btn">&#9664; Prev</button>
+    <button class="sec" id="next-btn">Next &#9654;&#9654;</button>
+    <button class="sec" id="reset-btn">&#8635; Reset</button>
+    <div class="slider-group">
+      <label>Speed <span id="spd-lbl">800</span>ms</label>
+      <input id="spd-in" type="range" min="150" max="2000" step="50" value="800">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="s-iter">0</div><div class="stat-label">Iteration</div></div>
+    <div class="stat"><div class="stat-value" id="s-delta" style="font-size:1rem">—</div><div class="stat-label">Max Δ Rank</div></div>
+    <div class="stat"><div class="stat-value" id="s-damp">0.85</div><div class="stat-label">Damping d</div></div>
+    <div class="stat"><div class="stat-value" id="s-dangling">0</div><div class="stat-label">Dangling Nodes</div></div>
+    <div class="stat"><div class="stat-value" id="s-frame">—</div><div class="stat-label">Frame</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel workspace">
+      <canvas id="cv"></canvas>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>Step Description</h3>
+        <div class="step-desc" id="step-desc">Loading…</div>
+      </div>
+      <div class="panel">
+        <h3>Node Rankings</h3>
+        <div class="rank-list" id="rank-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>High rank (bright)</div>
+    <div class="legend-item"><div class="swatch" style="background:#2a4a6a"></div>Low rank (dim)</div>
+    <div class="legend-item"><div class="swatch" style="background:#f778ba"></div>Dangling node (no outlinks)</div>
+    <div class="legend-item"><div class="swatch" style="background:#7ee787"></div>Top-ranked node</div>
+    <div class="legend-item">→ Arrow = directed link (vote)</div>
+  </div>
+
+  <div class="explain">
+    <h2>How PageRank Works</h2>
+    <p>PageRank models the web as a directed graph where each edge represents a hyperlink. A "random surfer" follows links at random, and a node's rank reflects the probability of landing on it after many steps.</p>
+    <ul>
+      <li><strong>Initialization</strong> — all nodes start with rank <code>1/N</code>.</li>
+      <li><strong>Iterative update</strong> — at each step, node <code>v</code> receives rank from each node <code>u</code> that links to it: <code>PR(v) = (1−d)/N + d · Σ PR(u)/out(u)</code>.</li>
+      <li><strong>Damping factor d</strong> — probability of following a link (vs. teleporting to a random page). Typically <code>d = 0.85</code>. The <code>(1−d)/N</code> term prevents rank sinks.</li>
+      <li><strong>Dangling nodes</strong> — nodes with no outgoing links would absorb rank forever. Their rank is redistributed equally to all nodes each iteration: dangling contribution = <code>Σ PR(dangling) / N</code>.</li>
+      <li><strong>Convergence</strong> — iteration stops when the maximum rank change between steps is below ε = 0.0001.</li>
+      <li><strong>Power method</strong> — this is equivalent to finding the dominant eigenvector of the Google matrix via repeated multiplication.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  var cv  = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+
+  function resizeCv() {
+    cv.width  = cv.parentElement.clientWidth;
+    cv.height = cv.offsetHeight;
+  }
+  resizeCv();
+  window.addEventListener('resize', function () { resizeCv(); drawFrame(); });
+
+  var P = {
+    bg:'#09111a', surf:'#161b22', panel:'#111720', border:'#30363d',
+    text:'#e6edf3', muted:'#8b949e',
+    blue:'#58a6ff', green:'#7ee787', warn:'#f78166',
+    gold:'#e3b341', violet:'#a371f7', red:'#ff7b72',
+    pink:'#f778ba', cyan:'#67e8f9',
+  };
+
+  // Node colors palette
+  var NODE_COLORS = ['#58a6ff','#7ee787','#e3b341','#a371f7','#67e8f9','#f778ba','#ff7b72'];
+
+  // ── Graph definitions ──────────────────────────────────────────────────────
+  var GRAPHS = [
+    {
+      name: 'Web Graph (6 nodes)',
+      nodes: ['A','B','C','D','E','F'],
+      // Positions in [0..1] range
+      pos: [
+        [0.50, 0.14],
+        [0.82, 0.38],
+        [0.72, 0.78],
+        [0.28, 0.78],
+        [0.18, 0.38],
+        [0.50, 0.52],
+      ],
+      // Directed edges [from, to]
+      edges: [
+        [0,1],[0,5],
+        [1,2],[1,5],
+        [2,3],[2,5],
+        [3,4],[3,5],
+        [4,0],[4,5],
+        [5,0],[5,1],[5,2],[5,3],[5,4],
+      ]
+    },
+    {
+      name: 'Dense Hub (7 nodes)',
+      nodes: ['Hub','A','B','C','D','E','F'],
+      pos: [
+        [0.50, 0.48],
+        [0.50, 0.12],
+        [0.82, 0.30],
+        [0.82, 0.66],
+        [0.50, 0.84],
+        [0.18, 0.66],
+        [0.18, 0.30],
+      ],
+      edges: [
+        // Spokes into hub
+        [1,0],[2,0],[3,0],[4,0],[5,0],[6,0],
+        // Hub links out to a few
+        [0,1],[0,3],[0,5],
+        // Some cross-links
+        [1,2],[2,3],[3,4],[4,5],[5,6],[6,1],
+        // One dangling satellite (D has no outlinks → it IS the dangling one)
+        // Actually let's give D no outlinks by removing [3,4]
+      ]
+    },
+    {
+      name: 'Chain + Dangling (6 nodes)',
+      nodes: ['A','B','C','D','E','F'],
+      pos: [
+        [0.18, 0.50],
+        [0.36, 0.50],
+        [0.54, 0.50],
+        [0.72, 0.50],
+        [0.54, 0.20],
+        [0.72, 0.20],
+      ],
+      edges: [
+        // Main chain
+        [0,1],[1,2],[2,3],
+        // Side branch
+        [1,4],
+        // E is dangling (no outlinks)
+        // F links back
+        [3,0],[3,2],
+        // C also links to E
+        [2,4],
+        // F is dangling too
+      ]
+    }
+  ];
+
+  // ── PageRank computation ───────────────────────────────────────────────────
+  function computeFrames(gidx, damping) {
+    var g = GRAPHS[gidx];
+    var N = g.nodes.length;
+    var edges = g.edges;
+    var d = damping;
+    var EPSILON = 0.0001;
+
+    // Build adjacency: outLinks[u] = list of v
+    var outLinks = [];
+    for (var i = 0; i < N; i++) outLinks.push([]);
+    for (var e = 0; e < edges.length; e++) {
+      outLinks[edges[e][0]].push(edges[e][1]);
+    }
+
+    // Identify dangling nodes (no outgoing links)
+    var dangling = [];
+    for (var i = 0; i < N; i++) {
+      if (outLinks[i].length === 0) dangling.push(i);
+    }
+
+    // Build inLinks[v] = list of u where u→v
+    var inLinks = [];
+    for (var i = 0; i < N; i++) inLinks.push([]);
+    for (var e = 0; e < edges.length; e++) {
+      inLinks[edges[e][1]].push(edges[e][0]);
+    }
+
+    var frames = [];
+
+    // Initial ranks
+    var ranks = [];
+    for (var i = 0; i < N; i++) ranks.push(1.0 / N);
+
+    // Frame 0: initialization
+    frames.push({
+      iter: 0,
+      ranks: ranks.slice(),
+      delta: null,
+      phase: 'init',
+      desc: 'Initialization: all ' + N + ' nodes get equal rank <strong>1/' + N + ' = ' + (1/N).toFixed(4) + '</strong>. ' +
+            (dangling.length > 0
+              ? dangling.map(function(i){ return '<strong>' + g.nodes[i] + '</strong>'; }).join(', ') + ' ' + (dangling.length === 1 ? 'has' : 'have') + ' no outgoing links (dangling node' + (dangling.length>1?'s':'') + ').'
+              : 'No dangling nodes in this graph.'),
+    });
+
+    var iter = 1;
+    var maxIter = 100;
+
+    while (iter <= maxIter) {
+      var newRanks = [];
+
+      // Dangling rank: sum of all dangling nodes' ranks, redistributed equally
+      var danglingSum = 0;
+      for (var k = 0; k < dangling.length; k++) {
+        danglingSum += ranks[dangling[k]];
+      }
+      var danglingContrib = danglingSum / N;
+
+      for (var v = 0; v < N; v++) {
+        var linkContrib = 0;
+        var ins = inLinks[v];
+        for (var j = 0; j < ins.length; j++) {
+          var u = ins[j];
+          linkContrib += ranks[u] / outLinks[u].length;
+        }
+        newRanks[v] = (1 - d) / N + d * (linkContrib + danglingContrib);
+      }
+
+      // Compute max delta
+      var maxDelta = 0;
+      for (var i = 0; i < N; i++) {
+        var diff = Math.abs(newRanks[i] - ranks[i]);
+        if (diff > maxDelta) maxDelta = diff;
+      }
+
+      // Build description
+      var topNode = 0;
+      for (var i = 1; i < N; i++) if (newRanks[i] > newRanks[topNode]) topNode = i;
+
+      var descParts = [
+        'Iteration <strong>' + iter + '</strong>: applying PageRank update formula.',
+      ];
+      if (dangling.length > 0) {
+        descParts.push('Dangling rank pool = ' + danglingSum.toFixed(4) + ', distributed ' + danglingContrib.toFixed(4) + ' to each node.');
+      }
+      descParts.push('Formula: <code>PR(v) = (1−d)/N + d·(link_in + dangling)</code>.');
+      descParts.push('Max rank change: <strong>' + maxDelta.toExponential(3) + '</strong>.');
+      if (maxDelta < EPSILON) {
+        descParts.push('<strong style="color:#7ee787">Converged!</strong> Max Δ &lt; ε = ' + EPSILON + '.');
+      }
+      descParts.push('Leading node: <strong>' + g.nodes[topNode] + '</strong> with rank ' + newRanks[topNode].toFixed(4) + '.');
+
+      ranks = newRanks;
+      frames.push({
+        iter: iter,
+        ranks: ranks.slice(),
+        delta: maxDelta,
+        phase: maxDelta < EPSILON ? 'converged' : 'iter',
+        desc: descParts.join(' '),
+      });
+
+      if (maxDelta < EPSILON) break;
+      iter++;
+    }
+
+    return { frames: frames, dangling: dangling, inLinks: inLinks, outLinks: outLinks };
+  }
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  var allFrames = [];
+  var danglingNodes = [];
+  var inLinks = [], outLinks = [];
+  var frameIdx = 0;
+  var timer = null;
+  var speed = 800;
+  var currentGraph = 0;
+  var damping = 0.85;
+
+  function init(gidx, d) {
+    currentGraph = gidx;
+    damping = d;
+    stopPlay();
+    var result = computeFrames(gidx, d);
+    allFrames = result.frames;
+    danglingNodes = result.dangling;
+    inLinks = result.inLinks;
+    outLinks = result.outLinks;
+    frameIdx = 0;
+    renderRankList();
+    renderStepDesc();
+    drawFrame();
+    updateStats();
+    updateButtons();
+  }
+
+  // ── Drawing ────────────────────────────────────────────────────────────────
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function rankColor(rank, maxRank) {
+    // Interpolate from dim blue-gray to bright blue based on rank
+    var t = Math.min(rank / maxRank, 1.0);
+    // low: #1a2a3a, high: #58a6ff
+    var r = Math.round(lerp(0x1a, 0x58, t));
+    var g = Math.round(lerp(0x2a, 0xa6, t));
+    var b = Math.round(lerp(0x3a, 0xff, t));
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function drawArrow(x1, y1, x2, y2, color, alpha, lineW, headSize) {
+    var dx = x2 - x1, dy = y2 - y1;
+    var len = Math.sqrt(dx*dx + dy*dy) || 1;
+    var ux = dx/len, uy = dy/len;
+    var arrowLen = headSize || 12;
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineW || 1.5;
+    ctx.globalAlpha = alpha || 0.5;
+    ctx.stroke();
+
+    // Arrowhead
+    var ax = x2 - ux * arrowLen;
+    var ay = y2 - uy * arrowLen;
+    var perp = 0.38;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(ax - uy * arrowLen * perp, ay + ux * arrowLen * perp);
+    ctx.lineTo(ax + uy * arrowLen * perp, ay - ux * arrowLen * perp);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.globalAlpha = alpha || 0.5;
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+  }
+
+  function drawFrame() {
+    if (!allFrames.length) return;
+    var frame = allFrames[frameIdx];
+    var g = GRAPHS[currentGraph];
+    var N = g.nodes.length;
+    var W = cv.width, H = cv.height;
+    var PAD = 70;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Background gradient
+    var grad = ctx.createRadialGradient(W/2, 0, 0, W/2, 0, H);
+    grad.addColorStop(0, 'rgba(88,166,255,0.07)');
+    grad.addColorStop(1, P.bg);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    var ranks = frame.ranks;
+    var maxRank = 0;
+    for (var i = 0; i < N; i++) if (ranks[i] > maxRank) maxRank = ranks[i];
+
+    // Node base radius varies with rank
+    var BASE_R = Math.min(W, H) * 0.048;
+    var MAX_EXTRA = BASE_R * 0.7;
+
+    function nodePos(i) {
+      var p = g.pos[i];
+      return {
+        x: PAD + p[0] * (W - 2*PAD),
+        y: PAD + p[1] * (H - 2*PAD),
+      };
+    }
+
+    function nodeRadius(i) {
+      return BASE_R + (ranks[i] / maxRank) * MAX_EXTRA;
+    }
+
+    // Draw edges first
+    for (var e = 0; e < g.edges.length; e++) {
+      var u = g.edges[e][0], v = g.edges[e][1];
+      var pu = nodePos(u), pv = nodePos(v);
+      var ru = nodeRadius(u), rv = nodeRadius(v);
+
+      // Shorten edge to node boundary
+      var dx = pv.x - pu.x, dy = pv.y - pu.y;
+      var dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      var ux = dx/dist, uy = dy/dist;
+      var sx = pu.x + ux * (ru + 2);
+      var sy = pu.y + uy * (ru + 2);
+      var ex = pv.x - ux * (rv + 2);
+      var ey = pv.y - uy * (rv + 2);
+
+      // Edge weight proportional to source rank
+      var alpha = 0.25 + ranks[u] / maxRank * 0.55;
+      var lw = 1 + ranks[u] / maxRank * 2;
+
+      // Check for curved edges (A→B and B→A both exist)
+      var hasCurve = false;
+      for (var e2 = 0; e2 < g.edges.length; e2++) {
+        if (g.edges[e2][0] === v && g.edges[e2][1] === u) { hasCurve = true; break; }
+      }
+
+      if (hasCurve) {
+        // Draw curved arc
+        var mx = (pu.x + pv.x) / 2;
+        var my = (pu.y + pv.y) / 2;
+        var perpX = -uy * 30;
+        var perpY =  ux * 30;
+        var cx = mx + perpX, cy = my + perpY;
+
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo(cx, cy, ex, ey);
+        ctx.strokeStyle = P.border;
+        ctx.lineWidth = lw;
+        ctx.globalAlpha = alpha;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+
+        // Arrow at end
+        var t = 0.85;
+        var qtx = (1-t)*(1-t)*sx + 2*(1-t)*t*cx + t*t*ex;
+        var qty = (1-t)*(1-t)*sy + 2*(1-t)*t*cy + t*t*ey;
+        var adx = ex - qtx, ady = ey - qty;
+        var alen = Math.sqrt(adx*adx+ady*ady)||1;
+        var aLen = 10;
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - adx/alen*aLen - ady/alen*aLen*0.38, ey - ady/alen*aLen + adx/alen*aLen*0.38);
+        ctx.lineTo(ex - adx/alen*aLen + ady/alen*aLen*0.38, ey - ady/alen*aLen - adx/alen*aLen*0.38);
+        ctx.closePath();
+        ctx.fillStyle = P.border;
+        ctx.globalAlpha = alpha + 0.1;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      } else {
+        drawArrow(sx, sy, ex, ey, P.border, alpha, lw, 10);
+      }
+    }
+
+    // Determine top-ranked node
+    var topNode = 0;
+    for (var i = 1; i < N; i++) if (ranks[i] > ranks[topNode]) topNode = i;
+
+    // Draw nodes
+    for (var i = 0; i < N; i++) {
+      var pos = nodePos(i);
+      var r = nodeRadius(i);
+      var isDangling = danglingNodes.indexOf(i) >= 0;
+      var isTop = (i === topNode && frame.phase !== 'init');
+      var col = rankColor(ranks[i], maxRank);
+      var borderCol = isDangling ? P.pink : (isTop ? P.green : col);
+
+      // Glow for top node
+      if (isTop) {
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, r + 12, 0, Math.PI * 2);
+        var glow = ctx.createRadialGradient(pos.x, pos.y, r*0.5, pos.x, pos.y, r+14);
+        glow.addColorStop(0, 'rgba(126,231,135,0.25)');
+        glow.addColorStop(1, 'rgba(126,231,135,0)');
+        ctx.fillStyle = glow;
+        ctx.fill();
+      }
+
+      // Node fill (gradient based on rank)
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      var fillGrad = ctx.createRadialGradient(pos.x - r*0.3, pos.y - r*0.3, r*0.1, pos.x, pos.y, r);
+      // Parse col to add gradient
+      fillGrad.addColorStop(0, col.replace('rgb(', 'rgba(').replace(')', ',0.35)'));
+      fillGrad.addColorStop(1, P.panel);
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+
+      // Border
+      ctx.strokeStyle = borderCol;
+      ctx.lineWidth = isTop ? 3 : (isDangling ? 2.5 : 2);
+      ctx.stroke();
+
+      // Node label
+      ctx.fillStyle = isTop ? P.green : (isDangling ? P.pink : col);
+      ctx.font = 'bold ' + Math.round(r * 0.7) + 'px -apple-system,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(g.nodes[i], pos.x, pos.y - 5);
+
+      // Rank value below name
+      ctx.fillStyle = P.muted;
+      ctx.font = Math.round(r * 0.48) + 'px -apple-system,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ranks[i].toFixed(4), pos.x, pos.y + r*0.45);
+
+      // Dangling marker
+      if (isDangling) {
+        ctx.fillStyle = P.pink;
+        ctx.font = 'bold 11px -apple-system,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('⚠ dangling', pos.x, pos.y - r - 4);
+      }
+    }
+
+    // Phase overlay
+    var phaseText = '';
+    if (frame.phase === 'init') phaseText = 'Initialization  (iter 0)';
+    else if (frame.phase === 'converged') phaseText = 'Converged!  iter ' + frame.iter;
+    else phaseText = 'Iterating…  step ' + frame.iter;
+
+    ctx.fillStyle = frame.phase === 'converged' ? P.green : P.muted;
+    ctx.font = (frame.phase === 'converged' ? 'bold ' : '') + '13px -apple-system,sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(phaseText, 16, 14);
+
+    if (frame.delta !== null) {
+      ctx.fillStyle = frame.delta < 0.0001 ? P.green : P.muted;
+      ctx.font = '12px -apple-system,sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Δ = ' + frame.delta.toExponential(3), W - 16, 14);
+    }
+  }
+
+  // ── Rank list sidebar ──────────────────────────────────────────────────────
+  function renderRankList() {
+    if (!allFrames.length) return;
+    var frame = allFrames[frameIdx];
+    var g = GRAPHS[currentGraph];
+    var N = g.nodes.length;
+    var ranks = frame.ranks;
+
+    // Sort by rank descending
+    var order = [];
+    for (var i = 0; i < N; i++) order.push(i);
+    order.sort(function(a, b) { return ranks[b] - ranks[a]; });
+
+    var maxRank = ranks[order[0]];
+    var list = document.getElementById('rank-list');
+    list.innerHTML = '';
+
+    order.forEach(function(i, pos) {
+      var isDangling = danglingNodes.indexOf(i) >= 0;
+      var isTop = pos === 0;
+      var col = rankColor(ranks[i], maxRank);
+      var div = document.createElement('div');
+      div.className = 'rank-item' + (isTop ? ' top' : '');
+
+      var pct = maxRank > 0 ? (ranks[i] / maxRank * 100).toFixed(1) : 0;
+
+      div.innerHTML =
+        '<div class="node-badge" style="background:' + P.panel + ';border:2px solid ' + (isDangling ? P.pink : col) + ';color:' + (isDangling ? P.pink : col) + '">' + g.nodes[i] + '</div>' +
+        '<div style="flex:1">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+            '<span style="font-weight:700;color:' + (isDangling ? P.pink : P.text) + '">' + g.nodes[i] + (isDangling ? ' ⚠' : '') + '</span>' +
+            '<span style="color:' + P.muted + ';font-size:0.78rem">#' + (pos+1) + '</span>' +
+          '</div>' +
+          '<div class="rank-bar-wrap">' +
+            '<div class="rank-bar" style="width:' + pct + '%;background:' + (isDangling ? P.pink : col) + '"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rank-val" style="color:' + (isTop ? P.gold : P.text) + '">' + ranks[i].toFixed(4) + '</div>';
+
+      list.appendChild(div);
+    });
+  }
+
+  function renderStepDesc() {
+    if (!allFrames.length) return;
+    var frame = allFrames[frameIdx];
+    document.getElementById('step-desc').innerHTML = frame.desc;
+  }
+
+  function updateStats() {
+    if (!allFrames.length) return;
+    var frame = allFrames[frameIdx];
+    document.getElementById('s-iter').textContent = frame.iter;
+    document.getElementById('s-delta').textContent = frame.delta !== null ? frame.delta.toExponential(3) : '—';
+    document.getElementById('s-damp').textContent = damping.toFixed(2);
+    document.getElementById('s-dangling').textContent = danglingNodes.length;
+    document.getElementById('s-frame').textContent = (frameIdx + 1) + ' / ' + allFrames.length;
+  }
+
+  function updateButtons() {
+    document.getElementById('prev-btn').disabled = frameIdx === 0;
+    document.getElementById('next-btn').disabled = frameIdx === allFrames.length - 1;
+    document.getElementById('play-btn').disabled = frameIdx === allFrames.length - 1;
+  }
+
+  function refresh() {
+    renderRankList();
+    renderStepDesc();
+    drawFrame();
+    updateStats();
+    updateButtons();
+  }
+
+  // ── Playback ──────────────────────────────────────────────────────────────
+  function stopPlay() {
+    if (timer) { clearInterval(timer); timer = null; }
+    document.getElementById('play-btn').disabled = false;
+    document.getElementById('pause-btn').disabled = true;
+  }
+
+  function startPlay() {
+    if (timer) return;
+    document.getElementById('play-btn').disabled = true;
+    document.getElementById('pause-btn').disabled = false;
+    timer = setInterval(function() {
+      if (frameIdx < allFrames.length - 1) {
+        frameIdx++;
+        refresh();
+      } else {
+        stopPlay();
+      }
+    }, speed);
+  }
+
+  document.getElementById('play-btn').addEventListener('click', startPlay);
+  document.getElementById('pause-btn').addEventListener('click', stopPlay);
+  document.getElementById('prev-btn').addEventListener('click', function() {
+    stopPlay();
+    if (frameIdx > 0) { frameIdx--; refresh(); }
+  });
+  document.getElementById('next-btn').addEventListener('click', function() {
+    stopPlay();
+    if (frameIdx < allFrames.length - 1) { frameIdx++; refresh(); }
+  });
+  document.getElementById('reset-btn').addEventListener('click', function() {
+    init(currentGraph, damping);
+  });
+  document.getElementById('graph-sel').addEventListener('change', function() {
+    init(parseInt(this.value), damping);
+  });
+  document.getElementById('d-in').addEventListener('input', function() {
+    damping = parseFloat(this.value);
+    document.getElementById('d-lbl').textContent = damping.toFixed(2);
+    document.getElementById('s-damp').textContent = damping.toFixed(2);
+    init(currentGraph, damping);
+  });
+  document.getElementById('spd-in').addEventListener('input', function() {
+    speed = parseInt(this.value);
+    document.getElementById('spd-lbl').textContent = speed;
+    if (timer) { stopPlay(); startPlay(); }
+  });
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  init(0, 0.85);
+})();
+</script>
+</body>
+</html>

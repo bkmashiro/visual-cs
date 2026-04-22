@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kosaraju's SCC — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header a { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+  header a:hover { color: var(--text); }
+  header h1 { font-size: 1.1rem; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ─── Canvas panel ─── */
+  .canvas-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 14px;
+    min-width: 0;
+  }
+  #cv {
+    background: #0a0e15;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: block;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+  button {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button:hover { background: #21262d; border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+  button.primary:hover { opacity: 0.85; }
+  button.active { background: #21262d; border-color: var(--green); color: var(--green); }
+  button:disabled { opacity: 0.35; cursor: default; }
+  .speed-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  input[type=range] { width: 100px; accent-color: var(--accent); }
+  .step-counter {
+    font-size: 0.78rem;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+  }
+  .step-counter span { color: var(--accent); font-weight: 700; }
+
+  /* ─── Side panel ─── */
+  .panel {
+    width: 300px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-section h3 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* Phase badge */
+  .phase-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: rgba(88,166,255,0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .phase-badge.phase-2 { background: rgba(246,170,28,0.15); border-color: #f6aa1c; color: #f6aa1c; }
+  .phase-badge.phase-3 { background: rgba(63,185,80,0.15); border-color: var(--green); color: var(--green); }
+  .phase-badge.done { background: rgba(63,185,80,0.2); border-color: var(--green); color: var(--green); }
+
+  /* Step description */
+  .step-desc {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .step-desc strong { color: var(--text); }
+  .step-desc code {
+    background: #0d1117;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent);
+    font-size: 0.85em;
+  }
+
+  /* Finish-order stack */
+  .stack-items {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 3px;
+    min-height: 40px;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  .stack-item {
+    background: #21262d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+  }
+  .stack-item.top { background: #1a2a1a; border-color: var(--green); color: var(--green); }
+  .stack-item.popped { background: #2a1a1a; border-color: #ff7b72; color: #ff7b72; opacity: 0.7; text-decoration: line-through; }
+
+  /* SCC chips */
+  .scc-list { display: flex; flex-direction: column; gap: 5px; }
+  .scc-chip {
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    border: 1px solid transparent;
+    opacity: 0;
+    transform: translateX(8px);
+    transition: all 0.3s;
+  }
+  .scc-chip.visible { opacity: 1; transform: translateX(0); }
+
+  /* Node state table */
+  .node-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+  .node-table th {
+    color: var(--muted);
+    font-weight: 600;
+    padding: 3px 6px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .node-table td {
+    padding: 3px 6px;
+    font-family: monospace;
+    border-bottom: 1px solid #21262d;
+  }
+  .node-table tr.active td { background: #0f1e35; color: var(--accent); }
+  .node-table tr.finished td { color: var(--green); }
+  .node-table tr.inscc td { color: var(--muted); opacity: 0.7; }
+
+  /* Legend */
+  .legend { display: flex; flex-direction: column; gap: 5px; }
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 0.77rem; color: var(--muted); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .legend-line { width: 24px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+
+  footer {
+    text-align: center;
+    padding: 10px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">← visual-cs</a>
+  <h1>Kosaraju's <span>SCC</span> Algorithm</h1>
+</header>
+
+<div class="main">
+  <div class="canvas-wrap">
+    <canvas id="cv" width="740" height="480"></canvas>
+    <div class="controls">
+      <button id="btnPrev">◀ Prev</button>
+      <button id="btnNext" class="primary">Next ▶</button>
+      <button id="btnPlay">▶ Auto-Play</button>
+      <button id="btnReset">↺ Reset</button>
+      <div class="speed-wrap">
+        Speed
+        <input type="range" id="speed" min="100" max="1400" value="700">
+      </div>
+      <div class="step-counter">Step <span id="stepNum">0</span> / <span id="stepTotal">0</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-section">
+      <h3>Current Phase</h3>
+      <div id="phaseBadge" class="phase-badge">Phase 1: First DFS</div>
+      <div class="step-desc" id="stepDesc">Press Next or Auto-Play to start.</div>
+    </div>
+    <div class="panel-section">
+      <h3>Finish-Order Stack</h3>
+      <div class="stack-items" id="stackViz"></div>
+    </div>
+    <div class="panel-section">
+      <h3>Discovered SCCs</h3>
+      <div class="scc-list" id="sccList"></div>
+    </div>
+    <div class="panel-section">
+      <h3>Node State</h3>
+      <table class="node-table">
+        <thead>
+          <tr><th>Node</th><th>Visited</th><th>Finished</th><th>SCC</th></tr>
+        </thead>
+        <tbody id="nodeTable"></tbody>
+      </table>
+    </div>
+    <div class="panel-section">
+      <h3>How It Works</h3>
+      <div class="step-desc">
+        <strong>Kosaraju's algorithm</strong> finds all Strongly Connected Components in O(V+E).<br><br>
+        <strong>Phase 1</strong> — DFS on the original graph. When a node fully finishes, push it onto a stack.<br><br>
+        <strong>Phase 2</strong> — Transpose the graph (reverse all edges).<br><br>
+        <strong>Phase 3</strong> — Pop from stack and run DFS on the transposed graph. Each DFS tree is one SCC.
+      </div>
+    </div>
+    <div class="panel-section">
+      <h3>Legend</h3>
+      <div class="legend">
+        <div class="legend-row"><div class="legend-dot" style="background:#4b9fff"></div>Unvisited</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#f59e0b"></div>Visiting (on DFS stack)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#22d3ee"></div>Current node</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#3fb950"></div>Finished (pushed to stack)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#9d4edd"></div>Transposed graph shown</div>
+        <div class="legend-line" style="background:#3a3f48"></div><span style="font-size:0.77rem;color:var(--muted)">Original edge</span>
+        <div class="legend-line" style="background:#f6aa1c"></div><span style="font-size:0.77rem;color:var(--muted)">Transposed edge</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS
+</footer>
+
+<script>
+// ─── Graph definition ─────────────────────────────────────────────────────────
+// 8 nodes (0-7), 4 SCCs
+// SCC A: {0, 1, 2}
+// SCC B: {3, 4}
+// SCC C: {5, 6}
+// SCC D: {7}
+const NODE_LABELS = ['A','B','C','D','E','F','G','H'];
+
+// Node positions on 740x480 canvas
+const NODE_POS = [
+  {x: 120, y: 120}, // 0 A
+  {x: 260, y:  70}, // 1 B
+  {x: 390, y: 120}, // 2 C
+  {x: 130, y: 280}, // 3 D
+  {x: 270, y: 300}, // 4 E
+  {x: 460, y: 260}, // 5 F
+  {x: 590, y: 160}, // 6 G
+  {x: 620, y: 360}, // 7 H
+];
+
+// Original edges [from, to]
+const ORIG_EDGES = [
+  [0,1],[1,2],[2,0], // SCC A cycle
+  [2,3],             // A -> D
+  [3,4],[4,3],       // SCC B cycle
+  [4,5],             // B -> F
+  [5,6],[6,5],       // SCC C cycle
+  [6,7],             // C -> H
+  [1,5],             // B -> F (cross)
+];
+
+// ─── Pre-compute algorithm steps ─────────────────────────────────────────────
+function precompute() {
+  const N = 8;
+  const adj  = Array.from({length:N}, () => []);
+  const adjT = Array.from({length:N}, () => []);
+  ORIG_EDGES.forEach(([u,v]) => { adj[u].push(v); adjT[v].push(u); });
+
+  const steps = [];
+  // visited1[i]: visited in pass 1
+  const visited1 = new Array(N).fill(false);
+  // finished[i]: pushed onto finish stack
+  const finished = new Array(N).fill(false);
+  // visiting[i]: currently on DFS call stack (phase 1)
+  const onStack1 = new Array(N).fill(false);
+  const finishStack = [];
+  // scc assignment
+  const sccOf = new Array(N).fill(-1);
+  let sccCount = 0;
+  // visited2[i]: visited in pass 2
+  const visited2 = new Array(N).fill(false);
+  // For highlighting active edge
+  let activeEdge = null;
+  let showTransposed = false;
+
+  function snap(phase, cur, msg, extra={}) {
+    steps.push({
+      phase,
+      cur,
+      msg,
+      visited1: [...visited1],
+      finished: [...finished],
+      onStack1: [...onStack1],
+      finishStack: [...finishStack],
+      sccOf: [...sccOf],
+      sccCount,
+      visited2: [...visited2],
+      activeEdge,
+      showTransposed,
+      ...extra,
+    });
+  }
+
+  // ── Phase 1: DFS on original graph ──────────────────────────────────────────
+  snap(1, -1, '<strong>Phase 1: First DFS</strong> — Run DFS on the original graph. When a node finishes (all neighbors explored), push it onto the stack.');
+
+  function dfs1(v) {
+    visited1[v] = true;
+    onStack1[v] = true;
+    snap(1, v, `<strong>Visit node ${NODE_LABELS[v]}</strong> (${v}) — mark as visiting.`);
+
+    for (const w of adj[v]) {
+      activeEdge = [v, w];
+      if (!visited1[w]) {
+        snap(1, v, `Explore edge <code>${NODE_LABELS[v]}→${NODE_LABELS[w]}</code> — node ${NODE_LABELS[w]} unvisited, recurse.`);
+        dfs1(w);
+        snap(1, v, `Back at <strong>${NODE_LABELS[v]}</strong> after exploring subtree of ${NODE_LABELS[w]}.`);
+      } else {
+        snap(1, v, `Edge <code>${NODE_LABELS[v]}→${NODE_LABELS[w]}</code> — ${NODE_LABELS[w]} already visited, skip.`);
+      }
+      activeEdge = null;
+    }
+
+    onStack1[v] = false;
+    finished[v] = true;
+    finishStack.push(v);
+    snap(1, v, `<strong>Node ${NODE_LABELS[v]} finished</strong> — push to finish stack. Stack top: <code>${NODE_LABELS[finishStack[finishStack.length-1]]}</code>.`);
+  }
+
+  for (let i = 0; i < N; i++) {
+    if (!visited1[i]) {
+      snap(1, i, `Start DFS from unvisited node <strong>${NODE_LABELS[i]}</strong>.`);
+      dfs1(i);
+    }
+  }
+
+  snap(1, -1, `<strong>Phase 1 complete.</strong> All nodes pushed. Finish order (bottom→top): ${finishStack.map(x=>NODE_LABELS[x]).join(' → ')}. Next: transpose the graph.`);
+
+  // ── Phase 2: Show transposed graph ──────────────────────────────────────────
+  showTransposed = true;
+  snap(2, -1, '<strong>Phase 2: Transpose the graph</strong> — Reverse all edge directions. The SCCs are the same in the transposed graph, but the condensation edges reverse.', {showTransposed:true});
+
+  // ── Phase 3: DFS on transposed graph in reverse finish order ────────────────
+  const processOrder = [...finishStack].reverse();
+  snap(3, -1, `<strong>Phase 3: Second DFS</strong> on transposed graph, processing nodes in reverse finish order: ${processOrder.map(x=>NODE_LABELS[x]).join(' → ')}.`, {showTransposed:true});
+
+  function dfs2(v, sccId) {
+    visited2[v] = true;
+    sccOf[v] = sccId;
+    snap(3, v, `<strong>Visit ${NODE_LABELS[v]}</strong> — assign to <strong>SCC ${sccId+1}</strong>.`, {showTransposed:true});
+
+    for (const w of adjT[v]) {
+      activeEdge = [v, w];
+      if (!visited2[w]) {
+        snap(3, v, `Transposed edge <code>${NODE_LABELS[v]}→${NODE_LABELS[w]}</code> — recurse into ${NODE_LABELS[w]}.`, {showTransposed:true});
+        dfs2(w, sccId);
+        snap(3, v, `Back at <strong>${NODE_LABELS[v]}</strong>.`, {showTransposed:true});
+      } else {
+        snap(3, v, `Transposed edge <code>${NODE_LABELS[v]}→${NODE_LABELS[w]}</code> — ${NODE_LABELS[w]} already assigned.`, {showTransposed:true});
+      }
+      activeEdge = null;
+    }
+  }
+
+  for (const v of processOrder) {
+    if (!visited2[v]) {
+      snap(3, v, `Pop <strong>${NODE_LABELS[v]}</strong> from stack — start new SCC ${sccCount+1} DFS on transposed graph.`, {showTransposed:true});
+      dfs2(v, sccCount);
+      sccCount++;
+      const members = sccOf.map((s,i)=>s===sccCount-1?NODE_LABELS[i]:null).filter(Boolean);
+      snap(3, -1, `<strong>SCC ${sccCount} found:</strong> {${members.join(', ')}}.`, {showTransposed:true});
+    }
+  }
+
+  snap(3, -1, `<strong>Algorithm complete!</strong> Found ${sccCount} SCCs: ` +
+    Array.from({length:sccCount},(_,i)=>`SCC${i+1}={${sccOf.map((s,j)=>s===i?NODE_LABELS[j]:null).filter(Boolean).join(',')}}`).join(', ') + '.', {showTransposed:true});
+
+  return steps;
+}
+
+const STEPS = precompute();
+
+// ─── SCC color palette ────────────────────────────────────────────────────────
+const SCC_COLORS = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#f8961e','#43aa8b','#90e0ef'];
+
+// ─── Canvas ───────────────────────────────────────────────────────────────────
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const R = 22; // node radius
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let stepIdx = 0;
+let playing = false;
+let animTimer = null;
+
+function getSpeed() {
+  return 1500 - parseInt(document.getElementById('speed').value);
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render(idx) {
+  const s = STEPS[idx];
+  drawCanvas(s);
+  updatePanel(s);
+  document.getElementById('stepNum').textContent = idx;
+  document.getElementById('stepTotal').textContent = STEPS.length - 1;
+  document.getElementById('btnPrev').disabled = idx === 0;
+  document.getElementById('btnNext').disabled = idx === STEPS.length - 1;
+}
+
+// ── Canvas drawing ────────────────────────────────────────────────────────────
+function drawCanvas(s) {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  drawGrid();
+
+  const edges = s.showTransposed
+    ? ORIG_EDGES.map(([u,v]) => [v,u])   // reversed edges
+    : ORIG_EDGES;
+
+  // Draw edges
+  edges.forEach(([u,v]) => {
+    const pu = NODE_POS[u], pv = NODE_POS[v];
+    let color = s.showTransposed ? '#4a4030' : '#2a3a4a';
+    let width = 1.5;
+    let glow = false;
+
+    if (s.activeEdge && s.activeEdge[0] === u && s.activeEdge[1] === v) {
+      color = s.showTransposed ? '#f6aa1c' : '#22d3ee';
+      width = 3;
+      glow = true;
+    }
+
+    if (glow) { ctx.shadowColor = color; ctx.shadowBlur = 12; }
+    drawArrow(pu.x, pu.y, pv.x, pv.y, color, width, s.showTransposed);
+    ctx.shadowBlur = 0;
+  });
+
+  // Draw nodes
+  NODE_POS.forEach((pos, i) => {
+    const col = nodeColor(i, s);
+
+    if (s.cur === i || (s.phase === 1 && s.onStack1[i])) {
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 20;
+    }
+
+    // Fill
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, R, 0, Math.PI * 2);
+    ctx.fillStyle = col + '28';
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = s.cur === i ? 3 : 2;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Label
+    ctx.fillStyle = col;
+    ctx.font = 'bold 13px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(NODE_LABELS[i], pos.x, pos.y);
+
+    // Finish order indicator
+    const finishPos = s.finishStack.indexOf(i);
+    if (finishPos >= 0) {
+      ctx.font = '9px monospace';
+      ctx.fillStyle = '#8b949e';
+      ctx.fillText(`f:${finishPos+1}`, pos.x, pos.y + R + 10);
+    }
+  });
+
+  // Phase label on canvas
+  const phaseLabels = ['', 'Pass 1: DFS on Original', 'Transposing Graph', 'Pass 2: DFS on Transposed'];
+  const phaseColors = ['', '#58a6ff', '#f6aa1c', '#3fb950'];
+  ctx.fillStyle = phaseColors[s.phase] || '#8b949e';
+  ctx.font = 'bold 12px Inter, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(phaseLabels[s.phase] || '', 14, 12);
+
+  // Transposed label
+  if (s.showTransposed) {
+    ctx.fillStyle = '#f6aa1c';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText('[ transposed graph ]', cv.width - 14, 12);
+  }
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < cv.width; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cv.height); ctx.stroke();
+  }
+  for (let y = 0; y < cv.height; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cv.width, y); ctx.stroke();
+  }
+}
+
+function nodeColor(id, s) {
+  // SCC assigned (phase 3)
+  if (s.sccOf[id] >= 0) return SCC_COLORS[s.sccOf[id] % SCC_COLORS.length];
+  // Current node
+  if (s.cur === id) return '#22d3ee';
+  // Phase 1: on DFS stack
+  if (s.phase === 1 && s.onStack1[id]) return '#f59e0b';
+  // Finished in phase 1
+  if (s.finished[id]) return '#3fb950';
+  // Visited but not finished
+  if (s.visited1[id]) return '#a78bfa';
+  return '#4b9fff';
+}
+
+// Draw curved arrow to handle bidirectional edges nicely
+function drawArrow(x1, y1, x2, y2, color, width, curved) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 1) return;
+  const ux = dx / dist, uy = dy / dist;
+
+  // Check if reverse edge exists (need curve)
+  let needCurve = curved;
+  if (!needCurve) {
+    needCurve = ORIG_EDGES.some(([a,b]) => a === x2 && b === x1) ||
+               (curved && ORIG_EDGES.some(([a,b]) => b === x2 && a === x1));
+  }
+
+  const sx = x1 + ux * R, sy = y1 + uy * R;
+  const ex = x2 - ux * R, ey = y2 - uy * R;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+
+  if (needCurve) {
+    // Offset the midpoint perpendicular to the edge
+    const mx = (sx + ex) / 2 - uy * 22;
+    const my = (sy + ey) / 2 + ux * 22;
+    ctx.moveTo(sx, sy);
+    ctx.quadraticCurveTo(mx, my, ex, ey);
+    ctx.stroke();
+
+    // Arrowhead at end of curve
+    const t = 0.85;
+    const qx = (1-t)*(1-t)*sx + 2*(1-t)*t*mx + t*t*ex;
+    const qy = (1-t)*(1-t)*sy + 2*(1-t)*t*my + t*t*ey;
+    drawHead(ex, ey, ex - qx, ey - qy, color);
+  } else {
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    drawHead(ex, ey, ux, uy, color);
+  }
+}
+
+function drawHead(ex, ey, dxRaw, dyRaw, color) {
+  const len = Math.hypot(dxRaw, dyRaw) || 1;
+  const ux = dxRaw / len, uy = dyRaw / len;
+  const al = 11;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - al*Math.cos(Math.atan2(uy,ux)-0.4), ey - al*Math.sin(Math.atan2(uy,ux)-0.4));
+  ctx.lineTo(ex - al*Math.cos(Math.atan2(uy,ux)+0.4), ey - al*Math.sin(Math.atan2(uy,ux)+0.4));
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ── Panel update ──────────────────────────────────────────────────────────────
+let sccChipsShown = 0;
+
+function updatePanel(s) {
+  // Phase badge
+  const badge = document.getElementById('phaseBadge');
+  const phaseNames = ['', 'Phase 1: First DFS', 'Phase 2: Transpose', 'Phase 3: Second DFS'];
+  badge.textContent = phaseNames[s.phase] || 'Done';
+  badge.className = 'phase-badge' + (s.phase === 2 ? ' phase-2' : s.phase === 3 ? ' phase-3' : '');
+  if (s.cur === -1 && s.sccCount > 0 && stepIdx === STEPS.length - 1) badge.className = 'phase-badge done';
+
+  // Description
+  document.getElementById('stepDesc').innerHTML = s.msg;
+
+  // Finish stack
+  const sv = document.getElementById('stackViz');
+  sv.innerHTML = '';
+  s.finishStack.forEach((id, i) => {
+    const el = document.createElement('div');
+    el.className = 'stack-item' + (i === s.finishStack.length - 1 ? ' top' : '');
+    el.innerHTML = `<span>Node <b>${NODE_LABELS[id]}</b></span><span style="color:var(--muted);font-size:0.7rem">order ${i+1}</span>`;
+    sv.appendChild(el);
+  });
+
+  // SCC list
+  const sl = document.getElementById('sccList');
+  while (sl.children.length < s.sccCount) {
+    const sccId = sl.children.length;
+    const col = SCC_COLORS[sccId % SCC_COLORS.length];
+    const members = s.sccOf.map((c, i) => c === sccId ? NODE_LABELS[i] : null).filter(Boolean);
+    const chip = document.createElement('div');
+    chip.className = 'scc-chip';
+    chip.style.background = col + '22';
+    chip.style.borderColor = col;
+    chip.style.color = col;
+    chip.textContent = `SCC ${sccId+1}: {${members.join(', ')}}`;
+    sl.appendChild(chip);
+    setTimeout(() => chip.classList.add('visible'), 10);
+  }
+  // Update existing chips with current membership
+  Array.from(sl.children).forEach((chip, sccId) => {
+    const col = SCC_COLORS[sccId % SCC_COLORS.length];
+    const members = s.sccOf.map((c,i) => c === sccId ? NODE_LABELS[i] : null).filter(Boolean);
+    chip.textContent = `SCC ${sccId+1}: {${members.join(', ')}}`;
+  });
+
+  // Node table
+  const tb = document.getElementById('nodeTable');
+  tb.innerHTML = '';
+  NODE_LABELS.forEach((lbl, i) => {
+    const tr = document.createElement('tr');
+    if (s.cur === i) tr.className = 'active';
+    else if (s.sccOf[i] >= 0) tr.className = 'inscc';
+    else if (s.finished[i]) tr.className = 'finished';
+    const vis = s.visited1[i] ? '✓' : '';
+    const fin = s.finished[i] ? '✓' : '';
+    const scc = s.sccOf[i] >= 0 ? `SCC ${s.sccOf[i]+1}` : '';
+    tr.innerHTML = `<td>${lbl}</td><td>${vis}</td><td>${fin}</td><td>${scc}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+function stopPlay() {
+  playing = false;
+  clearTimeout(animTimer);
+  document.getElementById('btnPlay').textContent = '▶ Auto-Play';
+  document.getElementById('btnPlay').classList.remove('active');
+}
+
+function startPlay() {
+  if (stepIdx >= STEPS.length - 1) { stepIdx = 0; sccChipsShown = 0; document.getElementById('sccList').innerHTML = ''; }
+  playing = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  document.getElementById('btnPlay').classList.add('active');
+  function tick() {
+    if (!playing || stepIdx >= STEPS.length - 1) { stopPlay(); return; }
+    stepIdx++;
+    render(stepIdx);
+    animTimer = setTimeout(tick, getSpeed());
+  }
+  animTimer = setTimeout(tick, getSpeed());
+}
+
+document.getElementById('btnNext').addEventListener('click', () => {
+  stopPlay();
+  if (stepIdx < STEPS.length - 1) { stepIdx++; render(stepIdx); }
+});
+document.getElementById('btnPrev').addEventListener('click', () => {
+  stopPlay();
+  if (stepIdx > 0) { stepIdx--; render(stepIdx); }
+});
+document.getElementById('btnPlay').addEventListener('click', () => {
+  if (playing) stopPlay(); else startPlay();
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  stopPlay();
+  stepIdx = 0;
+  document.getElementById('sccList').innerHTML = '';
+  render(0);
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+render(0);
+</script>
+</body>
+</html>
