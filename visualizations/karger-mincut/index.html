@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karger's Min Cut — visual-cs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --panel: #111720;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #7ee787;
+    --warn: #f78166;
+    --gold: #e3b341;
+    --violet: #a371f7;
+    --red: #ff7b72;
+    --pink: #f778ba;
+    --cyan: #67e8f9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: rgba(22,27,34,0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  header a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+  header h1 { font-size: 1.3rem; }
+  .main { max-width: 1320px; margin: 0 auto; padding: 28px 22px 40px; }
+  .toolbar, .stats, .panel, .explain {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 16px; margin-bottom: 16px; }
+  select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; }
+  input[type=range] { background: var(--panel); accent-color: var(--accent); }
+  button { border: none; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; font: inherit; background: var(--accent); color: #08111b; }
+  button.sec { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .slider-group { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.86rem; }
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 12px; padding: 14px 16px; margin-bottom: 16px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat-value { font-size: 1.25rem; font-weight: 800; }
+  .stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; }
+  .workspace { position: relative; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 580px; background: radial-gradient(circle at top, rgba(88,166,255,0.07), transparent 24%), #09111a; border-radius: 14px; }
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  .panel { padding: 16px; }
+  .panel h3 { font-size: 0.95rem; margin-bottom: 12px; }
+  .log-list { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow: auto; }
+  .log-item { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 0.84rem; color: var(--muted); }
+  .log-item.active { border-color: var(--accent); color: var(--text); }
+  .log-item.contract { border-color: var(--gold); }
+  .log-item.cut { border-color: var(--green); }
+  .log-item.select { border-color: var(--pink); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 16px; margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--muted); font-size: 0.82rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .explain { margin-top: 20px; padding: 24px 28px; }
+  .explain h2 { color: var(--accent); margin-bottom: 12px; }
+  .explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+  .explain ul { padding-left: 20px; margin-top: 8px; }
+  .explain code { background: var(--panel); padding: 1px 6px; border-radius: 4px; color: var(--text); font-size: 0.88em; }
+  @media (max-width: 1080px) {
+    .layout { grid-template-columns: 1fr; }
+    canvas { height: 420px; }
+    .stats { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>✂️ Karger's Min Cut Algorithm</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Randomized Contraction · Edge Collapse · Min Cut</span>
+</header>
+
+<div class="main">
+  <div class="toolbar">
+    <label style="color:var(--muted);font-size:0.86rem">Graph</label>
+    <select id="graph-sel">
+      <option value="0">Classic Example (8 nodes)</option>
+      <option value="1">Small Graph (6 nodes)</option>
+      <option value="2">Two Clusters (10 nodes)</option>
+    </select>
+    <button id="play-btn">&#9654; Play</button>
+    <button class="sec" id="pause-btn" disabled>&#9646;&#9646; Pause</button>
+    <button class="sec" id="prev-btn">&#9664; Prev</button>
+    <button class="sec" id="next-btn">&#9654;&#9654; Next</button>
+    <button class="sec" id="reset-btn">&#8635; Reset</button>
+    <div class="slider-group">
+      <label>Speed <span id="spd-lbl">800</span>ms</label>
+      <input id="spd-in" type="range" min="150" max="2000" step="50" value="800">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="s-nodes">0</div><div class="stat-label">Supernodes</div></div>
+    <div class="stat"><div class="stat-value" id="s-edges">0</div><div class="stat-label">Edges</div></div>
+    <div class="stat"><div class="stat-value" id="s-contracted">0</div><div class="stat-label">Contracted</div></div>
+    <div class="stat"><div class="stat-value" id="s-frame">—</div><div class="stat-label">Frame</div></div>
+    <div class="stat"><div class="stat-value" id="s-cut" style="font-size:0.82rem;color:var(--muted)">—</div><div class="stat-label">Min Cut</div></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel workspace">
+      <canvas id="cv"></canvas>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>Step Log</h3>
+        <div class="log-list" id="log-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background:#30363d"></div>Normal edge</div>
+    <div class="legend-item"><div class="swatch" style="background:#f778ba"></div>Selected edge</div>
+    <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Supernode (merged)</div>
+    <div class="legend-item"><div class="swatch" style="background:#a371f7"></div>Multi-edge (kept)</div>
+    <div class="legend-item"><div class="swatch" style="background:#ff7b72"></div>Self-loop (removed)</div>
+    <div class="legend-item"><div class="swatch" style="background:#7ee787"></div>Final cut edges</div>
+  </div>
+
+  <div class="explain">
+    <h2>How It Works</h2>
+    <p>Karger's Algorithm finds a <strong>minimum cut</strong> in an undirected graph — the smallest set of edges whose removal disconnects the graph into two parts. It uses randomized <em>edge contraction</em>.</p>
+    <ul>
+      <li><strong>Edge selection</strong> — pick a random edge <code>(u, v)</code> from the current multigraph.</li>
+      <li><strong>Contraction</strong> — merge nodes <code>u</code> and <code>v</code> into a single <em>supernode</em>. The supernode inherits all edges from both nodes.</li>
+      <li><strong>Self-loop removal</strong> — edges between <code>u</code> and <code>v</code> (now within the same supernode) become self-loops and are removed.</li>
+      <li><strong>Multi-edges</strong> — edges to the same external node from both <code>u</code> and <code>v</code> are kept as parallel edges (they are <em>not</em> merged — this is crucial for correctness).</li>
+      <li><strong>Repeat</strong> — continue contracting until only 2 supernodes remain. The remaining edges between them form a cut.</li>
+      <li><strong>Probability</strong> — the probability that a specific min-cut of size <code>k</code> is found is at least <code>2/(n(n-1))</code>. Running the algorithm <code>O(n² log n)</code> times gives high probability of finding the true min cut.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  var cv  = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+
+  function resizeCv() {
+    cv.width  = cv.parentElement.clientWidth;
+    cv.height = cv.offsetHeight;
+  }
+  resizeCv();
+  window.addEventListener('resize', function () { resizeCv(); drawFrame(); });
+
+  var P = {
+    bg:'#09111a', surf:'#161b22', panel:'#111720', border:'#30363d',
+    text:'#e6edf3', muted:'#8b949e',
+    blue:'#58a6ff', green:'#7ee787', warn:'#f78166',
+    gold:'#e3b341', violet:'#a371f7', red:'#ff7b72',
+    pink:'#f778ba', cyan:'#67e8f9',
+  };
+
+  // ── Graph definitions ──────────────────────────────────────────────────────
+  // Positions are [relX, relY] in [0..1] range
+  var GRAPHS = [
+    {
+      name: 'Classic Example (8 nodes)',
+      nodes: ['A','B','C','D','E','F','G','H'],
+      pos: [
+        [0.18,0.25],[0.42,0.18],[0.68,0.25],[0.88,0.45],
+        [0.88,0.72],[0.68,0.82],[0.42,0.82],[0.18,0.72],
+      ],
+      // Two clusters: {A,B,C,H} and {D,E,F,G}, connected by a bridge of 2 edges
+      edges: [
+        [0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0], // ring
+        [0,2],[5,7],                                       // diagonals
+        [2,5],[1,6],                                       // cross edges (the cut)
+      ]
+    },
+    {
+      name: 'Small Graph (6 nodes)',
+      nodes: ['1','2','3','4','5','6'],
+      pos: [
+        [0.20,0.30],[0.50,0.15],[0.80,0.30],
+        [0.20,0.72],[0.50,0.85],[0.80,0.72],
+      ],
+      edges: [
+        [0,1],[1,2],[0,3],[1,3],[1,4],[2,4],[2,5],[3,4],[4,5],
+        [0,2],[3,5]
+      ]
+    },
+    {
+      name: 'Two Clusters (10 nodes)',
+      nodes: ['A','B','C','D','E','F','G','H','I','J'],
+      pos: [
+        [0.12,0.35],[0.22,0.18],[0.34,0.30],[0.22,0.52],[0.14,0.68], // cluster 1
+        [0.68,0.35],[0.78,0.18],[0.90,0.30],[0.78,0.52],[0.86,0.68], // cluster 2
+      ],
+      edges: [
+        // Cluster 1 (dense)
+        [0,1],[1,2],[2,3],[3,4],[4,0],[0,2],[1,3],
+        // Cluster 2 (dense)
+        [5,6],[6,7],[7,8],[8,9],[9,5],[5,7],[6,8],
+        // Bridge (the min cut = 2 edges)
+        [2,5],[3,8],
+      ]
+    }
+  ];
+
+  // ── Karger step recorder ───────────────────────────────────────────────────
+  // We use a deterministic seed so the visualization is reproducible
+
+  function seededRand(seed) {
+    var s = seed;
+    return function() {
+      s = (s * 1664525 + 1013904223) & 0xffffffff;
+      return (s >>> 0) / 0xffffffff;
+    };
+  }
+
+  // Each frame captures the full state to render
+  // State: supernodes (array of original-node sets), edge list (multigraph), highlight info
+  function computeFrames(gidx) {
+    var gdata = GRAPHS[gidx];
+    var N = gdata.nodes.length;
+    var origEdges = gdata.edges;
+
+    var frames = [];
+    var stepLog = [];
+
+    // Use fixed seed for reproducibility
+    var rand = seededRand(42);
+
+    // Supernode: { id, members: [original node indices], color }
+    // We'll assign colors per supernode
+    var COLORS = [
+      P.blue, P.green, P.gold, P.violet, P.cyan, P.pink, P.warn, P.red,
+      '#40c8e0','#b7eb8f','#ffc069','#d3adf7','#87e8de','#ffadd2','#ffa39e','#adc6ff'
+    ];
+
+    // Initial state: each node is its own supernode
+    // Multigraph edges: { u: supernode id, v: supernode id }
+    var snodes = [];
+    for (var i = 0; i < N; i++) {
+      snodes.push({ id: i, members: [i], color: COLORS[i % COLORS.length] });
+    }
+
+    // Edge list: array of [snId_u, snId_v] (using original node indices as supernode ids initially)
+    var edges = origEdges.map(function(e) { return [e[0], e[1]]; });
+
+    // Union-Find for supernode membership
+    var parent = [];
+    for (var i = 0; i < N; i++) parent[i] = i;
+
+    function find(x) {
+      while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+      return x;
+    }
+
+    // Helper: deep-copy state for frame snapshot
+    function snapshot(highlight) {
+      // Rebuild supernode map
+      var snMap = {}; // representative -> { members, color }
+      for (var i = 0; i < N; i++) {
+        var r = find(i);
+        if (!snMap[r]) snMap[r] = { id: r, members: [], color: COLORS[r % COLORS.length] };
+        snMap[r].members.push(i);
+      }
+      // Current edges (between different supernodes only, plus self-loops for display)
+      var edgeCopy = edges.map(function(e) { return [e[0], e[1]]; });
+      return {
+        snMap: snMap,
+        edges: edgeCopy,
+        highlight: highlight || {},
+      };
+    }
+
+    // Record initial frame
+    frames.push(snapshot({ phase: 'init' }));
+    stepLog.push({ text: 'Initial graph: ' + N + ' nodes, ' + edges.length + ' edges. Ready to contract.', type: 'init' });
+
+    var contracted = 0;
+
+    // Karger's contraction loop
+    while (true) {
+      // Count distinct supernodes
+      var snSet = {};
+      for (var i = 0; i < N; i++) snSet[find(i)] = true;
+      var snCount = Object.keys(snSet).length;
+      if (snCount <= 2) break;
+
+      // Find valid edges (between different supernodes)
+      var validEdges = [];
+      for (var ei = 0; ei < edges.length; ei++) {
+        var ru = find(edges[ei][0]);
+        var rv = find(edges[ei][1]);
+        if (ru !== rv) validEdges.push(ei);
+      }
+      if (validEdges.length === 0) break;
+
+      // Select a random edge
+      var pick = validEdges[Math.floor(rand() * validEdges.length)];
+      var eu = edges[pick][0];
+      var ev = edges[pick][1];
+      var ru = find(eu);
+      var rv = find(ev);
+
+      // Frame: highlight selected edge
+      frames.push(snapshot({ phase: 'select', selEdge: pick, selU: ru, selV: rv }));
+      stepLog.push({
+        text: 'Select edge (' + gdata.nodes[eu] + '→' + gdata.nodes[ev] + ') between supernodes ' +
+              '[' + getMembers(ru) + '] and [' + getMembers(rv) + ']',
+        type: 'select'
+      });
+
+      // Merge: make ru the representative
+      parent[rv] = ru;
+      contracted++;
+
+      // Frame: show contraction (self-loops visible)
+      frames.push(snapshot({ phase: 'contract', merged: ru, removed: rv, selEdge: pick }));
+      stepLog.push({
+        text: 'Contract: merge supernode [' + getMembers(rv) + '] into [' + getMembers(ru) + ']. Self-loops removed.',
+        type: 'contract'
+      });
+
+      function getMembers(rep) {
+        var ms = [];
+        for (var i = 0; i < N; i++) if (find(i) === rep) ms.push(gdata.nodes[i]);
+        return ms.join(',');
+      }
+    }
+
+    // Final frame: show remaining cut edges
+    frames.push(snapshot({ phase: 'done' }));
+
+    // Count cut edges (between the two final supernodes)
+    var reps = [];
+    var snSetFinal = {};
+    for (var i = 0; i < N; i++) { var r = find(i); if (!snSetFinal[r]) { snSetFinal[r] = true; reps.push(r); } }
+    var cutEdges = [];
+    for (var ei = 0; ei < edges.length; ei++) {
+      var ru = find(edges[ei][0]);
+      var rv = find(edges[ei][1]);
+      if (ru !== rv) cutEdges.push(ei);
+    }
+
+    var ra = reps[0], rb = reps.length > 1 ? reps[1] : reps[0];
+    var groupA = [], groupB = [];
+    for (var i = 0; i < N; i++) {
+      if (find(i) === ra) groupA.push(gdata.nodes[i]);
+      else groupB.push(gdata.nodes[i]);
+    }
+
+    stepLog.push({
+      text: 'Done! Min cut = ' + cutEdges.length + ' edge(s). Partition: {' + groupA.join(',') + '} | {' + groupB.join(',') + '}',
+      type: 'cut'
+    });
+
+    return { frames: frames, stepLog: stepLog, cutCount: cutEdges.length };
+  }
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  var allFrames = [];
+  var stepLog = [];
+  var frameIdx = 0;
+  var timer = null;
+  var speed = 800;
+  var currentGraph = 0;
+  var cutCount = 0;
+
+  function init(gidx) {
+    currentGraph = gidx;
+    stopPlay();
+    var result = computeFrames(gidx);
+    allFrames = result.frames;
+    stepLog = result.stepLog;
+    cutCount = result.cutCount;
+    frameIdx = 0;
+    renderLog();
+    drawFrame();
+    updateStats();
+    updateButtons();
+  }
+
+  // ── Draw ───────────────────────────────────────────────────────────────────
+  function drawFrame() {
+    if (!allFrames.length) return;
+    var frame = allFrames[frameIdx];
+    var gdata = GRAPHS[currentGraph];
+    var W = cv.width, H = cv.height;
+    var PAD = 60;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw gradient background
+    var grad = ctx.createRadialGradient(W/2, 0, 0, W/2, 0, H);
+    grad.addColorStop(0, 'rgba(88,166,255,0.07)');
+    grad.addColorStop(1, P.bg);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    var N = gdata.nodes.length;
+    var hl = frame.highlight;
+
+    // Compute display positions for original nodes
+    function nodePos(i) {
+      var p = gdata.pos[i];
+      return {
+        x: PAD + p[0] * (W - 2*PAD),
+        y: PAD + p[1] * (H - 2*PAD)
+      };
+    }
+
+    // Compute supernode center (average of members)
+    function snodeCenter(rep, snMap) {
+      var sn = snMap[rep];
+      if (!sn) return { x: W/2, y: H/2 };
+      var sx = 0, sy = 0;
+      for (var i = 0; i < sn.members.length; i++) {
+        var p = nodePos(sn.members[i]);
+        sx += p.x; sy += p.y;
+      }
+      return { x: sx / sn.members.length, y: sy / sn.members.length };
+    }
+
+    var snMap = frame.snMap;
+    var edges = frame.edges;
+
+    // Find function based on snMap
+    function findRep(nodeIdx) {
+      for (var rep in snMap) {
+        var sn = snMap[rep];
+        for (var j = 0; j < sn.members.length; j++) {
+          if (sn.members[j] === nodeIdx) return parseInt(rep);
+        }
+      }
+      return nodeIdx;
+    }
+
+    // Draw edges
+    for (var ei = 0; ei < edges.length; ei++) {
+      var eu = edges[ei][0];
+      var ev = edges[ei][1];
+      var ru = findRep(eu);
+      var rv = findRep(ev);
+
+      var pu = snodeCenter(ru, snMap);
+      var pv = snodeCenter(rv, snMap);
+
+      var isSelfLoop = (ru === rv);
+      var isSelected = (ei === hl.selEdge);
+      var isCutEdge = (hl.phase === 'done' && ru !== rv);
+
+      if (isSelfLoop) {
+        // Draw self-loop as a small arc
+        var pc = nodePos(eu);
+        var lx = pc.x + 22, ly = pc.y - 22;
+        ctx.beginPath();
+        ctx.arc(lx, ly, 14, 0, Math.PI * 2);
+        ctx.strokeStyle = P.red;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4,3]);
+        ctx.globalAlpha = 0.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1.0;
+        continue;
+      }
+
+      // Check if this is a multi-edge (find another edge with same endpoint reps)
+      var isMulti = false;
+      for (var ej = 0; ej < edges.length; ej++) {
+        if (ej === ei) continue;
+        var eu2 = edges[ej][0], ev2 = edges[ej][1];
+        var ru2 = findRep(eu2), rv2 = findRep(ev2);
+        if (((ru2===ru && rv2===rv)||(ru2===rv && rv2===ru)) && ru2!==rv2) {
+          isMulti = true; break;
+        }
+      }
+
+      var color = P.border;
+      var lineW = 1.5;
+      var alpha = 0.5;
+
+      if (isSelected) { color = P.pink; lineW = 3.5; alpha = 1.0; }
+      else if (isCutEdge) { color = P.green; lineW = 3.0; alpha = 0.9; }
+      else if (isMulti) { color = P.violet; lineW = 2.0; alpha = 0.75; }
+
+      // Offset multi-edges slightly so they're visible
+      var dx = pv.x - pu.x, dy = pv.y - pu.y;
+      var len = Math.sqrt(dx*dx + dy*dy) || 1;
+      var ox = -dy/len * 4 * (isMulti ? 1 : 0);
+      var oy =  dx/len * 4 * (isMulti ? 1 : 0);
+
+      ctx.beginPath();
+      ctx.moveTo(pu.x + ox, pu.y + oy);
+      ctx.lineTo(pv.x + ox, pv.y + oy);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineW;
+      ctx.globalAlpha = alpha;
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+
+      // Arrowhead for cut edges
+      if (isCutEdge) {
+        var mx = (pu.x + pv.x) / 2;
+        var my = (pu.y + pv.y) / 2;
+        ctx.beginPath();
+        ctx.arc(mx, my, 4, 0, Math.PI * 2);
+        ctx.fillStyle = P.green;
+        ctx.fill();
+      }
+    }
+
+    // Draw supernodes
+    for (var rep in snMap) {
+      var sn = snMap[parseInt(rep)];
+      var center = snodeCenter(parseInt(rep), snMap);
+      var isMerged = sn.members.length > 1;
+      var isMergedNow = (hl.phase === 'contract' && parseInt(rep) === hl.merged);
+      var isDone = (hl.phase === 'done');
+
+      // If supernode has multiple members, draw a rounded hull
+      if (isMerged) {
+        var pts = sn.members.map(function(m) { return nodePos(m); });
+        // Draw connecting "blob" behind nodes
+        ctx.beginPath();
+        if (pts.length === 2) {
+          var dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
+          var len = Math.sqrt(dx*dx+dy*dy)||1;
+          var nx = -dy/len*24, ny = dx/len*24;
+          ctx.moveTo(pts[0].x+nx, pts[0].y+ny);
+          ctx.lineTo(pts[1].x+nx, pts[1].y+ny);
+          ctx.lineTo(pts[1].x-nx, pts[1].y-ny);
+          ctx.lineTo(pts[0].x-nx, pts[0].y-ny);
+          ctx.closePath();
+        } else {
+          // Draw convex polygon around all member positions with padding
+          var hull = convexHull(pts);
+          if (hull.length > 0) {
+            ctx.moveTo(hull[0].x, hull[0].y);
+            for (var j = 1; j < hull.length; j++) ctx.lineTo(hull[j].x, hull[j].y);
+            ctx.closePath();
+          }
+        }
+        ctx.fillStyle = isDone ? (rep == Object.keys(snMap)[0] ? 'rgba(88,166,255,0.12)' : 'rgba(127,231,135,0.12)')
+                               : 'rgba(227,179,65,0.10)';
+        ctx.strokeStyle = isDone ? (rep == Object.keys(snMap)[0] ? P.blue : P.green) : P.gold;
+        ctx.lineWidth = isMergedNow ? 2.5 : 1.5;
+        ctx.setLineDash([4,3]);
+        ctx.globalAlpha = 0.7;
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1.0;
+      }
+
+      // Draw each original node
+      for (var mi = 0; mi < sn.members.length; mi++) {
+        var m = sn.members[mi];
+        var pos = nodePos(m);
+        var r = isMerged ? 18 : 20;
+        var nodeColor = isMerged
+          ? (isDone ? (Object.keys(snMap).indexOf(rep.toString()) === 0 ? P.blue : P.green) : P.gold)
+          : sn.color;
+
+        // Glow for selected / merged
+        if (isSelected || isMergedNow) {
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, r + 8, 0, Math.PI * 2);
+          ctx.fillStyle = isMergedNow ? 'rgba(227,179,65,0.18)' : 'rgba(247,120,186,0.18)';
+          ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = P.panel;
+        ctx.fill();
+        ctx.strokeStyle = nodeColor;
+        ctx.lineWidth = isMergedNow ? 3 : 2;
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = nodeColor;
+        ctx.font = 'bold 13px -apple-system,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(gdata.nodes[m], pos.x, pos.y);
+      }
+
+      // Supernode label if merged
+      if (isMerged) {
+        ctx.fillStyle = P.gold;
+        ctx.font = 'bold 11px -apple-system,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        var labelY = Math.min.apply(null, sn.members.map(function(m) { return nodePos(m).y; })) - 28;
+        ctx.fillText('SN[' + sn.members.map(function(m) { return gdata.nodes[m]; }).join('+') + ']', center.x, labelY);
+      }
+    }
+
+    // Phase label
+    var phaseLabel = '';
+    if (hl.phase === 'init') phaseLabel = 'Initial graph';
+    else if (hl.phase === 'select') phaseLabel = 'Select random edge';
+    else if (hl.phase === 'contract') phaseLabel = 'Contract edge';
+    else if (hl.phase === 'done') phaseLabel = 'Done — Min cut found!';
+
+    ctx.fillStyle = P.muted;
+    ctx.font = '13px -apple-system,sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(phaseLabel, 18, 14);
+
+    // Cut count overlay
+    if (hl.phase === 'done') {
+      ctx.fillStyle = P.green;
+      ctx.font = 'bold 18px -apple-system,sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Min Cut = ' + cutCount, W - 18, 14);
+    }
+  }
+
+  // ── Convex Hull (Graham scan) ──────────────────────────────────────────────
+  function convexHull(points) {
+    if (points.length < 3) {
+      // Expand points slightly to make a visible hull
+      var PAD = 28;
+      if (points.length === 1) {
+        var p = points[0];
+        return [{x:p.x-PAD,y:p.y},{x:p.x,y:p.y-PAD},{x:p.x+PAD,y:p.y},{x:p.x,y:p.y+PAD}];
+      }
+      return points;
+    }
+    // Add padding to hull points
+    var PAD = 28;
+    var pts = points.slice().sort(function(a,b){ return a.x-b.x || a.y-b.y; });
+    var lower = [], upper = [];
+    for (var i = 0; i < pts.length; i++) {
+      while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], pts[i]) <= 0) lower.pop();
+      lower.push(pts[i]);
+    }
+    for (var i = pts.length-1; i >= 0; i--) {
+      while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], pts[i]) <= 0) upper.pop();
+      upper.push(pts[i]);
+    }
+    upper.pop(); lower.pop();
+    var hull = lower.concat(upper);
+    // Expand hull by PAD
+    var cx = 0, cy = 0;
+    for (var i = 0; i < hull.length; i++) { cx += hull[i].x; cy += hull[i].y; }
+    cx /= hull.length; cy /= hull.length;
+    return hull.map(function(p) {
+      var dx = p.x - cx, dy = p.y - cy;
+      var len = Math.sqrt(dx*dx+dy*dy)||1;
+      return { x: p.x + dx/len*PAD, y: p.y + dy/len*PAD };
+    });
+  }
+  function cross(O,A,B) { return (A.x-O.x)*(B.y-O.y)-(A.y-O.y)*(B.x-O.x); }
+
+  // ── Log ───────────────────────────────────────────────────────────────────
+  function renderLog() {
+    var list = document.getElementById('log-list');
+    list.innerHTML = '';
+    var logIdx = Math.min(frameIdx, stepLog.length - 1);
+    stepLog.forEach(function(item, i) {
+      var div = document.createElement('div');
+      div.className = 'log-item' +
+        (i === logIdx ? ' active' : '') +
+        (item.type === 'contract' ? ' contract' : '') +
+        (item.type === 'select'   ? ' select'   : '') +
+        (item.type === 'cut'      ? ' cut'       : '');
+      div.textContent = item.text;
+      list.appendChild(div);
+    });
+    // Scroll active item into view
+    var active = list.querySelector('.active');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+  }
+
+  function updateStats() {
+    if (!allFrames.length) return;
+    var frame = allFrames[frameIdx];
+    var snMap = frame.snMap;
+    var snCount = Object.keys(snMap).length;
+    var edgeCount = 0;
+    for (var ei = 0; ei < frame.edges.length; ei++) {
+      var eu = frame.edges[ei][0], ev = frame.edges[ei][1];
+      if (findRep(eu, snMap) !== findRep(ev, snMap)) edgeCount++;
+    }
+
+    // Count contracted (original N minus current supernodes)
+    var N = GRAPHS[currentGraph].nodes.length;
+    var contracted = N - snCount;
+
+    document.getElementById('s-nodes').textContent = snCount;
+    document.getElementById('s-edges').textContent = edgeCount;
+    document.getElementById('s-contracted').textContent = contracted;
+    document.getElementById('s-frame').textContent = (frameIdx + 1) + ' / ' + allFrames.length;
+    document.getElementById('s-cut').textContent = frame.highlight.phase === 'done' ? cutCount : '—';
+
+    function findRep(nodeIdx, snMap) {
+      for (var rep in snMap) {
+        var sn = snMap[rep];
+        for (var j = 0; j < sn.members.length; j++) {
+          if (sn.members[j] === nodeIdx) return parseInt(rep);
+        }
+      }
+      return nodeIdx;
+    }
+  }
+
+  function updateButtons() {
+    document.getElementById('prev-btn').disabled = frameIdx === 0;
+    document.getElementById('next-btn').disabled = frameIdx === allFrames.length - 1;
+    document.getElementById('play-btn').disabled = frameIdx === allFrames.length - 1;
+  }
+
+  // ── Playback ──────────────────────────────────────────────────────────────
+  function stopPlay() {
+    if (timer) { clearInterval(timer); timer = null; }
+    document.getElementById('play-btn').disabled = false;
+    document.getElementById('pause-btn').disabled = true;
+  }
+
+  function startPlay() {
+    if (timer) return;
+    document.getElementById('play-btn').disabled = true;
+    document.getElementById('pause-btn').disabled = false;
+    timer = setInterval(function() {
+      if (frameIdx < allFrames.length - 1) {
+        frameIdx++;
+        drawFrame(); renderLog(); updateStats(); updateButtons();
+      } else {
+        stopPlay();
+      }
+    }, speed);
+  }
+
+  document.getElementById('play-btn').addEventListener('click', startPlay);
+  document.getElementById('pause-btn').addEventListener('click', stopPlay);
+  document.getElementById('prev-btn').addEventListener('click', function() {
+    stopPlay();
+    if (frameIdx > 0) { frameIdx--; drawFrame(); renderLog(); updateStats(); updateButtons(); }
+  });
+  document.getElementById('next-btn').addEventListener('click', function() {
+    stopPlay();
+    if (frameIdx < allFrames.length - 1) { frameIdx++; drawFrame(); renderLog(); updateStats(); updateButtons(); }
+  });
+  document.getElementById('reset-btn').addEventListener('click', function() {
+    init(currentGraph);
+  });
+  document.getElementById('graph-sel').addEventListener('change', function() {
+    init(parseInt(this.value));
+  });
+  document.getElementById('spd-in').addEventListener('input', function() {
+    speed = parseInt(this.value);
+    document.getElementById('spd-lbl').textContent = speed;
+    if (timer) { stopPlay(); startPlay(); }
+  });
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  init(0);
+})();
+</script>
+</body>
+</html>
