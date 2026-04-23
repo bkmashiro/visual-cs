@@ -5,383 +5,628 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>0/1 Knapsack — visual-cs</title>
 <style>
-:root{--bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
---ac:#a371f7;--ac0:rgba(163,113,247,.15);--gr:#3fb950;--gr0:rgba(63,185,80,.15);
---bl:#58a6ff;--bl0:rgba(88,166,255,.15);--rd:#f85149;--yl:#e3b341;--yl0:rgba(227,179,65,.15)}
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --accent:#58a6ff;--accent0:rgba(88,166,255,.15);
+  --good:#3fb950;--good0:rgba(63,185,80,.15);
+  --warn:#f78166;--warn0:rgba(247,129,102,.15);
+  --gold:#e3b341;--gold0:rgba(227,179,65,.15);
+  --violet:#a371f7;--violet0:rgba(163,113,247,.15);
+  --cyan:#67e8f9;--cyan0:rgba(103,232,249,.12);
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
-header h1{font-size:1.05rem;font-weight:700}header h1 span{color:var(--ac)}
-header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px}
-.layout{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 50px)}
-@media(max-width:900px){.layout{grid-template-columns:1fr}}
-.main{padding:20px;display:flex;flex-direction:column;gap:14px}
-.sidebar{padding:18px 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
-@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
-.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
-.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
-button:hover{border-color:var(--ac);color:var(--ac)}
-button.primary{background:var(--ac);color:#0d1117;border-color:var(--ac)}
-.slider-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
-.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:4px}
-.sidebar h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
-.items-vis{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.item-card{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--s2);font-size:.8rem;transition:all .3s}
-.item-card.considering{border-color:var(--yl);background:var(--yl0)}
-.item-card.selected{border-color:var(--gr);background:var(--gr0)}
-.item-card .iname{font-weight:700;color:var(--text)}
-.item-card .iinfo{color:var(--muted);font-size:.72rem;margin-top:2px}
-.table-wrap{overflow-x:auto}
-.dp-table{display:grid;gap:1px;margin-top:8px}
-.dp-cell{display:flex;align-items:center;justify-content:center;border-radius:3px;font-size:.65rem;font-family:monospace;font-weight:600;height:32px;min-width:32px;border:1px solid var(--border);background:var(--s2);color:var(--muted);transition:all .25s}
-.dp-cell.header{background:transparent;border:none;color:var(--muted);font-size:.6rem}
-.dp-cell.row-header{background:transparent;border:none;color:var(--muted);font-size:.6rem;text-align:right;justify-content:flex-end;padding-right:4px}
-.dp-cell.filled{background:rgba(88,166,255,.08);border-color:rgba(88,166,255,.2);color:var(--bl)}
-.dp-cell.current{background:var(--yl0);border-color:var(--yl);color:var(--yl);box-shadow:0 0 8px rgba(227,179,65,.3)}
-.dp-cell.backtrack{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
-.knapsack-vis{display:flex;align-items:center;gap:12px;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;margin-top:8px}
-.bag{width:60px;height:60px;border:2px solid var(--ac);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:var(--ac0)}
-.bag-info{flex:1;font-size:.82rem}
-.bag-info .label{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em}
-.bag-info .val{font-weight:700;font-size:1.1rem;font-family:monospace}
-.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
-.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
-.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
-.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.8;color:var(--muted)}
-.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
-.explain-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:48px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--violet)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--violet)}
+
+.layout{display:grid;grid-template-columns:1fr 300px;flex:1;min-height:0}
+@media(max-width:760px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+
+/* Controls */
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--violet);color:var(--violet)}
+button.pr{background:var(--violet);border-color:var(--violet);color:#0d1117}
+button.pr:hover{opacity:.85}
+button:disabled{opacity:.35;cursor:default;pointer-events:none}
+.speed-wrap{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted)}
+input[type=range]{width:90px;accent-color:var(--violet)}
+
+/* Section labels */
+.sec-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;margin-bottom:6px}
+
+/* Items display */
+.items-row{display:flex;gap:10px;flex-wrap:wrap}
+.item-card{
+  padding:10px 14px;border-radius:8px;border:1.5px solid var(--border);
+  background:var(--s2);font-size:.82rem;transition:all .3s;
+  display:flex;flex-direction:column;gap:3px;min-width:80px;
+}
+.item-card .iname{font-weight:700;color:var(--text);font-size:.88rem}
+.item-card .iinfo{color:var(--muted);font-size:.72rem;font-family:monospace}
+.item-card.considering{border-color:var(--gold);background:var(--gold0)}
+.item-card.considering .iname{color:var(--gold)}
+.item-card.selected{border-color:var(--good);background:var(--good0)}
+.item-card.selected .iname{color:var(--good)}
+.item-card.skipped{opacity:.5}
+
+/* Capacity display */
+.capacity-bar{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--s2);border:1px solid var(--border);border-radius:8px}
+.cap-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.cap-val{font-weight:700;font-size:1.1rem;font-family:monospace;color:var(--violet)}
+
+/* DP table */
+.table-wrap{overflow-x:auto;padding-bottom:4px}
+.dp-grid{display:inline-grid;gap:2px;font-family:monospace}
+.dp-cell{
+  width:44px;min-width:44px;height:38px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:4px;border:1.5px solid var(--border);
+  background:var(--s2);color:var(--text);
+  font-size:.8rem;font-weight:600;
+  transition:background .22s,border-color .22s,color .22s;
+  position:relative;
+}
+.dp-cell.hdr{background:transparent;border:none;color:var(--muted);font-size:.62rem;font-weight:700}
+.dp-cell.row-hdr{background:transparent;border:none;color:var(--gold);font-size:.7rem;font-weight:700;text-align:right;justify-content:flex-end;padding-right:6px;white-space:nowrap;min-width:70px}
+.dp-cell.row-hdr.cap-col{color:var(--accent);font-size:.62rem}
+.dp-cell.empty{color:var(--muted);opacity:.4}
+.dp-cell.filled{background:rgba(88,166,255,.07);border-color:rgba(88,166,255,.18);color:var(--accent)}
+.dp-cell.current{background:var(--gold0);border-color:var(--gold);color:var(--gold);box-shadow:0 0 8px rgba(227,179,65,.3)}
+.dp-cell.candidate-take{background:var(--violet0);border-color:var(--violet);color:var(--violet)}
+.dp-cell.traceback{background:var(--good0);border-color:var(--good);color:var(--good)}
+.dp-cell.traceback-select{background:var(--good0);border-color:var(--good);color:var(--good);box-shadow:0 0 10px rgba(63,185,80,.4)}
+.dp-cell.zero-row{background:rgba(88,166,255,.04);border-color:rgba(88,166,255,.1);color:var(--muted)}
+
+/* Stats */
+.stats-bar{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:.78rem;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:70px}
+.stat-label{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-weight:700;font-size:1rem;font-variant-numeric:tabular-nums}
+.stat-value.violet{color:var(--violet)}
+.stat-value.good{color:var(--good)}
+.stat-value.gold{color:var(--gold)}
+.stat-value.accent{color:var(--accent)}
+
+/* Description panel */
+.desc-panel{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:.85rem;line-height:1.6;min-height:52px;color:var(--text)}
+.desc-panel code{font-family:monospace;background:var(--surface);padding:1px 5px;border-radius:3px;color:var(--violet);font-size:.82rem}
+.desc-panel .hl-gold{color:var(--gold);font-weight:700}
+.desc-panel .hl-green{color:var(--good);font-weight:700}
+.desc-panel .hl-violet{color:var(--violet);font-weight:700}
+.desc-panel .hl-accent{color:var(--accent);font-weight:700}
+.phase-badge{display:inline-block;font-size:.65rem;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 7px;border-radius:4px;margin-right:6px;vertical-align:middle}
+.phase-fill{background:var(--gold0);color:var(--gold);border:1px solid var(--gold)}
+.phase-trace{background:var(--good0);color:var(--good);border:1px solid var(--good)}
+
+/* Result banner */
+.result-banner{border-radius:8px;padding:12px 16px;font-size:.9rem;display:none;line-height:1.6}
+.result-banner.success{background:var(--good0);border:1px solid var(--good)}
+.result-banner strong{color:var(--good)}
+.result-banner code{font-family:monospace;background:var(--s2);padding:2px 6px;border-radius:4px;color:var(--violet);font-size:.88rem}
+
+/* Sidebar */
+.sb-section{display:flex;flex-direction:column;gap:8px}
+.sb-section h3{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700}
+
+/* Selected items result */
+.selected-items{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.sel-tag{padding:3px 10px;border-radius:20px;background:var(--good0);border:1px solid var(--good);font-size:.78rem;color:var(--good);font-weight:700;font-family:monospace}
+
+/* Legend */
+.legend{display:flex;flex-direction:column;gap:5px}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--muted)}
+.leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;border:1.5px solid}
+
+/* Explain box */
+.explain{font-size:.78rem;color:var(--muted);line-height:1.6;background:var(--s2);border-radius:8px;padding:12px 14px;border:1px solid var(--border)}
+.explain strong{color:var(--text)}
+.explain code{font-family:monospace;background:var(--surface);padding:1px 5px;border-radius:3px;color:var(--violet);font-size:.78rem}
 </style>
 </head>
 <body>
+
 <header>
   <h1>visual-cs / <span>0/1 Knapsack</span></h1>
-  <a href="../../index.html">Back to Index</a>
+  <a href="../../index.html">← Back</a>
 </header>
+
 <div class="layout">
 <div class="main">
-  <div class="panel">
-    <div class="controls" style="margin-bottom:12px">
-      <button class="primary" id="btn-run">&#9654; Run</button>
-      <button id="btn-step">Step</button>
-      <button id="btn-pause">Pause</button>
-      <button id="btn-random">Random Items</button>
-      <button id="btn-reset">Reset</button>
-    </div>
-    <div class="slider-row">
-      <span>Speed</span>
-      <input type="range" id="speed" min="50" max="800" value="200">
-      <span id="speed-lbl">200ms</span>
+
+  <!-- Controls -->
+  <div class="ctrls">
+    <button class="pr" id="btnPlay" onclick="play()">▶ Play</button>
+    <button id="btnPause" onclick="pause()" disabled>⏸ Pause</button>
+    <button id="btnStep" onclick="step()">⏭ Step</button>
+    <button onclick="reset()">↺ Reset</button>
+    <div class="speed-wrap">
+      Speed <input type="range" id="speedSlider" min="1" max="10" value="5"> <span id="speedLabel">5</span>
     </div>
   </div>
-  <div class="panel">
-    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Items</div>
-    <div class="items-vis" id="items-vis"></div>
-    <div class="knapsack-vis">
-      <div class="bag">&#127890;</div>
-      <div class="bag-info">
-        <div class="label">Capacity</div>
-        <div class="val" id="cap-val">0</div>
-      </div>
-      <div class="bag-info">
-        <div class="label">Total Value</div>
-        <div class="val" id="total-val" style="color:var(--gr)">0</div>
-      </div>
-      <div class="bag-info">
-        <div class="label">Weight Used</div>
-        <div class="val" id="weight-val" style="color:var(--bl)">0</div>
-      </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-label">Items</div><div class="stat-value accent" id="statItems">4</div></div>
+    <div class="stat"><div class="stat-label">Capacity</div><div class="stat-value violet" id="statCap">8</div></div>
+    <div class="stat"><div class="stat-label">Phase</div><div class="stat-value gold" id="statPhase">—</div></div>
+    <div class="stat"><div class="stat-label">Max Value</div><div class="stat-value good" id="statMax">—</div></div>
+    <div class="stat"><div class="stat-label">Step</div><div class="stat-value" id="statStep">0 / 0</div></div>
+  </div>
+
+  <!-- Description panel -->
+  <div class="desc-panel" id="descPanel">Press <strong>Play</strong> or <strong>Step</strong> to start the 0/1 Knapsack visualization.</div>
+
+  <!-- Items -->
+  <div>
+    <div class="sec-label">Items (weight → value)</div>
+    <div class="items-row" id="itemsRow"></div>
+  </div>
+
+  <!-- Capacity -->
+  <div class="capacity-bar">
+    <div>
+      <div class="cap-label">Knapsack Capacity</div>
+      <div class="cap-val" id="capDisplay">W = 8</div>
+    </div>
+    <div style="width:1px;height:36px;background:var(--border)"></div>
+    <div>
+      <div class="cap-label">Weight Used</div>
+      <div class="cap-val" style="color:var(--accent)" id="weightUsed">—</div>
+    </div>
+    <div>
+      <div class="cap-label">Value Packed</div>
+      <div class="cap-val" style="color:var(--good)" id="valuePacked">—</div>
     </div>
   </div>
-  <div class="panel">
-    <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">DP Table — dp[i][w] = max value using items 1..i with capacity w</div>
-    <div class="table-wrap" id="table-wrap"></div>
+
+  <!-- DP Table -->
+  <div>
+    <div class="sec-label">DP Table — dp[i][w] = max value using items 1..i with capacity w</div>
+    <div class="table-wrap">
+      <div class="dp-grid" id="dpGrid"></div>
+    </div>
   </div>
-</div>
+
+  <!-- Result banner -->
+  <div class="result-banner" id="resultBanner"></div>
+
+</div><!-- .main -->
+
 <div class="sidebar">
-  <div>
-    <h3>Statistics</h3>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="k">Items</div><div class="v" id="s-items" style="color:var(--bl)">0</div></div>
-      <div class="stat-card"><div class="k">Capacity</div><div class="v" id="s-cap" style="color:var(--ac)">0</div></div>
-      <div class="stat-card"><div class="k">Max Value</div><div class="v" id="s-max" style="color:var(--gr)">—</div></div>
-      <div class="stat-card"><div class="k">Step</div><div class="v" id="s-step" style="color:var(--muted)">0</div></div>
+
+  <!-- Legend -->
+  <div class="sb-section">
+    <h3>Legend</h3>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--s2);border-color:var(--border)"></div>Not yet computed</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(88,166,255,.07);border-color:rgba(88,166,255,.18)"></div>Filled (settled)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--gold0);border-color:var(--gold)"></div>Current cell being filled</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--violet0);border-color:var(--violet)"></div>Candidate (take item)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--good0);border-color:var(--good)"></div>Traceback path</div>
     </div>
   </div>
-  <div>
-    <h3>Current Operation</h3>
-    <div class="explain-box" id="explain">Generate items and run the 0/1 knapsack algorithm.</div>
+
+  <!-- Selected items -->
+  <div class="sb-section" id="selSection" style="display:none">
+    <h3>Selected Items</h3>
+    <div class="selected-items" id="selectedItems"></div>
   </div>
-  <div>
-    <h3>Pseudocode</h3>
-    <div class="pseudo">
-      <div id="p0">for i = 1 to n:</div>
-      <div id="p1">&nbsp;&nbsp;for w = 0 to W:</div>
-      <div id="p2">&nbsp;&nbsp;&nbsp;&nbsp;if weight[i] > w:</div>
-      <div id="p3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dp[i][w] = dp[i-1][w]</div>
-      <div id="p4">&nbsp;&nbsp;&nbsp;&nbsp;else:</div>
-      <div id="p5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dp[i][w] = max(dp[i-1][w],</div>
-      <div id="p6">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dp[i-1][w-weight[i]] + value[i])</div>
-      <div id="p7">// Backtrack to find selected items</div>
-    </div>
-  </div>
-  <div>
+
+  <!-- How it works -->
+  <div class="sb-section">
     <h3>How It Works</h3>
-    <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
-      <p><strong style="color:var(--text)">0/1 Knapsack</strong> maximizes value under a weight constraint. Each item is either taken or left (no fractions).</p>
-      <p style="margin-top:6px">For each item and capacity, we choose the better of: skip the item (take dp[i-1][w]) or take it (take dp[i-1][w-weight] + value).</p>
+    <div class="explain">
+      <strong>Recurrence:</strong><br>
+      If <code>weight[i] &gt; w</code>:<br>
+      &nbsp;&nbsp;<code>dp[i][w] = dp[i-1][w]</code><br>
+      Else:<br>
+      &nbsp;&nbsp;<code>dp[i][w] = max(</code><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<code>dp[i-1][w],</code> <em>skip</em><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<code>dp[i-1][w-wt]+val</code> <em>take</em><br>
+      &nbsp;&nbsp;<code>)</code><br><br>
+      <strong>Traceback:</strong> from dp[n][W], if dp[i][w] ≠ dp[i-1][w] then item i was taken. Move to dp[i-1][w-weight[i]].<br><br>
+      <strong>Complexity:</strong> O(n·W) time and space.
     </div>
   </div>
-</div>
-</div>
+
+</div><!-- .sidebar -->
+</div><!-- .layout -->
 
 <script>
-(function(){
-'use strict';
+// ── Problem setup ──────────────────────────────────────────────────────────────
+const ITEMS = [
+  { name: 'A', weight: 2, value: 3 },
+  { name: 'B', weight: 3, value: 4 },
+  { name: 'C', weight: 4, value: 5 },
+  { name: 'D', weight: 5, value: 6 },
+];
+const W = 8;
+const N = ITEMS.length;
 
-const NAMES = ['Gem','Ring','Crown','Coin','Cup','Lamp','Book','Map','Orb','Key','Sword','Shield'];
-let items = []; // {name, weight, value}
-let W = 0; // capacity
-let dp = [];
-let running = false, paused = false, timer = null;
-let phase = 'fill'; // fill or backtrack
-let fi = 1, fw = 0; // fill pointers
-let stepCount = 0;
-let selectedItems = [];
+// ── State ──────────────────────────────────────────────────────────────────────
+let steps = [];
+let stepIdx = 0;
+let playing = false;
+let timer = null;
 
-function genItems() {
-  const n = 4 + Math.floor(Math.random() * 3);
-  items = [];
-  const names = [...NAMES].sort(() => Math.random() - 0.5);
-  for (let i = 0; i < n; i++) {
-    items.push({
-      name: names[i],
-      weight: 1 + Math.floor(Math.random() * 6),
-      value: 2 + Math.floor(Math.random() * 15)
-    });
-  }
-  W = Math.floor(items.reduce((s, it) => s + it.weight, 0) * 0.6);
-  W = Math.max(W, 3);
-  if (W > 15) W = 15;
-}
+// ── DOM refs ───────────────────────────────────────────────────────────────────
+const btnPlay      = document.getElementById('btnPlay');
+const btnPause     = document.getElementById('btnPause');
+const btnStep      = document.getElementById('btnStep');
+const speedSlider  = document.getElementById('speedSlider');
+const speedLabel   = document.getElementById('speedLabel');
+const descPanel    = document.getElementById('descPanel');
+const itemsRow     = document.getElementById('itemsRow');
+const capDisplay   = document.getElementById('capDisplay');
+const weightUsed   = document.getElementById('weightUsed');
+const valuePacked  = document.getElementById('valuePacked');
+const dpGrid       = document.getElementById('dpGrid');
+const resultBanner = document.getElementById('resultBanner');
+const statItems    = document.getElementById('statItems');
+const statCap      = document.getElementById('statCap');
+const statPhase    = document.getElementById('statPhase');
+const statMax      = document.getElementById('statMax');
+const statStep     = document.getElementById('statStep');
+const selSection   = document.getElementById('selSection');
+const selectedItems= document.getElementById('selectedItems');
 
-function renderItems() {
-  const vis = document.getElementById('items-vis');
-  vis.innerHTML = '';
-  items.forEach((it, i) => {
-    const card = document.createElement('div');
-    card.className = 'item-card';
-    card.id = 'item-' + i;
-    card.innerHTML = `<div class="iname">${it.name}</div><div class="iinfo">w=${it.weight} v=${it.value}</div>`;
-    vis.appendChild(card);
+speedSlider.addEventListener('input', () => { speedLabel.textContent = speedSlider.value; });
+
+// ── Build all animation steps ──────────────────────────────────────────────────
+function buildSteps() {
+  const stps = [];
+  // dp[i][w]: max value using items 0..i-1 (1-indexed items) with capacity w
+  const dp = Array.from({ length: N + 1 }, () => new Array(W + 1).fill(0));
+
+  // Step: init (row 0 all zeros, shown as base case)
+  stps.push({
+    type: 'init',
+    dp: dp.map(r => [...r]),
+    desc: '<span class="phase-badge phase-fill">Phase 1 — Fill</span>Initialize: <code>dp[0][w] = 0</code> for all w (no items means value 0). Base case row is set.'
   });
-  document.getElementById('cap-val').textContent = W;
-  document.getElementById('s-items').textContent = items.length;
-  document.getElementById('s-cap').textContent = W;
+
+  // Phase 1: fill the DP table row by row
+  for (let i = 1; i <= N; i++) {
+    const item = ITEMS[i - 1];
+    stps.push({
+      type: 'start_row',
+      i,
+      dp: dp.map(r => [...r]),
+      desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>Processing item <span class="hl-gold">${item.name}</span> (weight=${item.weight}, value=${item.value}). Row ${i} of ${N}.`
+    });
+
+    for (let w = 0; w <= W; w++) {
+      // Before computing, snapshot what candidate 'take' would be
+      const skip = dp[i - 1][w];
+      let take = -1;
+      let takeDesc = '';
+      if (item.weight <= w) {
+        take = dp[i - 1][w - item.weight] + item.value;
+        takeDesc = `take: dp[${i-1}][${w}-${item.weight}]+${item.value} = dp[${i-1}][${w-item.weight}]+${item.value} = <span class="hl-violet">${take}</span>`;
+      }
+
+      // Show current cell being evaluated
+      if (item.weight > w) {
+        stps.push({
+          type: 'fill_skip',
+          i, w,
+          dp: dp.map(r => [...r]),
+          desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>dp[${i}][${w}]: Item <span class="hl-gold">${item.name}</span> weight ${item.weight} > capacity ${w}. Cannot take it. <code>dp[${i}][${w}] = dp[${i-1}][${w}] = ${skip}</code>`
+        });
+        dp[i][w] = skip;
+      } else {
+        // Show candidate evaluation step
+        stps.push({
+          type: 'fill_consider',
+          i, w, skip, take,
+          dp: dp.map(r => [...r]),
+          desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>dp[${i}][${w}]: Item <span class="hl-gold">${item.name}</span> (w=${item.weight}, v=${item.value}). Skip: dp[${i-1}][${w}]=${skip}. ${takeDesc}. Choosing max(${skip}, ${take}) = <span class="hl-violet">${Math.max(skip, take)}</span>.`
+        });
+        dp[i][w] = Math.max(skip, take);
+      }
+
+      // After settling the cell
+      stps.push({
+        type: 'fill_settle',
+        i, w,
+        dp: dp.map(r => [...r]),
+        desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>Settled <code>dp[${i}][${w}] = ${dp[i][w]}</code>.`
+      });
+    }
+  }
+
+  // Show table complete
+  stps.push({
+    type: 'fill_done',
+    dp: dp.map(r => [...r]),
+    maxVal: dp[N][W],
+    desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>DP table complete. Maximum value = <span class="hl-green">${dp[N][W]}</span> (in dp[${N}][${W}]).`
+  });
+
+  // Phase 2: traceback
+  const tracePath = [];   // [{i, w}]
+  const selected = [];    // item indices (0-based)
+  {
+    let ci = N, cw = W;
+    while (ci > 0) {
+      tracePath.push({ i: ci, w: cw });
+      if (dp[ci][cw] !== dp[ci - 1][cw]) {
+        // Item ci was taken
+        selected.push(ci - 1);
+        stps.push({
+          type: 'trace_take',
+          i: ci, w: cw,
+          itemIdx: ci - 1,
+          nextI: ci - 1,
+          nextW: cw - ITEMS[ci - 1].weight,
+          dp: dp.map(r => [...r]),
+          tracePath: tracePath.map(p => ({ ...p })),
+          selected: [...selected],
+          desc: `<span class="phase-badge phase-trace">Phase 2 — Traceback</span>dp[${ci}][${cw}]=${dp[ci][cw]} ≠ dp[${ci-1}][${cw}]=${dp[ci-1][cw]}: Item <span class="hl-green">${ITEMS[ci-1].name}</span> was <strong>taken</strong>. Move to dp[${ci-1}][${cw}-${ITEMS[ci-1].weight}] = dp[${ci-1}][${cw - ITEMS[ci-1].weight}].`
+        });
+        cw -= ITEMS[ci - 1].weight;
+      } else {
+        stps.push({
+          type: 'trace_skip',
+          i: ci, w: cw,
+          nextI: ci - 1,
+          nextW: cw,
+          dp: dp.map(r => [...r]),
+          tracePath: tracePath.map(p => ({ ...p })),
+          selected: [...selected],
+          desc: `<span class="phase-badge phase-trace">Phase 2 — Traceback</span>dp[${ci}][${cw}]=${dp[ci][cw]} == dp[${ci-1}][${cw}]=${dp[ci-1][cw]}: Item <span class="hl-accent">${ITEMS[ci-1].name}</span> was <strong>skipped</strong>. Move up to dp[${ci-1}][${cw}].`
+        });
+      }
+      ci--;
+    }
+  }
+
+  // Final step
+  const totalW = selected.reduce((s, i) => s + ITEMS[i].weight, 0);
+  const totalV = selected.reduce((s, i) => s + ITEMS[i].value, 0);
+  stps.push({
+    type: 'done',
+    dp: dp.map(r => [...r]),
+    tracePath: tracePath.map(p => ({ ...p })),
+    selected: [...selected],
+    totalW, totalV,
+    maxVal: dp[N][W],
+    desc: `<span class="phase-badge phase-trace">Phase 2 — Traceback</span>Done! Selected items: <span class="hl-green">${selected.map(i => ITEMS[i].name).join(', ')}</span>. Total weight: ${totalW}/${W}. Total value: <span class="hl-green">${totalV}</span>.`
+  });
+
+  return stps;
 }
 
-function buildDP() {
-  const n = items.length;
-  dp = Array.from({ length: n + 1 }, () => Array(W + 1).fill(0));
+// ── Render items row ───────────────────────────────────────────────────────────
+function renderItems(considering, selected, skipped) {
+  itemsRow.innerHTML = '';
+  ITEMS.forEach((it, i) => {
+    const card = document.createElement('div');
+    let cls = 'item-card';
+    if (selected && selected.includes(i)) cls += ' selected';
+    else if (considering === i) cls += ' considering';
+    else if (skipped && skipped.includes(i)) cls += ' skipped';
+    card.className = cls;
+    card.innerHTML = `<div class="iname">Item ${it.name}</div><div class="iinfo">w=${it.weight} · v=${it.value}</div>`;
+    itemsRow.appendChild(card);
+  });
 }
 
-function renderTable(ci, cw, backtrackCells) {
-  const wrap = document.getElementById('table-wrap');
-  wrap.innerHTML = '';
-  const n = items.length;
-  const grid = document.createElement('div');
-  grid.className = 'dp-table';
-  grid.style.gridTemplateColumns = `50px repeat(${W + 1}, 1fr)`;
+// ── Render DP grid ─────────────────────────────────────────────────────────────
+function renderDP(dp, currentI, currentW, considerW, tracePath) {
+  dpGrid.innerHTML = '';
+  const cols = W + 2; // row-header col + W+1 value cols
+  dpGrid.style.gridTemplateColumns = `80px repeat(${W + 1}, 44px)`;
 
-  // Header
-  const corner = document.createElement('div');
-  corner.className = 'dp-cell header';
-  corner.textContent = 'i\\w';
-  grid.appendChild(corner);
+  // Header row
+  const cornerCell = document.createElement('div');
+  cornerCell.className = 'dp-cell hdr';
+  cornerCell.textContent = 'i \\ w';
+  dpGrid.appendChild(cornerCell);
   for (let w = 0; w <= W; w++) {
     const h = document.createElement('div');
-    h.className = 'dp-cell header';
+    h.className = 'dp-cell hdr cap-col';
     h.textContent = w;
-    grid.appendChild(h);
+    dpGrid.appendChild(h);
   }
 
-  for (let i = 0; i <= n; i++) {
+  const traceSet = new Set(tracePath ? tracePath.map(p => `${p.i},${p.w}`) : []);
+
+  for (let i = 0; i <= N; i++) {
+    // Row header
     const rh = document.createElement('div');
-    rh.className = 'dp-cell row-header';
-    rh.textContent = i === 0 ? '0' : `${i}:${items[i-1].name}`;
-    grid.appendChild(rh);
+    rh.className = 'dp-cell row-hdr';
+    rh.textContent = i === 0 ? '0: (base)' : `${i}: ${ITEMS[i-1].name}(${ITEMS[i-1].weight},${ITEMS[i-1].value})`;
+    dpGrid.appendChild(rh);
+
     for (let w = 0; w <= W; w++) {
       const cell = document.createElement('div');
-      const isBacktrack = backtrackCells && backtrackCells.some(c => c[0] === i && c[1] === w);
-      if (isBacktrack) {
-        cell.className = 'dp-cell backtrack';
-      } else if (i === ci && w === cw) {
+      const key = `${i},${w}`;
+      const val = dp[i][w];
+
+      if (traceSet.has(key)) {
+        cell.className = 'dp-cell traceback';
+      } else if (i === currentI && w === currentW) {
         cell.className = 'dp-cell current';
-      } else if (i < fi || (i === fi && w < fw) || (phase === 'backtrack')) {
+      } else if (i === currentI && w === considerW) {
+        cell.className = 'dp-cell candidate-take';
+      } else if (i === 0) {
+        cell.className = 'dp-cell zero-row';
+      } else if (i < currentI || (i === currentI && w < currentW)) {
         cell.className = 'dp-cell filled';
       } else {
-        cell.className = 'dp-cell';
+        cell.className = 'dp-cell empty';
       }
-      cell.textContent = dp[i][w];
-      grid.appendChild(cell);
+
+      cell.textContent = (i > currentI && !(traceSet.size > 0)) ? '' : val;
+      // Show 0 for base row always
+      if (i === 0) cell.textContent = val;
+      dpGrid.appendChild(cell);
     }
   }
-  wrap.appendChild(grid);
 }
 
-function highlightPseudo(line) {
-  for (let i = 0; i <= 7; i++) {
-    document.getElementById('p' + i).classList.remove('active');
+// ── Apply step ─────────────────────────────────────────────────────────────────
+function applyStep(s) {
+  descPanel.innerHTML = s.desc;
+  statStep.textContent = `${stepIdx} / ${steps.length}`;
+
+  switch (s.type) {
+    case 'init':
+      statPhase.textContent = 'Init';
+      renderItems(null, null, null);
+      renderDP(s.dp, 0, -1, -1, []);
+      weightUsed.textContent = '—';
+      valuePacked.textContent = '—';
+      break;
+
+    case 'start_row': {
+      statPhase.textContent = `Fill row ${s.i}`;
+      renderItems(s.i - 1, null, null);
+      renderDP(s.dp, s.i, 0, -1, []);
+      break;
+    }
+
+    case 'fill_skip':
+      statPhase.textContent = `Fill [${s.i}][${s.w}]`;
+      renderItems(s.i - 1, null, null);
+      renderDP(s.dp, s.i, s.w, -1, []);
+      break;
+
+    case 'fill_consider':
+      statPhase.textContent = `Fill [${s.i}][${s.w}]`;
+      renderItems(s.i - 1, null, null);
+      // Highlight candidate cell dp[i-1][w - weight]
+      renderDP(s.dp, s.i, s.w, s.w - ITEMS[s.i - 1].weight, []);
+      break;
+
+    case 'fill_settle':
+      statPhase.textContent = `Settled [${s.i}][${s.w}]`;
+      renderItems(s.i - 1, null, null);
+      renderDP(s.dp, s.i, s.w + 1 > W ? -1 : s.w + 1, -1, []);
+      break;
+
+    case 'fill_done':
+      statPhase.textContent = 'Fill Done';
+      statMax.textContent = s.maxVal;
+      renderItems(null, null, null);
+      renderDP(s.dp, N + 1, -1, -1, []);
+      break;
+
+    case 'trace_take':
+    case 'trace_skip':
+      statPhase.textContent = 'Traceback';
+      renderItems(null, s.selected, null);
+      renderDP(s.dp, N + 1, -1, -1, s.tracePath);
+      break;
+
+    case 'done': {
+      statPhase.textContent = 'Done';
+      statMax.textContent = s.maxVal;
+      weightUsed.textContent = `${s.totalW} / ${W}`;
+      valuePacked.textContent = s.totalV;
+      renderItems(null, s.selected, null);
+      renderDP(s.dp, N + 1, -1, -1, s.tracePath);
+
+      // Show selected items
+      selectedItems.innerHTML = s.selected.map(i =>
+        `<div class="sel-tag">${ITEMS[i].name} (w=${ITEMS[i].weight}, v=${ITEMS[i].value})</div>`
+      ).join('') + `<div style="font-size:.75rem;color:var(--muted);align-self:center;margin-left:4px">= value ${s.totalV}</div>`;
+      selSection.style.display = 'flex';
+
+      resultBanner.className = 'result-banner success';
+      resultBanner.innerHTML = `<strong>Optimal value: ${s.maxVal}</strong> — Items selected: ${s.selected.map(i => `<code>${ITEMS[i].name}</code>`).join(' + ')} (total weight ${s.totalW}/${W})`;
+      resultBanner.style.display = 'block';
+
+      endAnimation();
+      break;
+    }
   }
-  if (line >= 0) document.getElementById('p' + line).classList.add('active');
 }
 
-function doStep() {
-  if (phase === 'fill') {
-    if (fi > items.length) {
-      // Start backtrack
-      phase = 'backtrack';
-      highlightPseudo(7);
-      document.getElementById('explain').textContent = `DP table complete. Max value: ${dp[items.length][W]}. Now backtracking...`;
-      document.getElementById('s-max').textContent = dp[items.length][W];
-      // Do backtrack in one step
-      selectedItems = [];
-      const backCells = [];
-      let w = W, totalW = 0, totalV = 0;
-      for (let i = items.length; i > 0; i--) {
-        if (dp[i][w] !== dp[i - 1][w]) {
-          selectedItems.push(i - 1);
-          backCells.push([i, w]);
-          totalW += items[i - 1].weight;
-          totalV += items[i - 1].value;
-          w -= items[i - 1].weight;
-          backCells.push([i - 1, w]);
-        } else {
-          backCells.push([i, w]);
-        }
-      }
-      renderTable(-1, -1, backCells);
-      selectedItems.forEach(idx => {
-        const el = document.getElementById('item-' + idx);
-        if (el) el.className = 'item-card selected';
-      });
-      document.getElementById('total-val').textContent = totalV;
-      document.getElementById('weight-val').textContent = totalW;
-      document.getElementById('explain').textContent = `Selected: ${selectedItems.map(i => items[i].name).join(', ')}. Total value: ${totalV}, weight: ${totalW}/${W}`;
-      running = false;
-      return false;
-    }
+function endAnimation() {
+  playing = false;
+  clearTimeout(timer);
+  btnPlay.disabled = true;
+  btnStep.disabled = true;
+  btnPause.disabled = true;
+}
 
-    const i = fi;
-    const w = fw;
-    const it = items[i - 1];
+// ── Playback ───────────────────────────────────────────────────────────────────
+function getDelay() {
+  const v = parseInt(speedSlider.value);
+  return Math.round(1000 - (v - 1) * (950 / 9));
+}
 
-    if (it.weight > w) {
-      dp[i][w] = dp[i - 1][w];
-      highlightPseudo(3);
-      document.getElementById('explain').textContent = `Item ${it.name}(w=${it.weight}) too heavy for capacity ${w}. dp[${i}][${w}] = dp[${i-1}][${w}] = ${dp[i][w]}`;
-    } else {
-      const skip = dp[i - 1][w];
-      const take = dp[i - 1][w - it.weight] + it.value;
-      dp[i][w] = Math.max(skip, take);
-      if (take > skip) {
-        highlightPseudo(6);
-        document.getElementById('explain').textContent = `Take ${it.name}: dp[${i-1}][${w}-${it.weight}]+${it.value}=${take} > skip=${skip}. dp[${i}][${w}]=${dp[i][w]}`;
-        document.getElementById('item-' + (i - 1)).className = 'item-card considering';
-      } else {
-        highlightPseudo(5);
-        document.getElementById('explain').textContent = `Skip ${it.name}: skip=${skip} >= take=${take}. dp[${i}][${w}]=${dp[i][w]}`;
-      }
-    }
+function play() {
+  if (stepIdx >= steps.length) return;
+  playing = true;
+  btnPlay.disabled = true;
+  btnPause.disabled = false;
+  btnStep.disabled = true;
+  tick();
+}
 
-    renderTable(i, w);
-    stepCount++;
-    document.getElementById('s-step').textContent = stepCount;
+function tick() {
+  if (!playing) return;
+  if (stepIdx >= steps.length) { endAnimation(); return; }
+  applyStep(steps[stepIdx++]);
+  timer = setTimeout(tick, getDelay());
+}
 
-    fw++;
-    if (fw > W) { fw = 0; fi++;
-      // Reset item highlights
-      items.forEach((_, idx) => {
-        const el = document.getElementById('item-' + idx);
-        if (el) el.className = 'item-card';
-      });
-    }
-    return true;
+function pause() {
+  playing = false;
+  clearTimeout(timer);
+  if (stepIdx < steps.length) {
+    btnPlay.disabled = false;
+    btnStep.disabled = false;
   }
-  return false;
+  btnPause.disabled = true;
 }
 
-function resetState() {
-  running = false; paused = false;
-  if (timer) clearInterval(timer);
-  timer = null;
-  phase = 'fill';
-  fi = 1; fw = 0;
-  stepCount = 0;
-  selectedItems = [];
-  buildDP();
-  renderTable(-1, -1);
-  items.forEach((_, i) => {
-    const el = document.getElementById('item-' + i);
-    if (el) el.className = 'item-card';
-  });
-  document.getElementById('s-max').textContent = '\u2014';
-  document.getElementById('s-step').textContent = '0';
-  document.getElementById('total-val').textContent = '0';
-  document.getElementById('weight-val').textContent = '0';
-  document.getElementById('btn-pause').textContent = 'Pause';
-  highlightPseudo(-1);
+function step() {
+  if (stepIdx >= steps.length) return;
+  applyStep(steps[stepIdx++]);
+  if (stepIdx >= steps.length) {
+    btnPlay.disabled = true;
+    btnStep.disabled = true;
+  }
 }
 
-document.getElementById('btn-run').addEventListener('click', () => {
-  if (items.length === 0) return;
-  if (!running) resetState();
-  running = true; paused = false;
-  document.getElementById('btn-pause').textContent = 'Pause';
-  if (timer) clearInterval(timer);
-  const speed = parseInt(document.getElementById('speed').value);
-  timer = setInterval(() => {
-    if (!paused && !doStep()) clearInterval(timer);
-  }, speed);
-});
+// ── Init ───────────────────────────────────────────────────────────────────────
+function reset() {
+  pause();
+  stepIdx = 0;
+  steps = buildSteps();
+  resultBanner.style.display = 'none';
+  selSection.style.display = 'none';
+  selectedItems.innerHTML = '';
+  descPanel.innerHTML = 'Press <strong>Play</strong> or <strong>Step</strong> to start the 0/1 Knapsack visualization.';
+  statItems.textContent = N;
+  statCap.textContent = W;
+  statPhase.textContent = '—';
+  statMax.textContent = '—';
+  statStep.textContent = `0 / ${steps.length}`;
+  weightUsed.textContent = '—';
+  valuePacked.textContent = '—';
+  capDisplay.textContent = `W = ${W}`;
+  renderItems(null, null, null);
+  // Show base DP table (all zeros for row 0, blanks elsewhere)
+  const blankDp = Array.from({ length: N + 1 }, () => new Array(W + 1).fill(0));
+  renderDP(blankDp, 1, 0, -1, []);
+  btnPlay.disabled = false;
+  btnStep.disabled = false;
+  btnPause.disabled = true;
+}
 
-document.getElementById('btn-step').addEventListener('click', () => {
-  if (items.length === 0) return;
-  if (!running) { resetState(); running = true; }
-  paused = true;
-  doStep();
-});
-
-document.getElementById('btn-pause').addEventListener('click', () => {
-  paused = !paused;
-  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
-});
-
-document.getElementById('btn-random').addEventListener('click', () => {
-  if (timer) clearInterval(timer);
-  genItems();
-  renderItems();
-  resetState();
-  document.getElementById('explain').textContent = `Generated ${items.length} items, capacity W=${W}. Click "Run" to solve.`;
-});
-
-document.getElementById('btn-reset').addEventListener('click', () => {
-  if (timer) clearInterval(timer);
-  resetState();
-  document.getElementById('explain').textContent = 'Reset. Click "Run" or "Step" to start.';
-});
-
-document.getElementById('speed').addEventListener('input', (e) => {
-  document.getElementById('speed-lbl').textContent = e.target.value + 'ms';
-});
-
-// Init
-genItems();
-renderItems();
-buildDP();
-renderTable(-1, -1);
-})();
+reset();
 </script>
 </body>
 </html>
