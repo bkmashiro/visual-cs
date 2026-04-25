@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matrix Chain Multiplication — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --accent:#58a6ff;--accent0:rgba(88,166,255,.15);
+  --good:#3fb950;--good0:rgba(63,185,80,.15);
+  --warn:#f78166;--warn0:rgba(247,129,102,.15);
+  --gold:#e3b341;--gold0:rgba(227,179,65,.15);
+  --violet:#a371f7;--violet0:rgba(163,113,247,.15);
+  --cyan:#67e8f9;--cyan0:rgba(103,232,249,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--violet)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--violet)}
+
+.layout{display:grid;grid-template-columns:1fr 310px;flex:1;min-height:0}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+
+/* Controls */
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--violet);color:var(--violet)}
+button.pr{background:var(--violet);border-color:var(--violet);color:#0d1117}
+button.pr:hover{opacity:.85}
+button:disabled{opacity:.35;cursor:default;pointer-events:none}
+.speed-wrap{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted)}
+input[type=range]{width:90px;accent-color:var(--violet)}
+
+/* Section labels */
+.sec-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;margin-bottom:6px}
+
+/* Stats bar */
+.stats-bar{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:.78rem;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:70px}
+.stat-label{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-weight:700;font-size:1rem;font-variant-numeric:tabular-nums}
+.stat-value.violet{color:var(--violet)}
+.stat-value.good{color:var(--good)}
+.stat-value.gold{color:var(--gold)}
+.stat-value.accent{color:var(--accent)}
+
+/* Description panel */
+.desc-panel{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:.85rem;line-height:1.6;min-height:52px;color:var(--text)}
+.desc-panel code{font-family:monospace;background:var(--surface);padding:1px 5px;border-radius:3px;color:var(--violet);font-size:.82rem}
+.desc-panel .hl-gold{color:var(--gold);font-weight:700}
+.desc-panel .hl-green{color:var(--good);font-weight:700}
+.desc-panel .hl-violet{color:var(--violet);font-weight:700}
+.desc-panel .hl-accent{color:var(--accent);font-weight:700}
+.desc-panel .hl-warn{color:var(--warn);font-weight:700}
+.phase-badge{display:inline-block;font-size:.65rem;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 7px;border-radius:4px;margin-right:6px;vertical-align:middle}
+.phase-fill{background:var(--gold0);color:var(--gold);border:1px solid var(--gold)}
+.phase-trace{background:var(--good0);color:var(--good);border:1px solid var(--good)}
+
+/* Matrix chain display */
+.chain-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:10px 0}
+.mat-card{
+  padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);
+  background:var(--s2);font-size:.82rem;transition:all .3s;
+  display:flex;flex-direction:column;gap:2px;min-width:68px;align-items:center;
+}
+.mat-card .mname{font-weight:700;color:var(--text);font-size:.9rem;font-family:monospace}
+.mat-card .mdim{color:var(--muted);font-size:.72rem;font-family:monospace}
+.mat-card.in-range{border-color:var(--accent);background:var(--accent0)}
+.mat-card.in-range .mname{color:var(--accent)}
+.mat-card.split-left{border-color:var(--violet);background:var(--violet0)}
+.mat-card.split-left .mname{color:var(--violet)}
+.mat-card.split-right{border-color:var(--cyan);background:var(--cyan0)}
+.mat-card.split-right .mname{color:var(--cyan)}
+.mat-card.optimal{border-color:var(--good);background:var(--good0)}
+.mat-card.optimal .mname{color:var(--good)}
+.chain-sep{color:var(--muted);font-size:1.1rem;font-weight:700}
+
+/* DP table */
+.table-wrap{overflow-x:auto;padding-bottom:4px}
+.dp-grid{display:inline-grid;gap:2px;font-family:monospace}
+.dp-cell{
+  width:54px;min-width:54px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:4px;border:1.5px solid var(--border);
+  background:var(--s2);color:var(--text);
+  font-size:.73rem;font-weight:600;
+  transition:background .22s,border-color .22s,color .22s;
+}
+.dp-cell.hdr{background:transparent;border:none;color:var(--muted);font-size:.62rem;font-weight:700}
+.dp-cell.diagonal{background:rgba(88,166,255,.04);border-color:rgba(88,166,255,.1);color:var(--muted);font-size:.68rem}
+.dp-cell.below-diag{background:transparent;border-color:transparent;color:transparent}
+.dp-cell.empty-cell{color:var(--muted);opacity:.3}
+.dp-cell.filled{background:rgba(163,113,247,.07);border-color:rgba(163,113,247,.22);color:var(--violet)}
+.dp-cell.current{background:var(--gold0);border-color:var(--gold);color:var(--gold);box-shadow:0 0 8px rgba(227,179,65,.35)}
+.dp-cell.candidate{background:var(--accent0);border-color:var(--accent);color:var(--accent)}
+.dp-cell.optimal-cell{background:var(--good0);border-color:var(--good);color:var(--good);box-shadow:0 0 6px rgba(63,185,80,.25)}
+.dp-cell.trace{background:var(--good0);border-color:var(--good);color:var(--good)}
+
+/* Split table */
+.split-grid{display:inline-grid;gap:2px;font-family:monospace}
+.split-cell{
+  width:40px;min-width:40px;height:34px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:4px;border:1.5px solid var(--border);
+  background:var(--s2);color:var(--muted);
+  font-size:.75rem;font-weight:600;
+  transition:background .22s,border-color .22s;
+}
+.split-cell.hdr{background:transparent;border:none;color:var(--muted);font-size:.62rem}
+.split-cell.below-diag{background:transparent;border-color:transparent;color:transparent}
+.split-cell.diagonal{background:rgba(88,166,255,.04);border-color:rgba(88,166,255,.1);color:var(--muted)}
+.split-cell.has-val{background:var(--violet0);border-color:var(--violet);color:var(--violet)}
+.split-cell.trace{background:var(--good0);border-color:var(--good);color:var(--good)}
+
+/* Parenthesization result */
+.paren-display{font-family:monospace;font-size:1rem;font-weight:700;color:var(--good);background:var(--good0);border:1px solid var(--good);border-radius:8px;padding:12px 16px;word-break:break-all;line-height:1.8;display:none}
+
+/* Result banner */
+.result-banner{border-radius:8px;padding:12px 16px;font-size:.9rem;display:none;line-height:1.6}
+.result-banner.success{background:var(--good0);border:1px solid var(--good)}
+.result-banner strong{color:var(--good)}
+.result-banner code{font-family:monospace;background:var(--s2);padding:2px 6px;border-radius:4px;color:var(--violet);font-size:.88rem}
+
+/* Sidebar */
+.sb-section{display:flex;flex-direction:column;gap:8px}
+.sb-section h3{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700}
+
+/* Legend */
+.legend{display:flex;flex-direction:column;gap:5px}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--muted)}
+.leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;border:1.5px solid}
+
+/* Explain box */
+.explain{font-size:.78rem;color:var(--muted);line-height:1.6;background:var(--s2);border-radius:8px;padding:12px 14px;border:1px solid var(--border)}
+.explain strong{color:var(--text)}
+.explain code{font-family:monospace;background:var(--surface);padding:1px 5px;border-radius:3px;color:var(--violet);font-size:.78rem}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>visual-cs / <span>Matrix Chain Multiplication</span></h1>
+  <a href="../../index.html">← Back</a>
+</header>
+
+<div class="layout">
+<div class="main">
+
+  <!-- Controls -->
+  <div class="ctrls">
+    <button class="pr" id="btnPlay" onclick="play()">▶ Play</button>
+    <button id="btnPause" onclick="pause()" disabled>⏸ Pause</button>
+    <button id="btnStep" onclick="step()">⏭ Step</button>
+    <button onclick="reset()">↺ Reset</button>
+    <div class="speed-wrap">
+      Speed <input type="range" id="speedSlider" min="1" max="10" value="5"> <span id="speedLabel">5</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-label">Matrices</div><div class="stat-value accent" id="statN">5</div></div>
+    <div class="stat"><div class="stat-label">Chain Len</div><div class="stat-value gold" id="statLen">—</div></div>
+    <div class="stat"><div class="stat-label">Phase</div><div class="stat-value violet" id="statPhase">—</div></div>
+    <div class="stat"><div class="stat-label">Min Ops</div><div class="stat-value good" id="statMin">—</div></div>
+    <div class="stat"><div class="stat-label">Step</div><div class="stat-value" id="statStep">0 / 0</div></div>
+  </div>
+
+  <!-- Description panel -->
+  <div class="desc-panel" id="descPanel">Press <strong>Play</strong> or <strong>Step</strong> to start the Matrix Chain Multiplication visualization.</div>
+
+  <!-- Matrix chain display -->
+  <div>
+    <div class="sec-label">Matrix Chain</div>
+    <div class="chain-row" id="chainRow"></div>
+  </div>
+
+  <!-- DP cost table -->
+  <div>
+    <div class="sec-label">DP Cost Table — m[i][j] = min scalar multiplications for M<sub>i</sub>···M<sub>j</sub></div>
+    <div class="table-wrap">
+      <div class="dp-grid" id="dpGrid"></div>
+    </div>
+  </div>
+
+  <!-- Split table -->
+  <div>
+    <div class="sec-label">Split Table — s[i][j] = optimal split point k for M<sub>i</sub>···M<sub>j</sub></div>
+    <div class="table-wrap">
+      <div class="split-grid" id="splitGrid"></div>
+    </div>
+  </div>
+
+  <!-- Parenthesization result -->
+  <div class="paren-display" id="parenDisplay"></div>
+
+  <!-- Result banner -->
+  <div class="result-banner" id="resultBanner"></div>
+
+</div><!-- .main -->
+
+<div class="sidebar">
+
+  <!-- Legend -->
+  <div class="sb-section">
+    <h3>Legend — Cost Table</h3>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(88,166,255,.04);border-color:rgba(88,166,255,.1)"></div>Diagonal (cost = 0)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(163,113,247,.07);border-color:rgba(163,113,247,.22)"></div>Filled (settled)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--gold0);border-color:var(--gold)"></div>Current cell being filled</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--accent0);border-color:var(--accent)"></div>Candidate split being tested</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--good0);border-color:var(--good)"></div>Optimal path (traceback)</div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="sb-section">
+    <h3>How It Works</h3>
+    <div class="explain">
+      <strong>Recurrence:</strong><br>
+      <code>m[i][i] = 0</code><br>
+      For i &lt; j:<br>
+      <code>m[i][j] = min over k in [i, j):</code><br>
+      &nbsp;&nbsp;<code>m[i][k] + m[k+1][j]</code><br>
+      &nbsp;&nbsp;<code>+ p[i-1]·p[k]·p[j]</code><br><br>
+      where <code>p[i-1]·p[k]·p[j]</code> is the cost of multiplying the two resulting matrices.<br><br>
+      <strong>Fill order:</strong> diagonal by diagonal — all chains of length 2 first, then 3, etc.<br><br>
+      <strong>Traceback:</strong> use the split table <code>s[i][j]</code> recursively to reconstruct the optimal parenthesization.<br><br>
+      <strong>Complexity:</strong> O(n³) time, O(n²) space.
+    </div>
+  </div>
+
+  <!-- Dimensions -->
+  <div class="sb-section" id="dimsSection">
+    <h3>Dimension Array p[]</h3>
+    <div class="explain" id="dimsExplain" style="font-family:monospace;font-size:.8rem;color:var(--accent)"></div>
+  </div>
+
+</div><!-- .sidebar -->
+</div><!-- .layout -->
+
+<script>
+// ── Problem setup ──────────────────────────────────────────────────────────────
+// 5 matrices: A(10×30), B(30×5), C(5×60), D(60×10), E(10×20)
+// Dimension array p where M_i has dimensions p[i-1] × p[i]
+const MATRICES = ['A','B','C','D','E'];
+const P = [10, 30, 5, 60, 10, 20]; // p[0..5], M_i has dims p[i-1] × p[i]
+const N = MATRICES.length; // 5
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let steps = [];
+let stepIdx = 0;
+let playing = false;
+let timer = null;
+
+// ── DOM refs ───────────────────────────────────────────────────────────────────
+const btnPlay     = document.getElementById('btnPlay');
+const btnPause    = document.getElementById('btnPause');
+const btnStep     = document.getElementById('btnStep');
+const speedSlider = document.getElementById('speedSlider');
+const speedLabel  = document.getElementById('speedLabel');
+const descPanel   = document.getElementById('descPanel');
+const chainRow    = document.getElementById('chainRow');
+const dpGrid      = document.getElementById('dpGrid');
+const splitGrid   = document.getElementById('splitGrid');
+const parenDisplay= document.getElementById('parenDisplay');
+const resultBanner= document.getElementById('resultBanner');
+const statN       = document.getElementById('statN');
+const statLen     = document.getElementById('statLen');
+const statPhase   = document.getElementById('statPhase');
+const statMin     = document.getElementById('statMin');
+const statStep    = document.getElementById('statStep');
+
+speedSlider.addEventListener('input', () => { speedLabel.textContent = speedSlider.value; });
+
+// ── Build optimal parenthesization string ──────────────────────────────────────
+function buildParen(s_table, i, j) {
+  if (i === j) return MATRICES[i - 1];
+  const k = s_table[i][j];
+  const left = buildParen(s_table, i, k);
+  const right = buildParen(s_table, k + 1, j);
+  return `(${left} × ${right})`;
+}
+
+// Collect the sequence of (i,j) cells along the traceback path
+function collectTracePath(s_table, i, j) {
+  const path = [];
+  function recurse(a, b) {
+    path.push([a, b]);
+    if (a === b) return;
+    const k = s_table[a][b];
+    recurse(a, k);
+    recurse(k + 1, b);
+  }
+  recurse(i, j);
+  return path;
+}
+
+// ── Build all animation steps ──────────────────────────────────────────────────
+function buildSteps() {
+  const stps = [];
+
+  // Initialize DP arrays
+  // m[i][j]: min cost (1-indexed, only i <= j used)
+  // s[i][j]: optimal split point
+  const m = Array.from({length: N + 1}, () => new Array(N + 1).fill(0));
+  const s = Array.from({length: N + 1}, () => new Array(N + 1).fill(0));
+
+  // Step 0: Init — show base case (all diagonal = 0)
+  stps.push({
+    type: 'init',
+    m: m.map(r => [...r]),
+    s: s.map(r => [...r]),
+    currentI: -1, currentJ: -1, currentK: -1,
+    desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>Initialize: <code>m[i][i] = 0</code> for all i (a single matrix costs 0 to "multiply"). DP fills diagonally — chain length ℓ = 2 first, then 3, 4, …`
+  });
+
+  // Phase 1: Fill by chain length ℓ
+  for (let l = 2; l <= N; l++) {
+    // Announce new chain length
+    stps.push({
+      type: 'start_len',
+      l,
+      m: m.map(r => [...r]),
+      s: s.map(r => [...r]),
+      currentI: -1, currentJ: -1, currentK: -1,
+      desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>Now filling all sub-chains of length <span class="hl-gold">ℓ = ${l}</span>. There are ${N - l + 1} such sub-chain(s).`
+    });
+
+    for (let i = 1; i <= N - l + 1; i++) {
+      const j = i + l - 1;
+
+      // Announce we're about to fill m[i][j]
+      stps.push({
+        type: 'start_cell',
+        i, j, l,
+        m: m.map(r => [...r]),
+        s: s.map(r => [...r]),
+        currentI: i, currentJ: j, currentK: -1,
+        desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>Computing <code>m[${i}][${j}]</code>: optimal cost for <span class="hl-accent">${MATRICES.slice(i-1, j).join('…')}</span> (chain length ${l}). Trying each split point k ∈ [${i}, ${j-1}].`
+      });
+
+      let bestCost = Infinity;
+      let bestK = -1;
+
+      for (let k = i; k < j; k++) {
+        const leftCost = m[i][k];
+        const rightCost = m[k + 1][j];
+        const mergeCost = P[i - 1] * P[k] * P[j];
+        const totalCost = leftCost + rightCost + mergeCost;
+        const isNew = totalCost < bestCost;
+
+        if (isNew) {
+          bestCost = totalCost;
+          bestK = k;
+        }
+
+        stps.push({
+          type: 'try_split',
+          i, j, k, l,
+          leftCost, rightCost, mergeCost, totalCost, isNew, bestCost, bestK,
+          m: m.map(r => [...r]),
+          s: s.map(r => [...r]),
+          currentI: i, currentJ: j, currentK: k,
+          desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span><code>m[${i}][${j}]</code>, split at <span class="hl-gold">k=${k}</span>: <code>m[${i}][${k}]</code>(${leftCost}) + <code>m[${k+1}][${j}]</code>(${rightCost}) + ${P[i-1]}·${P[k]}·${P[j]}(${mergeCost}) = <span class="${isNew ? 'hl-green' : 'hl-accent'}">${totalCost}</span>${isNew ? ' ← <span class="hl-green">new best!</span>' : ` (best so far: ${bestCost})`}`
+        });
+      }
+
+      // Settle m[i][j]
+      m[i][j] = bestCost;
+      s[i][j] = bestK;
+
+      stps.push({
+        type: 'settle_cell',
+        i, j, l, bestCost, bestK,
+        m: m.map(r => [...r]),
+        s: s.map(r => [...r]),
+        currentI: i, currentJ: j, currentK: -1,
+        desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>Settled <code>m[${i}][${j}] = <span class="hl-violet">${bestCost}</span></code> with optimal split <code>s[${i}][${j}] = ${bestK}</code> (split between ${MATRICES[bestK-1]} and ${MATRICES[bestK]}).`
+      });
+    }
+  }
+
+  // Fill done
+  stps.push({
+    type: 'fill_done',
+    m: m.map(r => [...r]),
+    s: s.map(r => [...r]),
+    currentI: -1, currentJ: -1, currentK: -1,
+    minCost: m[1][N],
+    desc: `<span class="phase-badge phase-fill">Phase 1 — Fill</span>DP table complete! Minimum scalar multiplications = <span class="hl-green">${m[1][N]}</span> (stored in <code>m[1][${N}]</code>). Now tracing back optimal splits.`
+  });
+
+  // Phase 2: Traceback — show optimal splits recursively
+  const tracePath = collectTracePath(s, 1, N);
+
+  for (let t = 0; t < tracePath.length; t++) {
+    const [ti, tj] = tracePath[t];
+    if (ti === tj) {
+      stps.push({
+        type: 'trace_leaf',
+        ti, tj,
+        tracePath: tracePath.slice(0, t + 1),
+        m: m.map(r => [...r]),
+        s: s.map(r => [...r]),
+        currentI: -1, currentJ: -1, currentK: -1,
+        desc: `<span class="phase-badge phase-trace">Phase 2 — Traceback</span>Base case: <code>[${ti},${tj}]</code> is single matrix <span class="hl-green">${MATRICES[ti-1]}</span>.`
+      });
+    } else {
+      const sk = s[ti][tj];
+      stps.push({
+        type: 'trace_split',
+        ti, tj, sk,
+        tracePath: tracePath.slice(0, t + 1),
+        m: m.map(r => [...r]),
+        s: s.map(r => [...r]),
+        currentI: -1, currentJ: -1, currentK: -1,
+        desc: `<span class="phase-badge phase-trace">Phase 2 — Traceback</span><code>m[${ti}][${tj}]</code>: split at <code>k=${sk}</code> → left: <span class="hl-violet">${MATRICES.slice(ti-1, sk).join('')}</span>, right: <span class="hl-accent">${MATRICES.slice(sk, tj).join('')}</span>`
+      });
+    }
+  }
+
+  // Final step
+  const parenStr = buildParen(s, 1, N);
+  stps.push({
+    type: 'done',
+    m: m.map(r => [...r]),
+    s: s.map(r => [...r]),
+    tracePath,
+    currentI: -1, currentJ: -1, currentK: -1,
+    minCost: m[1][N],
+    parenStr,
+    desc: `<span class="phase-badge phase-trace">Phase 2 — Traceback</span>Done! Optimal parenthesization: <span class="hl-green">${parenStr}</span> with minimum cost <span class="hl-green">${m[1][N]}</span> scalar multiplications.`
+  });
+
+  return stps;
+}
+
+// ── Render matrix chain ────────────────────────────────────────────────────────
+function renderChain(step) {
+  chainRow.innerHTML = '';
+  const { currentI, currentJ, currentK, type, tracePath } = step;
+
+  // Build set of trace cells for quick lookup
+  const traceRanges = new Set();
+  if (tracePath) tracePath.forEach(([a, b]) => traceRanges.add(`${a},${b}`));
+
+  for (let i = 1; i <= N; i++) {
+    if (i > 1) {
+      const sep = document.createElement('div');
+      sep.className = 'chain-sep';
+      sep.textContent = '×';
+      chainRow.appendChild(sep);
+    }
+    const card = document.createElement('div');
+    let cls = 'mat-card';
+
+    if (currentI !== -1 && currentJ !== -1 && i >= currentI && i <= currentJ) {
+      if (currentK !== -1) {
+        // Highlight split: left side [i..k] violet, right side [k+1..j] cyan
+        if (i >= currentI && i <= currentK) cls += ' split-left';
+        else cls += ' split-right';
+      } else {
+        cls += ' in-range';
+      }
+    } else if (type === 'done' || type === 'trace_split' || type === 'trace_leaf') {
+      cls += ' optimal';
+    }
+
+    card.className = cls;
+    card.innerHTML = `<div class="mname">M<sub>${i}</sub> (${MATRICES[i-1]})</div><div class="mdim">${P[i-1]}×${P[i]}</div>`;
+    chainRow.appendChild(card);
+  }
+}
+
+// ── Render DP cost table ───────────────────────────────────────────────────────
+function renderDPGrid(step) {
+  const { m, currentI, currentJ, currentK, tracePath } = step;
+
+  dpGrid.innerHTML = '';
+  dpGrid.style.gridTemplateColumns = `36px repeat(${N}, 54px)`;
+
+  const traceSet = new Set();
+  if (tracePath) tracePath.forEach(([a, b]) => traceSet.add(`${a},${b}`));
+
+  // Header row
+  const corner = document.createElement('div');
+  corner.className = 'dp-cell hdr';
+  corner.textContent = 'i\\j';
+  dpGrid.appendChild(corner);
+  for (let j = 1; j <= N; j++) {
+    const h = document.createElement('div');
+    h.className = 'dp-cell hdr';
+    h.textContent = j;
+    dpGrid.appendChild(h);
+  }
+
+  for (let i = 1; i <= N; i++) {
+    // Row header
+    const rh = document.createElement('div');
+    rh.className = 'dp-cell hdr';
+    rh.textContent = i;
+    dpGrid.appendChild(rh);
+
+    for (let j = 1; j <= N; j++) {
+      const cell = document.createElement('div');
+      const key = `${i},${j}`;
+
+      if (i > j) {
+        cell.className = 'dp-cell below-diag';
+        cell.textContent = '';
+      } else if (i === j) {
+        cell.className = 'dp-cell diagonal';
+        cell.textContent = '0';
+      } else {
+        // Upper triangle: i < j
+        const val = m[i][j];
+        const isCurrentCell = (i === currentI && j === currentJ);
+        const isCandidateCell = (currentK !== -1 &&
+          ((i === currentI && j === currentK) || (i === currentK + 1 && j === currentJ)));
+
+        if (traceSet.has(key)) {
+          cell.className = 'dp-cell trace';
+          cell.textContent = val > 0 ? fmtNum(val) : '—';
+        } else if (isCurrentCell) {
+          cell.className = 'dp-cell current';
+          cell.textContent = val > 0 ? fmtNum(val) : '?';
+        } else if (isCandidateCell) {
+          cell.className = 'dp-cell candidate';
+          cell.textContent = val > 0 ? fmtNum(val) : '—';
+        } else if (val > 0) {
+          cell.className = 'dp-cell filled';
+          cell.textContent = fmtNum(val);
+        } else {
+          cell.className = 'dp-cell empty-cell';
+          cell.textContent = '';
+        }
+      }
+      dpGrid.appendChild(cell);
+    }
+  }
+}
+
+// ── Render split table ─────────────────────────────────────────────────────────
+function renderSplitGrid(step) {
+  const { s, tracePath } = step;
+
+  splitGrid.innerHTML = '';
+  splitGrid.style.gridTemplateColumns = `36px repeat(${N}, 40px)`;
+
+  const traceSet = new Set();
+  if (tracePath) tracePath.forEach(([a, b]) => { if (a !== b) traceSet.add(`${a},${b}`); });
+
+  // Header
+  const corner = document.createElement('div');
+  corner.className = 'split-cell hdr';
+  corner.textContent = 'i\\j';
+  splitGrid.appendChild(corner);
+  for (let j = 1; j <= N; j++) {
+    const h = document.createElement('div');
+    h.className = 'split-cell hdr';
+    h.textContent = j;
+    splitGrid.appendChild(h);
+  }
+
+  for (let i = 1; i <= N; i++) {
+    const rh = document.createElement('div');
+    rh.className = 'split-cell hdr';
+    rh.textContent = i;
+    splitGrid.appendChild(rh);
+
+    for (let j = 1; j <= N; j++) {
+      const cell = document.createElement('div');
+
+      if (i > j) {
+        cell.className = 'split-cell below-diag';
+      } else if (i === j) {
+        cell.className = 'split-cell diagonal';
+        cell.textContent = '—';
+      } else {
+        const val = s[i][j];
+        if (traceSet.has(`${i},${j}`)) {
+          cell.className = 'split-cell trace';
+          cell.textContent = val > 0 ? val : '';
+        } else if (val > 0) {
+          cell.className = 'split-cell has-val';
+          cell.textContent = val;
+        } else {
+          cell.className = 'split-cell';
+          cell.textContent = '';
+        }
+      }
+      splitGrid.appendChild(cell);
+    }
+  }
+}
+
+function fmtNum(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+  return String(n);
+}
+
+// ── Apply step ─────────────────────────────────────────────────────────────────
+function applyStep(s) {
+  descPanel.innerHTML = s.desc;
+  statStep.textContent = `${stepIdx} / ${steps.length}`;
+
+  renderChain(s);
+  renderDPGrid(s);
+  renderSplitGrid(s);
+
+  switch (s.type) {
+    case 'init':
+      statPhase.textContent = 'Init';
+      statLen.textContent = '—';
+      break;
+
+    case 'start_len':
+      statPhase.textContent = `Fill ℓ=${s.l}`;
+      statLen.textContent = s.l;
+      break;
+
+    case 'start_cell':
+      statPhase.textContent = `Cell [${s.i}][${s.j}]`;
+      statLen.textContent = s.l;
+      break;
+
+    case 'try_split':
+      statPhase.textContent = `Split k=${s.k}`;
+      statLen.textContent = s.l;
+      break;
+
+    case 'settle_cell':
+      statPhase.textContent = `Settled [${s.i}][${s.j}]`;
+      statLen.textContent = s.l;
+      statMin.textContent = s.m[1][N] > 0 ? fmtNum(s.m[1][N]) : '—';
+      break;
+
+    case 'fill_done':
+      statPhase.textContent = 'Fill Done';
+      statMin.textContent = fmtNum(s.minCost);
+      break;
+
+    case 'trace_leaf':
+    case 'trace_split':
+      statPhase.textContent = 'Traceback';
+      break;
+
+    case 'done':
+      statPhase.textContent = 'Done';
+      statMin.textContent = fmtNum(s.minCost);
+      parenDisplay.textContent = s.parenStr;
+      parenDisplay.style.display = 'block';
+      resultBanner.className = 'result-banner success';
+      resultBanner.innerHTML = `<strong>Optimal parenthesization:</strong> <code>${s.parenStr}</code><br>Minimum scalar multiplications: <strong>${s.minCost.toLocaleString()}</strong>`;
+      resultBanner.style.display = 'block';
+      endAnimation();
+      break;
+  }
+}
+
+function endAnimation() {
+  playing = false;
+  clearTimeout(timer);
+  btnPlay.disabled = true;
+  btnStep.disabled = true;
+  btnPause.disabled = true;
+}
+
+// ── Playback ───────────────────────────────────────────────────────────────────
+function getDelay() {
+  const v = parseInt(speedSlider.value);
+  return Math.round(1000 - (v - 1) * (950 / 9));
+}
+
+function play() {
+  if (stepIdx >= steps.length) return;
+  playing = true;
+  btnPlay.disabled = true;
+  btnPause.disabled = false;
+  btnStep.disabled = true;
+  tick();
+}
+
+function tick() {
+  if (!playing) return;
+  if (stepIdx >= steps.length) { endAnimation(); return; }
+  applyStep(steps[stepIdx++]);
+  timer = setTimeout(tick, getDelay());
+}
+
+function pause() {
+  playing = false;
+  clearTimeout(timer);
+  if (stepIdx < steps.length) {
+    btnPlay.disabled = false;
+    btnStep.disabled = false;
+  }
+  btnPause.disabled = true;
+}
+
+function step() {
+  if (stepIdx >= steps.length) return;
+  applyStep(steps[stepIdx++]);
+  if (stepIdx >= steps.length) {
+    btnPlay.disabled = true;
+    btnStep.disabled = true;
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+function reset() {
+  pause();
+  stepIdx = 0;
+  steps = buildSteps();
+
+  resultBanner.style.display = 'none';
+  parenDisplay.style.display = 'none';
+  descPanel.innerHTML = 'Press <strong>Play</strong> or <strong>Step</strong> to start the Matrix Chain Multiplication visualization.';
+
+  statN.textContent = N;
+  statLen.textContent = '—';
+  statPhase.textContent = '—';
+  statMin.textContent = '—';
+  statStep.textContent = `0 / ${steps.length}`;
+
+  // Show dimension array in sidebar
+  const dimsExplain = document.getElementById('dimsExplain');
+  dimsExplain.textContent = `p = [${P.join(', ')}]`;
+
+  // Show matrix chain labels
+  renderChain({ currentI: -1, currentJ: -1, currentK: -1, type: 'init', tracePath: null });
+
+  // Show initial blank DP tables
+  const blankM = Array.from({length: N+1}, () => new Array(N+1).fill(0));
+  const blankS = Array.from({length: N+1}, () => new Array(N+1).fill(0));
+  renderDPGrid({ m: blankM, s: blankS, currentI: -1, currentJ: -1, currentK: -1, tracePath: null });
+  renderSplitGrid({ s: blankS, tracePath: null });
+
+  btnPlay.disabled = false;
+  btnStep.disabled = false;
+  btnPause.disabled = true;
+}
+
+reset();
+</script>
+</body>
+</html>

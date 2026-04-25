@@ -18,7 +18,7 @@
 
 ### Dynamic Programming
 - [x] knapsack — 0/1 Knapsack (DP table fill, item selection traceback) ✅ 2026-04-23
-- [ ] matrix-chain — Matrix Chain Multiplication (optimal parenthesization)
+- [x] matrix-chain — Matrix Chain Multiplication (optimal parenthesization) ✅ 2026-04-25
 - [ ] lis — Longest Increasing Subsequence (patience sorting, O(n log n))
 - [ ] egg-drop — Egg Drop Problem (2D DP table, floor vs egg tradeoff)
 
