@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Longest Increasing Subsequence — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --accent:#58a6ff;--accent0:rgba(88,166,255,.15);
+  --good:#3fb950;--good0:rgba(63,185,80,.15);
+  --warn:#f78166;--warn0:rgba(247,129,102,.15);
+  --gold:#e3b341;--gold0:rgba(227,179,65,.15);
+  --violet:#a371f7;--violet0:rgba(163,113,247,.15);
+  --cyan:#67e8f9;--cyan0:rgba(103,232,249,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--violet);font-weight:400;font-size:.85rem;margin-left:8px}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--violet)}
+
+.layout{display:grid;grid-template-columns:1fr 310px;flex:1;min-height:0}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:20px;overflow-y:auto}
+.sidebar{padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+
+.sec-label{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.sec-note{font-size:.64rem;text-transform:none;letter-spacing:0;color:var(--muted);opacity:.65;font-weight:400}
+
+/* Controls */
+.step-ctr{font-size:.75rem;color:var(--muted);margin-bottom:7px}
+.step-ctr strong{color:var(--text);font-variant-numeric:tabular-nums}
+.ctrls{display:flex;gap:6px;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 13px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--violet);color:var(--violet)}
+button.pr{background:var(--violet);border-color:var(--violet);color:#0d1117}
+button.pr:hover{opacity:.85}
+button:disabled{opacity:.35;cursor:default;pointer-events:none}
+.speed-row{display:flex;align-items:center;gap:7px;font-size:.75rem;color:var(--muted);margin-top:8px}
+input[type=range]{accent-color:var(--violet);width:76px}
+
+/* Description panel */
+.desc-panel{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:.84rem;line-height:1.65;min-height:60px}
+.desc-panel code{font-family:monospace;background:var(--surface);padding:1px 5px;border-radius:3px;color:var(--violet);font-size:.81rem}
+.hl-gold{color:var(--gold);font-weight:700}
+.hl-green{color:var(--good);font-weight:700}
+.hl-accent{color:var(--accent);font-weight:700}
+.hl-warn{color:var(--warn);font-weight:700}
+.hl-violet{color:var(--violet);font-weight:700}
+.pbadge{display:inline-block;font-size:.61rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:2px 7px;border-radius:4px;margin-right:5px;vertical-align:middle}
+.pb-start{background:var(--accent0);color:var(--accent);border:1px solid var(--accent)}
+.pb-consider{background:var(--gold0);color:var(--gold);border:1px solid var(--gold)}
+.pb-bsearch{background:var(--accent0);color:var(--accent);border:1px solid var(--accent)}
+.pb-place{background:var(--good0);color:var(--good);border:1px solid var(--good)}
+.pb-replace{background:var(--warn0);color:var(--warn);border:1px solid var(--warn)}
+.pb-traceback{background:var(--violet0);color:var(--violet);border:1px solid var(--violet)}
+.pb-done{background:var(--good0);color:var(--good);border:1px solid var(--good)}
+
+/* Stats */
+.stats-row{display:flex;gap:8px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:.75rem;display:flex;flex-direction:column;align-items:center;gap:2px;flex:1}
+.stat-lbl{color:var(--muted);font-size:.63rem;text-transform:uppercase;letter-spacing:.5px}
+.stat-val{font-weight:700;font-size:.98rem;font-variant-numeric:tabular-nums}
+.c-accent{color:var(--accent)} .c-violet{color:var(--violet)} .c-good{color:var(--good)} .c-gold{color:var(--gold)}
+
+/* Input sequence row */
+.seq-row{display:flex;gap:5px;flex-wrap:wrap}
+.sc{
+  width:46px;height:46px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  border-radius:6px;border:1.5px solid var(--border);background:var(--s2);
+  font-family:monospace;font-size:.88rem;font-weight:700;transition:all .25s;
+}
+.sc .si{font-size:.58rem;color:var(--muted);font-weight:400}
+.sc.cur{border-color:var(--gold);background:var(--gold0);color:var(--gold)}
+.sc.lis-hi{border-color:var(--good);background:var(--good0);color:var(--good)}
+.sc.faded{opacity:.38}
+
+/* Tails array */
+.tails-wrap{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;padding:2px 0 4px}
+.tc{
+  min-width:52px;width:52px;height:56px;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border-radius:6px;border:1.5px solid var(--border);background:var(--s2);
+  font-family:monospace;font-size:.9rem;font-weight:700;transition:all .25s;position:relative;
+}
+.tc .tc-pos{font-size:.58rem;color:var(--muted);font-weight:400}
+.tc .tc-len{position:absolute;top:3px;right:5px;font-size:.6rem;font-weight:700;color:var(--accent);opacity:.8}
+.tc.bs-range{border-color:rgba(88,166,255,.55);background:rgba(88,166,255,.07)}
+.tc.bs-mid{border-color:var(--gold);background:var(--gold0);color:var(--gold);transform:translateY(-3px);z-index:1}
+.tc.tc-new{border-color:var(--good);background:var(--good0);color:var(--good)}
+.tc.tc-rep{border-color:var(--warn);background:var(--warn0);color:var(--warn)}
+.tc.tc-lis{border-color:var(--good);background:var(--good0);color:var(--good)}
+
+/* Piles */
+.piles-area{display:flex;gap:8px;align-items:flex-end;min-height:100px;overflow-x:auto;padding:4px 0 2px}
+.pile-col{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:52px;width:52px}
+.pile-lbl{font-size:.59rem;color:var(--muted);margin-top:4px;text-align:center;white-space:nowrap}
+.pc{
+  width:48px;height:40px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  border-radius:5px;border:1.5px solid var(--border);background:var(--s2);
+  font-family:monospace;font-size:.84rem;font-weight:700;transition:all .25s;
+}
+.pc .pi{font-size:.57rem;color:var(--muted);font-weight:400}
+.pc.top-norm{border-color:rgba(88,166,255,.6);background:rgba(88,166,255,.08);color:var(--accent)}
+.pc.top-bsmid{border-color:var(--gold);background:var(--gold0);color:var(--gold)}
+.pc.top-bsrange{border-color:rgba(88,166,255,.35);background:rgba(88,166,255,.04)}
+.pc.p-new{border-color:var(--good);background:var(--good0);color:var(--good);animation:pop .35s ease}
+.pc.p-rep{border-color:var(--warn);background:var(--warn0);color:var(--warn);animation:pop .35s ease}
+.pc.p-lis{border-color:var(--good);background:var(--good0);color:var(--good)}
+.pc.buried{opacity:.5}
+@keyframes pop{0%{transform:scale(.6);opacity:0}55%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+
+/* LIS result */
+.lis-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lis-cell{
+  width:50px;height:50px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border-radius:6px;border:2px solid var(--good);background:var(--good0);
+  color:var(--good);font-family:monospace;font-size:.9rem;font-weight:700;
+  animation:pop .35s ease;
+}
+.lis-cell .li{font-size:.58rem;color:rgba(63,185,80,.65);font-weight:400}
+.lis-arrow{color:var(--muted);font-size:1.1rem}
+
+/* Custom input */
+.cust-row{display:flex;flex-direction:column;gap:6px}
+input[type=text]{
+  width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);
+  padding:7px 10px;border-radius:6px;font-size:.82rem;font-family:monospace;
+}
+input[type=text]:focus{outline:none;border-color:var(--violet)}
+.btn2{display:flex;gap:6px}
+.btn2 button{flex:1}
+
+/* Info box */
+.info-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.77rem;line-height:1.65;color:var(--muted)}
+.info-box strong{color:var(--text)}
+.info-box code{font-family:monospace;background:var(--surface);padding:1px 4px;border-radius:3px;color:var(--violet);font-size:.77rem}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../">← visual-cs</a>
+  <h1>Longest Increasing Subsequence <span>patience sorting · O(n log n)</span></h1>
+</header>
+
+<div class="layout">
+  <div class="main">
+
+    <div>
+      <div class="sec-label">Input Sequence</div>
+      <div id="seq-row" class="seq-row"></div>
+    </div>
+
+    <div>
+      <div class="sec-label">
+        Tails Array
+        <span class="sec-note">— tails[k] = smallest tail of any IS of length k+1</span>
+      </div>
+      <div id="tails-wrap" class="tails-wrap"></div>
+    </div>
+
+    <div>
+      <div class="sec-label">
+        Patience Sorting Piles
+        <span class="sec-note">— each pile's top element = corresponding tails entry</span>
+      </div>
+      <div id="piles-area" class="piles-area"></div>
+    </div>
+
+    <div id="lis-section" style="display:none">
+      <div class="sec-label">Reconstructed LIS</div>
+      <div id="lis-row" class="lis-row"></div>
+    </div>
+
+  </div>
+
+  <div class="sidebar">
+
+    <div>
+      <div class="step-ctr">Step <strong id="sn">0</strong> / <strong id="st">0</strong></div>
+      <div class="ctrls">
+        <button id="btn-prev" onclick="prev()">◀ Prev</button>
+        <button id="btn-play" class="pr" onclick="togglePlay()">▶ Play</button>
+        <button id="btn-next" onclick="next()">Next ▶</button>
+      </div>
+      <div class="speed-row">
+        Speed <input type="range" id="spd" min="1" max="10" value="5">
+        <span id="spd-val">5</span>
+      </div>
+      <button onclick="resetViz()" style="width:100%;margin-top:7px">↺ Reset</button>
+    </div>
+
+    <div class="desc-panel" id="desc">Loading…</div>
+
+    <div>
+      <div class="sec-label">Stats</div>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-lbl">N</div>
+          <div id="sn-n" class="stat-val c-accent">–</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">Piles</div>
+          <div id="sn-p" class="stat-val c-violet">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">LIS len</div>
+          <div id="sn-l" class="stat-val c-good">?</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label">Custom Sequence</div>
+      <div class="cust-row">
+        <input type="text" id="cust" placeholder="e.g. 3,10,2,5,7,11">
+        <div class="btn2">
+          <button onclick="applyCustom()">Apply</button>
+          <button onclick="randomize()">⚄ Random</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Patience Sorting LIS (O(n log n))</strong><br>
+      Maintain a <code>tails</code> array where <code>tails[k]</code> = smallest possible tail of any increasing subsequence of length <code>k+1</code>.<br><br>
+      For each new element <code>x</code>:<br>
+      • Binary-search <code>tails</code> for leftmost position where <code>tails[pos] ≥ x</code><br>
+      • Replace <code>tails[pos] = x</code>, or append if not found (new pile!)<br>
+      • Track a predecessor pointer for reconstruction<br><br>
+      <code>tails</code> always stays sorted → binary search works.<br>
+      Final <code>tails.length</code> = LIS length.<br><br>
+      ⌨ Arrow keys / Space to step
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ─── Default input ──────────────────────────────────────── */
+const DEFAULT = [3, 10, 2, 5, 3, 7, 11, 4, 8, 9];
+let ARR = [...DEFAULT];
+let STEPS = [];
+let si = 0;
+let timer = null;
+
+/* ─── Step generation ─────────────────────────────────────── */
+
+function generateSteps(arr) {
+  const steps = [];
+  const n = arr.length;
+
+  // Patience sort state
+  const tails = [];        // tails[k] = smallest tail of IS of length k+1
+  const tailsOwner = [];   // tailsOwner[k] = arr-index of element occupying tails[k]
+  const piles = [];        // piles[k] = arr-indices placed in pile k (oldest first)
+  const pred = new Array(n).fill(-1); // predecessor index for LIS traceback
+
+  function snap(o) {
+    return {
+      tails:      [...tails],
+      tailsOwner: [...tailsOwner],
+      piles:      piles.map(p => [...p]),
+      pred:       [...pred],
+      lisPath:    [],
+      curIdx:     -1,
+      bsLo:       -1,
+      bsHi:       -1,
+      bsMid:      -1,
+      placedPos:  -1,
+      isNew:      false,
+      phase:      'init',
+      desc:       '',
+      ...o
+    };
+  }
+
+  // Step 0 — introduction
+  steps.push(snap({
+    phase: 'init',
+    desc: `<span class="pbadge pb-start">Start</span>Array has <strong class="hl-accent">${n}</strong> elements. We maintain a sorted <code>tails</code> array via patience sorting. Each element requires one binary search → <strong>O(n log n)</strong> total.`,
+  }));
+
+  for (let i = 0; i < n; i++) {
+    const x = arr[i];
+
+    // Announce element
+    steps.push(snap({
+      phase: 'consider',
+      curIdx: i,
+      desc: `<span class="pbadge pb-consider">Consider</span>Element <strong class="hl-gold">${x}</strong> at index ${i}. Binary-search <code>tails</code> for the leftmost position where <code>tails[pos] ≥ ${x}</code>.`,
+    }));
+
+    // Binary search: find leftmost pos where tails[pos] >= x
+    let lo = 0, hi = tails.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      const isLess = tails[mid] < x;
+      steps.push(snap({
+        phase: 'bsearch',
+        curIdx: i,
+        bsLo: lo, bsHi: hi - 1, bsMid: mid,
+        desc: `<span class="pbadge pb-bsearch">Search</span>lo=${lo}, hi=${hi}, mid=${mid} → <code>tails[${mid}]=${tails[mid]}</code> ` +
+              (isLess
+                ? `<span class="hl-warn">&lt;</span> <strong class="hl-gold">${x}</strong> → move right: lo = ${mid + 1}`
+                : `<span class="hl-green">≥</span> <strong class="hl-gold">${x}</strong> → move left: hi = ${mid}`),
+      }));
+      if (isLess) lo = mid + 1; else hi = mid;
+    }
+
+    const pos = lo;
+    const isNewPile = (pos === tails.length);
+
+    // Record predecessor BEFORE mutating tailsOwner
+    if (pos > 0) pred[i] = tailsOwner[pos - 1];
+
+    // Update patience sort state
+    if (isNewPile) {
+      tails.push(x);
+      tailsOwner.push(i);
+      piles.push([i]);
+    } else {
+      tails[pos] = x;
+      tailsOwner[pos] = i;
+      piles[pos].push(i);
+    }
+
+    steps.push(snap({
+      phase: 'place',
+      curIdx: i,
+      placedPos: pos,
+      isNew: isNewPile,
+      desc: isNewPile
+        ? `<span class="pbadge pb-place">New Pile</span>No pile top ≥ <strong class="hl-gold">${x}</strong> → <strong class="hl-green">new pile #${pos + 1}</strong> created! <code>tails.length = ${tails.length}</code>. LIS ≥ <strong class="hl-accent">${tails.length}</strong>.`
+        : `<span class="pbadge pb-replace">Replace</span><strong class="hl-gold">${x}</strong> placed on pile ${pos + 1}, replacing <code>tails[${pos}]</code>. Tails length stays <strong class="hl-accent">${tails.length}</strong> — but we found a smaller tail!`,
+    }));
+  }
+
+  // Reconstruct LIS via predecessor chain
+  const lisPath = [];
+  let cur = tailsOwner[tails.length - 1];
+  while (cur !== -1) {
+    lisPath.unshift(cur);
+    cur = pred[cur];
+  }
+
+  steps.push(snap({
+    phase: 'traceback',
+    lisPath,
+    desc: `<span class="pbadge pb-traceback">Traceback</span>All done! <code>tails.length = ${tails.length}</code> → LIS length = <strong class="hl-accent">${tails.length}</strong>. Following predecessor links from last pile: ${lisPath.map(i => `<strong class="hl-green">${arr[i]}</strong>`).join(' → ')}.`,
+  }));
+
+  steps.push(snap({
+    phase: 'done',
+    lisPath,
+    desc: `<span class="pbadge pb-done">Done</span>LIS = [${lisPath.map(i => arr[i]).join(', ')}] — length <strong class="hl-accent">${lisPath.length}</strong>. Patience sorting processed ${n} elements with ${n} binary searches → <strong>O(n log n)</strong> time, <strong>O(n)</strong> space.`,
+  }));
+
+  return steps;
+}
+
+/* ─── Rendering ───────────────────────────────────────────── */
+
+function render() {
+  const s = STEPS[si];
+  const n = ARR.length;
+  const isDone = (s.phase === 'done' || s.phase === 'traceback');
+
+  document.getElementById('sn').textContent = si;
+  document.getElementById('st').textContent = STEPS.length - 1;
+  document.getElementById('btn-prev').disabled = (si === 0);
+  document.getElementById('btn-next').disabled = (si === STEPS.length - 1);
+  document.getElementById('desc').innerHTML = s.desc;
+
+  document.getElementById('sn-n').textContent = n;
+  document.getElementById('sn-p').textContent = s.tails.length;
+  document.getElementById('sn-l').textContent = isDone
+    ? s.lisPath.length
+    : s.tails.length > 0 ? '≥' + s.tails.length : '?';
+
+  /* ── Input sequence ── */
+  const seqRow = document.getElementById('seq-row');
+  seqRow.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('div');
+    d.className = 'sc';
+    if (i === s.curIdx)           d.classList.add('cur');
+    else if (s.lisPath.includes(i)) d.classList.add('lis-hi');
+    else if (isDone)              d.classList.add('faded');
+    d.innerHTML = `<span>${ARR[i]}</span><span class="si">${i}</span>`;
+    seqRow.appendChild(d);
+  }
+
+  /* ── Tails array ── */
+  const tw = document.getElementById('tails-wrap');
+  tw.innerHTML = '';
+  if (s.tails.length === 0) {
+    const e = document.createElement('div');
+    e.style.cssText = 'color:var(--muted);font-size:.8rem;padding:8px 0';
+    e.textContent = '(empty)';
+    tw.appendChild(e);
+  }
+  for (let p = 0; p < s.tails.length; p++) {
+    const d = document.createElement('div');
+    d.className = 'tc';
+    const inBs   = s.bsLo !== -1 && p >= s.bsLo && p <= s.bsHi;
+    const isMid  = (p === s.bsMid);
+    const placed = (p === s.placedPos && s.phase === 'place');
+    const inLis  = isDone && s.lisPath.includes(s.tailsOwner[p]);
+    if      (inLis)                  d.classList.add('tc-lis');
+    else if (isMid)                  d.classList.add('bs-mid');
+    else if (inBs)                   d.classList.add('bs-range');
+    else if (placed && s.isNew)      d.classList.add('tc-new');
+    else if (placed && !s.isNew)     d.classList.add('tc-rep');
+    d.innerHTML = `<span class="tc-len">L=${p + 1}</span><span>${s.tails[p]}</span><span class="tc-pos">pos ${p}</span>`;
+    tw.appendChild(d);
+  }
+
+  /* ── Piles ── */
+  const pa = document.getElementById('piles-area');
+  pa.innerHTML = '';
+  if (s.piles.length === 0) {
+    const e = document.createElement('div');
+    e.style.cssText = 'color:var(--muted);font-size:.8rem;padding:8px 0';
+    e.textContent = '(no piles yet)';
+    pa.appendChild(e);
+  }
+  for (let p = 0; p < s.piles.length; p++) {
+    const pile = s.piles[p];
+    const col = document.createElement('div');
+    col.className = 'pile-col';
+
+    // Cards: render from top (most recent) down to bottom (oldest)
+    for (let k = pile.length - 1; k >= 0; k--) {
+      const ai  = pile[k];
+      const val = ARR[ai];
+      const isTop = (k === pile.length - 1);
+      const justPlaced = isTop && s.phase === 'place' && p === s.placedPos;
+      const inLisCard  = isDone && s.lisPath.includes(ai);
+
+      const card = document.createElement('div');
+      card.className = 'pc';
+
+      if (inLisCard) {
+        card.classList.add('p-lis');
+      } else if (justPlaced && s.isNew) {
+        card.classList.add('p-new');
+      } else if (justPlaced && !s.isNew) {
+        card.classList.add('p-rep');
+      } else if (isTop && s.phase === 'bsearch' && p === s.bsMid) {
+        card.classList.add('top-bsmid');
+      } else if (isTop && s.bsLo !== -1 && p >= s.bsLo && p <= s.bsHi) {
+        card.classList.add('top-bsrange');
+      } else if (isTop) {
+        card.classList.add('top-norm');
+      } else {
+        card.classList.add('buried');
+      }
+
+      card.innerHTML = `<span>${val}</span><span class="pi">[${ai}]</span>`;
+      col.appendChild(card);
+    }
+
+    const lbl = document.createElement('div');
+    lbl.className = 'pile-lbl';
+    lbl.textContent = `Pile ${p + 1}`;
+    col.appendChild(lbl);
+    pa.appendChild(col);
+  }
+
+  /* ── LIS reconstruction ── */
+  const ls = document.getElementById('lis-section');
+  if (isDone) {
+    ls.style.display = '';
+    const lr = document.getElementById('lis-row');
+    lr.innerHTML = '';
+    s.lisPath.forEach((ai, i) => {
+      if (i > 0) {
+        const arrow = document.createElement('span');
+        arrow.className = 'lis-arrow';
+        arrow.textContent = '→';
+        lr.appendChild(arrow);
+      }
+      const c = document.createElement('div');
+      c.className = 'lis-cell';
+      c.innerHTML = `<span>${ARR[ai]}</span><span class="li">[${ai}]</span>`;
+      lr.appendChild(c);
+    });
+  } else {
+    ls.style.display = 'none';
+  }
+}
+
+/* ─── Controls ────────────────────────────────────────────── */
+
+function prev() {
+  if (si > 0) { si--; render(); }
+}
+
+function next() {
+  if (si < STEPS.length - 1) { si++; render(); }
+}
+
+function togglePlay() {
+  const btn = document.getElementById('btn-play');
+  if (timer) {
+    clearInterval(timer); timer = null;
+    btn.textContent = '▶ Play'; btn.className = 'pr';
+  } else {
+    btn.textContent = '⏸ Pause'; btn.className = '';
+    const tick = () => {
+      if (si >= STEPS.length - 1) {
+        clearInterval(timer); timer = null;
+        btn.textContent = '▶ Play'; btn.className = 'pr';
+        return;
+      }
+      si++; render();
+    };
+    timer = setInterval(tick, Math.round(1200 / +document.getElementById('spd').value));
+  }
+}
+
+function resetViz() {
+  if (timer) { clearInterval(timer); timer = null; }
+  document.getElementById('btn-play').textContent = '▶ Play';
+  document.getElementById('btn-play').className = 'pr';
+  si = 0; render();
+}
+
+function applyCustom() {
+  const raw = document.getElementById('cust').value.trim();
+  const a = raw.split(/[\s,]+/).map(Number).filter(v => !isNaN(v) && v >= 0);
+  if (a.length < 2 || a.length > 20) {
+    alert('Please enter between 2 and 20 non-negative integers.');
+    return;
+  }
+  ARR = a; init();
+}
+
+function randomize() {
+  const n = 8 + Math.floor(Math.random() * 5); // 8–12 elements
+  ARR = Array.from({length: n}, () => 1 + Math.floor(Math.random() * 20));
+  document.getElementById('cust').value = ARR.join(', ');
+  init();
+}
+
+function init() {
+  if (timer) { clearInterval(timer); timer = null; }
+  document.getElementById('btn-play').textContent = '▶ Play';
+  document.getElementById('btn-play').className = 'pr';
+  STEPS = generateSteps(ARR);
+  si = 0; render();
+}
+
+document.getElementById('spd').addEventListener('input', function () {
+  document.getElementById('spd-val').textContent = this.value;
+  if (timer) {
+    clearInterval(timer);
+    const btn = document.getElementById('btn-play');
+    const tick = () => {
+      if (si >= STEPS.length - 1) {
+        clearInterval(timer); timer = null;
+        btn.textContent = '▶ Play'; btn.className = 'pr'; return;
+      }
+      si++; render();
+    };
+    timer = setInterval(tick, Math.round(1200 / +this.value));
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+  if (e.key === 'ArrowLeft')                   { e.preventDefault(); prev(); }
+});
+
+/* ─── Boot ─────────────────────────────────────────────────── */
+document.getElementById('cust').value = DEFAULT.join(', ');
+init();
+</script>
+</body>
+</html>
