@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Egg Drop Problem — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --panel: #111720;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --green: #7ee787;
+  --warn: #f78166;
+  --gold: #e3b341;
+  --violet: #a371f7;
+  --pink: #f778ba;
+  --orange: #ffa657;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+header h1 { font-size: 1rem; font-weight: 700; flex: 1; }
+header h1 span { color: var(--accent); }
+
+.layout {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  min-height: 0;
+}
+.sidebar {
+  width: 290px;
+  min-width: 250px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+  overflow-y: auto;
+}
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  overflow: auto;
+  gap: 20px;
+}
+
+.section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.input-group { display: flex; flex-direction: column; gap: 8px; }
+.input-group label { font-size: 0.82rem; color: var(--muted); }
+.input-group input[type=number] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-family: 'Courier New', monospace;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.input-group input[type=number]:focus { border-color: var(--accent); }
+
+.btn {
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 9px 16px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.speed-row { display: flex; align-items: center; gap: 10px; }
+.speed-row label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.speed-row input[type=range] { flex: 1; accent-color: var(--accent); }
+
+.stat-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; }
+.stat-row .val { color: var(--accent); font-weight: 700; font-size: 1rem; }
+.stat-row .lbl { color: var(--muted); }
+.stat-row .val.big { font-size: 1.4rem; color: var(--green); }
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-swatch {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* DP Table */
+.matrix-wrapper {
+  overflow: auto;
+  max-width: 100%;
+}
+table.dp-matrix {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-family: 'Courier New', monospace;
+}
+table.dp-matrix th, table.dp-matrix td {
+  width: 44px; height: 40px;
+  text-align: center;
+  vertical-align: middle;
+  border: 1px solid var(--border);
+  transition: background 0.22s, color 0.22s;
+  position: relative;
+}
+table.dp-matrix th {
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+table.dp-matrix th.egg-header {
+  background: #1a2040;
+  color: var(--accent);
+}
+table.dp-matrix td {
+  background: var(--panel);
+  color: var(--text);
+  cursor: default;
+  font-size: 0.9rem;
+}
+td.cell-empty { color: var(--muted); }
+td.cell-base { background: var(--surface); color: var(--muted); font-weight: 600; }
+td.cell-filled { background: #141d2b; color: var(--text); }
+td.cell-current { background: #1f3a5f; color: var(--accent); font-weight: 700; outline: 2px solid var(--accent); outline-offset: -2px; }
+td.cell-break { background: #3a1a1a; color: var(--warn); }
+td.cell-survive { background: #1a3a1a; color: var(--green); }
+td.cell-optimal { background: #2a1e3a; color: var(--violet); font-weight: 700; }
+td.cell-result { background: #1e3a20; color: var(--green); font-weight: 700; outline: 2px solid var(--green); outline-offset: -2px; }
+
+/* Optimal floor annotation */
+.opt-floor-badge {
+  position: absolute;
+  bottom: 1px;
+  right: 2px;
+  font-size: 0.55rem;
+  color: var(--gold);
+  opacity: 0.85;
+  font-family: sans-serif;
+}
+
+/* Step info */
+.step-info {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  min-height: 56px;
+  max-width: 760px;
+  width: 100%;
+  color: var(--text);
+  line-height: 1.6;
+}
+.step-info .hl { color: var(--accent); font-weight: 700; }
+.step-info .hl-green { color: var(--green); font-weight: 700; }
+.step-info .hl-gold { color: var(--gold); font-weight: 700; }
+.step-info .hl-red { color: var(--warn); font-weight: 700; }
+.step-info .hl-violet { color: var(--violet); font-weight: 700; }
+.step-info .hl-orange { color: var(--orange); font-weight: 700; }
+
+.phase-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.phase-fill { background: #1f3a5f; color: var(--accent); }
+.phase-strategy { background: #2a1e3a; color: var(--violet); }
+.phase-result { background: #1e3a20; color: var(--green); }
+
+/* Building visualization */
+.building-area {
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.building {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+}
+.floor-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.floor-num {
+  width: 24px;
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+}
+.floor-block {
+  width: 48px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: var(--muted);
+  transition: background 0.3s, border-color 0.3s;
+}
+.floor-block.fl-critical { background: #1f3a5f; border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.floor-block.fl-break { background: #3a1a1a; border-color: var(--warn); color: var(--warn); }
+.floor-block.fl-survive { background: #1a3a1a; border-color: var(--green); color: var(--green); }
+.floor-block.fl-unknown { background: var(--surface); border-color: var(--border); }
+
+.eggs-display {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+.egg-icon {
+  font-size: 1.4rem;
+  transition: opacity 0.3s, filter 0.3s;
+}
+.egg-icon.broken {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+.info-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 760px;
+  width: 100%;
+}
+.info-box h3 { color: var(--text); font-size: 0.9rem; margin-bottom: 8px; }
+.info-box code {
+  background: var(--panel);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+.info-box strong { color: var(--text); }
+
+.table-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+/* Strategy tree */
+.strategy-area {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 760px;
+  width: 100%;
+}
+.strategy-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--violet);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.strategy-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  padding: 5px 8px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+}
+.strategy-step.s-active { background: #1f3a5f; border-color: var(--accent); }
+.strategy-step.s-break { background: #3a1a1a; border-color: var(--warn); }
+.strategy-step.s-survive { background: #1a3a1a; border-color: var(--green); }
+.strategy-step.s-done { background: #1e3a20; border-color: var(--green); }
+.strategy-indent { display: inline-block; width: 16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">&#8592; Back</a>
+  <h1>Egg Drop <span>Problem</span></h1>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <div>
+      <div class="section-title">Parameters</div>
+      <div class="input-group">
+        <label>Eggs (n)</label>
+        <input type="number" id="nEggs" value="3" min="1" max="5">
+      </div>
+      <div style="height:8px"></div>
+      <div class="input-group">
+        <label>Floors (k)</label>
+        <input type="number" id="nFloors" value="10" min="1" max="20">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Playback</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnPlay">&#9654; Play</button>
+        <button class="btn btn-secondary" id="btnStep">Step</button>
+        <button class="btn btn-secondary" id="btnReset">Reset</button>
+      </div>
+      <div style="height:8px"></div>
+      <div class="speed-row">
+        <label>Speed</label>
+        <input type="range" id="speed" min="1" max="10" value="5">
+      </div>
+    </div>
+
+    <div class="stat-box">
+      <div class="section-title">Result</div>
+      <div class="stat-row"><span class="lbl">Min trials (worst case)</span><span class="val big" id="statAnswer">—</span></div>
+      <div class="stat-row"><span class="lbl">Cells computed</span><span class="val" id="statCells">0</span></div>
+      <div class="stat-row"><span class="lbl">Total states</span><span class="val" id="statTotal">—</span></div>
+    </div>
+
+    <div>
+      <div class="section-title">Presets</div>
+      <div class="btn-row" style="flex-direction:column">
+        <button class="btn btn-secondary" onclick="setPreset(1,10)">1 egg, 10 floors</button>
+        <button class="btn btn-secondary" onclick="setPreset(2,10)">2 eggs, 10 floors</button>
+        <button class="btn btn-secondary" onclick="setPreset(3,10)">3 eggs, 10 floors (classic)</button>
+        <button class="btn btn-secondary" onclick="setPreset(2,6)">2 eggs, 6 floors</button>
+        <button class="btn btn-secondary" onclick="setPreset(4,15)">4 eggs, 15 floors</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Legend</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#1f3a5f;outline:2px solid #58a6ff;outline-offset:-2px"></div><span>Currently computing</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--surface)"></div><span style="color:var(--muted)">Base case</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#141d2b"></div><span>Filled — min trials</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#3a1a1a"></div><span style="color:var(--warn)">Egg breaks (check below)</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1a3a1a"></div><span style="color:var(--green)">Egg survives (check above)</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1e3a20;outline:2px solid #7ee787;outline-offset:-2px"></div><span style="color:var(--green)">Final answer</span></div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <h3>How it works</h3>
+      <p><strong>Problem:</strong> Given <code>n</code> eggs and a building with <code>k</code> floors, find the minimum number of trials needed to determine the critical floor in the <em>worst case</em>.<br><br>
+      <strong>Recurrence:</strong><br>
+      <code>dp[e][f]</code> = min trials with <code>e</code> eggs and <code>f</code> floors<br><br>
+      For each floor <code>x</code> to try:<br>
+      • Egg <span style="color:var(--warn)">breaks</span> → check below: <code>dp[e-1][x-1]</code><br>
+      • Egg <span style="color:var(--green)">survives</span> → check above: <code>dp[e][f-x]</code><br><br>
+      <code>dp[e][f] = 1 + min<sub>x</sub> max(break, survive)</code><br><br>
+      <strong>Base cases:</strong><br>
+      • <code>dp[1][f] = f</code> (linear scan)<br>
+      • <code>dp[e][0] = 0</code>, <code>dp[e][1] = 1</code></p>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="step-info" id="stepInfo">Press Play or Step to start the Egg Drop visualization.</div>
+
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center;max-width:760px;width:100%">
+      <div>
+        <div class="table-label">dp[eggs][floors] = minimum trials</div>
+        <div class="matrix-wrapper">
+          <table class="dp-matrix" id="dpTable"></table>
+        </div>
+      </div>
+
+      <div id="buildingArea" style="display:flex;flex-direction:column;gap:8px;align-items:center">
+        <div class="table-label">Building</div>
+        <div style="display:flex;gap:12px;align-items:flex-end">
+          <div id="buildingVis" class="building"></div>
+          <div id="eggsVis" class="eggs-display"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="strategyArea" class="strategy-area" style="display:none">
+      <div class="strategy-title">&#127381; Optimal Strategy (worst-case trace)</div>
+      <div id="strategySteps"></div>
+    </div>
+
+    <div class="info-box">
+      <h3>Key Insight: The Tradeoff</h3>
+      <p>
+        With <span style="color:var(--warn)">few eggs</span>, you must be conservative — drop from low floors first to avoid wasting all eggs.
+        With <span style="color:var(--green)">many eggs</span>, you can binary search — drop from the middle to halve the search space.<br><br>
+        The DP finds the optimal floor <code>x*</code> for each state <code>(eggs, floors)</code> that <strong>minimizes the worst case</strong>: <code>1 + max(dp[e-1][x-1], dp[e][f-x])</code>.
+        The gold numbers in each cell show the optimal floor to try first.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+let N = 3, K = 10;   // eggs, floors
+let dp = [], optFloor = [];  // dp[e][f], optFloor[e][f]
+let steps = [], stepIdx = 0;
+let playing = false, timer = null;
+let cellClass = [];
+
+function getSpeed() { return 1100 - $('speed').value * 100; }
+
+function setPreset(n, k) {
+  $('nEggs').value = n;
+  $('nFloors').value = k;
+  init();
+}
+
+// ── Compute full DP ──────────────────────────────────────────────────────────
+function computeFullDp() {
+  dp = Array.from({length: N + 1}, () => new Array(K + 1).fill(0));
+  optFloor = Array.from({length: N + 1}, () => new Array(K + 1).fill(0));
+
+  for (let e = 1; e <= N; e++) {
+    dp[e][0] = 0;
+    dp[e][1] = 1;
+    optFloor[e][1] = 1;
+    for (let f = 2; f <= K; f++) {
+      if (e === 1) {
+        dp[e][f] = f;
+        optFloor[e][f] = 1;
+        continue;
+      }
+      dp[e][f] = Infinity;
+      for (let x = 1; x <= f; x++) {
+        const worst = 1 + Math.max(dp[e-1][x-1], dp[e][f-x]);
+        if (worst < dp[e][f]) {
+          dp[e][f] = worst;
+          optFloor[e][f] = x;
+        }
+      }
+    }
+  }
+}
+
+// ── Build steps array ────────────────────────────────────────────────────────
+function buildSteps() {
+  computeFullDp();
+  steps = [];
+
+  // Base: f=0 column
+  for (let e = 1; e <= N; e++) {
+    steps.push({ phase:'fill', type:'base', e, f:0, val:0, msg:`Base case: 0 floors → 0 trials needed (nothing to check).` });
+  }
+
+  // Base: f=1 column and e=1 row
+  for (let e = 1; e <= N; e++) {
+    steps.push({ phase:'fill', type:'base', e, f:1, val:1, msg:`Base case: 1 floor, ${e} egg${e>1?'s':''} → 1 trial (just drop from floor 1).` });
+  }
+
+  // Fill row e=1 (linear scan)
+  for (let f = 2; f <= K; f++) {
+    steps.push({ phase:'fill', type:'compute', e:1, f,
+      msg: `1 egg, ${f} floors: must try every floor from 1 up (linear scan). dp[1][${f}] = ${f}.` });
+  }
+
+  // Fill remaining
+  for (let e = 2; e <= N; e++) {
+    for (let f = 2; f <= K; f++) {
+      const x = optFloor[e][f];
+      const brk = dp[e-1][x-1];
+      const srv = dp[e][f-x];
+      steps.push({ phase:'fill', type:'compute', e, f, x, brk, srv,
+        msg: `${e} eggs, ${f} floors: try floor <b>${x}</b> → if breaks: dp[${e-1}][${x-1}]=${brk}, if survives: dp[${e}][${f-x}]=${srv}. Worst = max(${brk},${srv})=${Math.max(brk,srv)} → <b>${dp[e][f]} trials</b>.` });
+    }
+  }
+
+  steps.push({ phase:'done', type:'fill_done' });
+  steps.push({ phase:'result', type:'result' });
+}
+
+// ── Build table DOM ──────────────────────────────────────────────────────────
+function buildTable() {
+  const table = $('dpTable');
+  table.innerHTML = '';
+
+  // Header: blank + floor columns 0..K
+  const headRow = document.createElement('tr');
+  const corner = document.createElement('th');
+  corner.textContent = 'e\\f';
+  corner.style.fontSize = '0.7rem';
+  headRow.appendChild(corner);
+  for (let f = 0; f <= K; f++) {
+    const th = document.createElement('th');
+    th.textContent = f;
+    headRow.appendChild(th);
+  }
+  table.appendChild(headRow);
+
+  // Rows: egg count 1..N
+  for (let e = 1; e <= N; e++) {
+    const tr = document.createElement('tr');
+    const rh = document.createElement('th');
+    rh.textContent = `🥚×${e}`;
+    rh.className = 'egg-header';
+    rh.style.fontSize = '0.72rem';
+    tr.appendChild(rh);
+    for (let f = 0; f <= K; f++) {
+      const td = document.createElement('td');
+      td.id = `cell-${e}-${f}`;
+      td.className = 'cell-empty';
+      td.textContent = '·';
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+
+  cellClass = Array.from({length: N + 1}, () => new Array(K + 1).fill('cell-empty'));
+}
+
+// ── Building visualization ───────────────────────────────────────────────────
+function buildBuilding(currentFloor, breakFloor, surviveFloor) {
+  const vis = $('buildingVis');
+  vis.innerHTML = '';
+  for (let f = K; f >= 1; f--) {
+    const row = document.createElement('div');
+    row.className = 'floor-row';
+    const num = document.createElement('div');
+    num.className = 'floor-num';
+    num.textContent = f;
+    const block = document.createElement('div');
+    block.className = 'floor-block';
+    if (f === currentFloor) {
+      block.className += ' fl-critical';
+      block.textContent = '🥚 drop';
+    } else if (breakFloor !== undefined && f < currentFloor) {
+      block.className += ' fl-break';
+      block.textContent = '↓ break?';
+    } else if (surviveFloor !== undefined && f > currentFloor) {
+      block.className += ' fl-survive';
+      block.textContent = '↑ ok?';
+    }
+    row.appendChild(num);
+    row.appendChild(block);
+    vis.appendChild(row);
+  }
+}
+
+function buildEggs(total, broken) {
+  const vis = $('eggsVis');
+  vis.innerHTML = '';
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'font-size:0.7rem;color:var(--muted);text-align:center;margin-bottom:4px';
+  lbl.textContent = 'Eggs';
+  vis.appendChild(lbl);
+  for (let i = 0; i < total; i++) {
+    const e = document.createElement('div');
+    e.className = 'egg-icon' + (i < broken ? ' broken' : '');
+    e.textContent = '🥚';
+    vis.appendChild(e);
+  }
+}
+
+// ── Apply a step ─────────────────────────────────────────────────────────────
+function clearCurrentHighlight() {
+  document.querySelectorAll('.cell-current').forEach(el => {
+    const m = el.id.match(/cell-(\d+)-(\d+)/);
+    if (m) el.className = cellClass[+m[1]][+m[2]];
+  });
+}
+
+function setCellClass(e, f, cls, withCurrent) {
+  const cell = $(`cell-${e}-${f}`);
+  if (!cell) return;
+  cellClass[e][f] = cls;
+  cell.className = withCurrent ? cls + ' cell-current' : cls;
+}
+
+function setCell(e, f, val, cls, withCurrent, optX) {
+  const cell = $(`cell-${e}-${f}`);
+  if (!cell) return;
+  cellClass[e][f] = cls;
+  cell.className = withCurrent ? cls + ' cell-current' : cls;
+  cell.textContent = val;
+  // Remove old badge
+  const old = cell.querySelector('.opt-floor-badge');
+  if (old) old.remove();
+  if (optX !== undefined && optX > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'opt-floor-badge';
+    badge.textContent = `x=${optX}`;
+    cell.appendChild(badge);
+  }
+}
+
+function updateStepInfo(html) {
+  $('stepInfo').innerHTML = html;
+}
+
+function applyStep(idx) {
+  if (idx >= steps.length) return;
+  clearCurrentHighlight();
+  const st = steps[idx];
+
+  if (st.phase === 'fill') {
+    if (st.type === 'base') {
+      setCell(st.e, st.f, st.val, 'cell-base', false);
+      updateStepInfo(`<span class="phase-badge phase-fill">Phase 1 – Fill</span>${st.msg}`);
+      buildBuilding(undefined);
+      buildEggs(st.e, 0);
+    } else if (st.type === 'compute') {
+      const val = dp[st.e][st.f];
+      const optX = optFloor[st.e][st.f];
+      setCell(st.e, st.f, val, 'cell-filled', true, optX);
+
+      // Highlight break/survive source cells
+      if (st.x !== undefined && st.e > 1) {
+        const brkCell = $(`cell-${st.e-1}-${st.x-1}`);
+        if (brkCell) brkCell.className = (cellClass[st.e-1][st.x-1] || 'cell-filled') + ' cell-break';
+        const srvCell = $(`cell-${st.e}-${st.f - st.x}`);
+        if (srvCell) srvCell.className = (cellClass[st.e][st.f - st.x] || 'cell-filled') + ' cell-survive';
+        setTimeout(() => {
+          if (brkCell) brkCell.className = cellClass[st.e-1][st.x-1] || 'cell-filled';
+          if (srvCell) srvCell.className = cellClass[st.e][st.f - st.x] || 'cell-filled';
+        }, getSpeed() * 0.7);
+      }
+
+      const prefix = `<span class="phase-badge phase-fill">Phase 1 – Fill</span>`;
+      if (st.e === 1) {
+        updateStepInfo(`${prefix}1 egg, <span class="hl">${st.f} floors</span>: must scan linearly from floor 1 to ${st.f}. dp[1][${st.f}] = <span class="hl-gold">${val}</span>`);
+        buildBuilding(1, undefined, undefined);
+        buildEggs(1, 0);
+      } else {
+        const optMirror = optFloor[st.e][st.f];
+        buildBuilding(optMirror, optMirror - 1, st.f - optMirror);
+        buildEggs(st.e, 0);
+        updateStepInfo(`${prefix}${st.e} eggs, <span class="hl">${st.f} floors</span>: optimal drop at floor <span class="hl-gold">${st.x}</span> → breaks: <span class="hl-red">dp[${st.e-1}][${st.x-1}]=${st.brk}</span>, survives: <span class="hl-green">dp[${st.e}][${st.f-st.x}]=${st.srv}</span> → worst = <span class="hl-orange">${Math.max(st.brk, st.srv)}</span> → <span class="hl-violet">dp[${st.e}][${st.f}] = ${val}</span>`);
+      }
+      $('statCells').textContent = idx - N * 2 + 1;
+    }
+
+  } else if (st.phase === 'done') {
+    // Mark all cells filled
+    for (let e = 1; e <= N; e++) {
+      for (let f = 0; f <= K; f++) {
+        const cell = $(`cell-${e}-${f}`);
+        if (cell && cellClass[e][f] === 'cell-empty') {
+          setCell(e, f, dp[e][f], 'cell-filled', false, optFloor[e][f] > 0 ? optFloor[e][f] : undefined);
+        }
+      }
+    }
+    updateStepInfo(`<span class="phase-badge phase-fill">Phase 1 – Fill</span>Table complete! Answer: <span class="hl-green">dp[${N}][${K}] = ${dp[N][K]}</span> — with ${N} eggs and ${K} floors, need at most <span class="hl-gold">${dp[N][K]} trials</span> in the worst case.`);
+    $('statCells').textContent = N * K;
+    $('statAnswer').textContent = dp[N][K];
+    buildBuilding(undefined);
+    buildEggs(N, 0);
+
+  } else if (st.phase === 'result') {
+    // Highlight final answer cell
+    const val = dp[N][K];
+    setCell(N, K, val, 'cell-result', false, optFloor[N][K]);
+    $('statAnswer').textContent = val;
+
+    // Show strategy trace
+    const stratArea = $('strategyArea');
+    stratArea.style.display = '';
+    const stratSteps = $('strategySteps');
+    stratSteps.innerHTML = '';
+
+    // Simulate optimal strategy for worst case
+    const trace = buildStrategyTrace(N, K);
+    trace.forEach(line => {
+      const div = document.createElement('div');
+      div.className = `strategy-step ${line.cls}`;
+      div.innerHTML = line.html;
+      stratSteps.appendChild(div);
+    });
+
+    updateStepInfo(`<span class="phase-badge phase-result">Phase 2 – Result</span>Optimal answer: <span class="hl-green">${val} trials</span> worst-case with ${N} eggs and ${K} floors. The strategy tree below shows the optimal sequence of drops.`);
+  }
+}
+
+// ── Build a human-readable strategy trace ───────────────────────────────────
+function buildStrategyTrace(eggs, floors) {
+  const lines = [];
+  function trace(e, f, indent, trialNum) {
+    if (f === 0) return;
+    if (trialNum > 12) { lines.push({ cls:'', html: `${'&nbsp;'.repeat(indent*3)}…`}); return; }
+    const x = optFloor[e][f];
+    const arrow = '›'.repeat(indent > 0 ? 1 : 0);
+    const pad = '&nbsp;'.repeat(indent * 3);
+    lines.push({ cls: trialNum === 1 ? 's-active' : '',
+      html: `${pad}${arrow} <strong>Trial ${trialNum}:</strong> Drop from floor <span style="color:var(--gold);font-weight:700">${x}</span> (${e} egg${e>1?'s':''}, ${f} floor${f>1?'s':''} to check)` });
+
+    if (e > 1 && x - 1 > 0) {
+      lines.push({ cls: 's-break',
+        html: `${pad}&nbsp;&nbsp;💥 Breaks → <span style="color:var(--warn)">check floors 1–${x-1}</span> with ${e-1} egg${e-1>1?'s':''}` });
+      if (dp[e-1][x-1] > 0) trace(e-1, x-1, indent+2, trialNum+1);
+    } else if (e === 1 && x - 1 > 0) {
+      lines.push({ cls: 's-break',
+        html: `${pad}&nbsp;&nbsp;💥 Breaks → <span style="color:var(--warn)">last egg! scan floors 1–${x-1} one by one</span>` });
+    }
+
+    if (f - x > 0) {
+      lines.push({ cls: 's-survive',
+        html: `${pad}&nbsp;&nbsp;✅ Survives → <span style="color:var(--green)">check floors ${x+1}–${f}</span> (${f-x} floors) with ${e} egg${e>1?'s':''}` });
+      if (dp[e][f-x] > 0) trace(e, f-x, indent+2, trialNum+1);
+    }
+  }
+  trace(eggs, floors, 0, 1);
+  lines.push({ cls: 's-done', html: `✅ <strong>Done</strong> — critical floor found within ${dp[eggs][floors]} trial${dp[eggs][floors]>1?'s':''}!` });
+  return lines;
+}
+
+// ── Step / Play / Stop ───────────────────────────────────────────────────────
+function step() {
+  if (stepIdx >= steps.length) return;
+  applyStep(stepIdx);
+  stepIdx++;
+  if (stepIdx >= steps.length) stop();
+}
+
+function play() {
+  if (stepIdx >= steps.length) init();
+  playing = true;
+  $('btnPlay').textContent = '⏸ Pause';
+  function tick() {
+    if (!playing || stepIdx >= steps.length) { stop(); return; }
+    step();
+    timer = setTimeout(tick, getSpeed());
+  }
+  tick();
+}
+
+function stop() {
+  playing = false;
+  clearTimeout(timer);
+  $('btnPlay').textContent = '▶ Play';
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  N = Math.max(1, Math.min(5, parseInt($('nEggs').value) || 3));
+  K = Math.max(1, Math.min(20, parseInt($('nFloors').value) || 10));
+  stop();
+  stepIdx = 0;
+  computeFullDp();
+  buildSteps();
+  buildTable();
+  buildBuilding(undefined);
+  buildEggs(N, 0);
+  $('strategyArea').style.display = 'none';
+  $('statAnswer').textContent = '—';
+  $('statCells').textContent = '0';
+  $('statTotal').textContent = N * K;
+  updateStepInfo('Press Play or Step to start the Egg Drop visualization.');
+}
+
+$('btnPlay').addEventListener('click', () => { playing ? stop() : play(); });
+$('btnStep').addEventListener('click', () => { stop(); step(); });
+$('btnReset').addEventListener('click', init);
+$('nEggs').addEventListener('change', init);
+$('nFloors').addEventListener('change', init);
+
+init();
+</script>
+</body>
+</html>

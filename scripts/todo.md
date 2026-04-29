@@ -20,7 +20,7 @@
 - [x] knapsack — 0/1 Knapsack (DP table fill, item selection traceback) ✅ 2026-04-23
 - [x] matrix-chain — Matrix Chain Multiplication (optimal parenthesization) ✅ 2026-04-25
 - [x] lis — Longest Increasing Subsequence (patience sorting, O(n log n)) ✅ 2026-04-27
-- [ ] egg-drop — Egg Drop Problem (2D DP table, floor vs egg tradeoff)
+- [x] egg-drop — Egg Drop Problem (2D DP table, floor vs egg tradeoff) ✅ 2026-04-29
 
 ### Probabilistic & Approximate
 - [ ] count-min-sketch — Count-Min Sketch (frequency estimation, hash collision, error bounds)
