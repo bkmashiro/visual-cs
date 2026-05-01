@@ -23,7 +23,7 @@
 - [x] egg-drop — Egg Drop Problem (2D DP table, floor vs egg tradeoff) ✅ 2026-04-29
 
 ### Probabilistic & Approximate
-- [ ] count-min-sketch — Count-Min Sketch (frequency estimation, hash collision, error bounds)
+- [x] count-min-sketch — Count-Min Sketch (frequency estimation, hash collision, error bounds) ✅ 2026-05-01
 - [ ] hyperloglog — HyperLogLog (cardinality estimation, leading zeros, register merge)
 - [ ] reservoir-sampling — Reservoir Sampling (streaming uniform sample)
 - [ ] monte-carlo-pi — Monte Carlo π (point sampling in circle, convergence)

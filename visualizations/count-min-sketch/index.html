@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Count-Min Sketch — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --ac:#a855f7;--ac0:rgba(168,85,247,.15);
+  --gr:#3fb950;--gr0:rgba(63,185,80,.15);
+  --rd:#f85149;--rd0:rgba(248,81,73,.15);
+  --bl:#58a6ff;--bl0:rgba(88,166,255,.15);
+  --yl:#e3b341;--yl0:rgba(227,179,65,.15);
+  --or:#f97316;--or0:rgba(249,115,22,.15);
+  --pk:#f778ba;--pk0:rgba(247,120,186,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:1fr 310px;min-height:calc(100vh - 50px)}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+.irow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.ig{display:flex;flex-direction:column;gap:4px}
+.ig label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.ig input[type=text],.ig input[type=number]{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:.92rem;font-family:'Cascadia Code','Fira Code',monospace;outline:none;transition:border-color .2s;width:100%}
+.ig input:focus{border-color:var(--ac)}
+.ig select{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:.82rem;outline:none;cursor:pointer}
+.ctrls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.btn-ins{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+button.btn-ins:hover{background:var(--gr);color:#0d1117}
+button.btn-qry{background:var(--bl0);border-color:var(--bl);color:var(--bl)}
+button.btn-qry:hover{background:var(--bl);color:#0d1117}
+.sbar{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:.82rem;min-height:42px}
+.badge{font-size:.67rem;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px;font-weight:700;flex-shrink:0}
+.badge.rdy{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.badge.ins{background:var(--gr0);border:1px solid var(--gr);color:var(--gr)}
+.badge.qry{background:var(--bl0);border:1px solid var(--bl);color:var(--bl)}
+.badge.err{background:var(--or0);border:1px solid var(--or);color:var(--or)}
+.smsg{flex:1;font-size:.8rem;color:var(--muted)}
+
+/* CMS Table */
+.cms-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px;overflow-x:auto}
+.cms-table{display:flex;flex-direction:column;gap:6px;min-width:max-content}
+.cms-row{display:flex;gap:6px;align-items:center}
+.cms-row-label{font-size:.7rem;font-family:monospace;color:var(--muted);min-width:54px;text-align:right;padding-right:6px;flex-shrink:0;font-weight:600}
+.cms-col-labels{display:flex;gap:6px;align-items:center}
+.cms-col-label{font-size:.6rem;font-family:monospace;color:var(--muted);text-align:center;width:44px;flex-shrink:0}
+.cell{width:44px;height:38px;border-radius:6px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.82rem;font-family:monospace;font-weight:700;transition:all .22s;background:var(--bg);color:var(--muted);position:relative;cursor:default;flex-shrink:0}
+.cell .c-val{font-size:.85rem;font-weight:700;line-height:1}
+.cell .c-idx{font-size:.42rem;color:var(--muted);line-height:1;margin-top:2px;opacity:.7}
+.cell.active-0{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.cell.active-1{background:var(--bl0);border-color:var(--bl);color:var(--bl)}
+.cell.active-2{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+.cell.active-3{background:var(--yl0);border-color:var(--yl);color:var(--yl)}
+.cell.active-4{background:var(--pk0);border-color:var(--pk);color:var(--pk)}
+.cell.min-cell{box-shadow:0 0 0 2px var(--or);border-color:var(--or)}
+.cell.bump{animation:bump .3s ease}
+@keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.28)}100%{transform:scale(1)}}
+
+/* Hash trace */
+.hash-trace{display:flex;flex-direction:column;gap:6px}
+.hash-row{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.78rem;font-family:monospace;transition:all .2s;flex-wrap:wrap}
+.hash-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.hash-dot.d0{background:var(--ac)}.hash-dot.d1{background:var(--bl)}.hash-dot.d2{background:var(--gr)}.hash-dot.d3{background:var(--yl)}.hash-dot.d4{background:var(--pk)}
+.hash-active-0{border-color:var(--ac);background:var(--ac0)}
+.hash-active-1{border-color:var(--bl);background:var(--bl0)}
+.hash-active-2{border-color:var(--gr);background:var(--gr0)}
+.hash-active-3{border-color:var(--yl);background:var(--yl0)}
+.hash-active-4{border-color:var(--pk);background:var(--pk0)}
+.hash-lbl{color:var(--muted);font-size:.72rem;min-width:90px}
+.hash-val{font-weight:700;min-width:60px}
+.hash-cnt{margin-left:auto;font-size:.72rem;padding:2px 8px;border-radius:12px;font-weight:700}
+.cnt-ins{background:var(--gr0);color:var(--gr);border:1px solid var(--gr)}
+.cnt-qry{background:var(--bl0);color:var(--bl);border:1px solid var(--bl)}
+.cnt-min{background:var(--or0);color:var(--or);border:1px solid var(--or)}
+
+/* Stats */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
+.stat-card .k{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:4px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+.stat-card .v.ac{color:var(--ac)}.stat-card .v.gr{color:var(--gr)}.stat-card .v.or{color:var(--or)}.stat-card .v.bl{color:var(--bl)}
+
+/* Query result */
+.qres-box{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:none}
+.qres-box.show{display:block}
+.qres-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:10px}
+.qres-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.82rem}
+.qres-row:last-child{border-bottom:none}
+.qres-row .ql{color:var(--muted)}
+.qres-row .qv{font-family:monospace;font-weight:700}
+.error-bar-wrap{margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;height:8px;overflow:hidden}
+.error-bar{height:100%;background:linear-gradient(90deg,var(--gr),var(--yl),var(--or));width:0%;transition:width .4s ease;border-radius:6px}
+
+/* Sidebar */
+.ibox{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:12px 14px}
+.ibox h3{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:8px}
+.ibox p{margin-bottom:6px;font-size:.77rem;line-height:1.58;color:var(--muted)}
+.ibox p:last-child{margin-bottom:0}
+.ibox code{background:var(--surface);padding:1px 5px;border-radius:3px;font-family:monospace;color:var(--ac);font-size:.75rem}
+.cxr{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:.75rem}
+.cxr:last-child{border-bottom:none}.cxr .l{color:var(--muted)}.cxr .r{font-weight:700;color:var(--bl);font-family:monospace}
+
+/* Frequency map */
+.freq-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto}
+.freq-list::-webkit-scrollbar{width:3px}.freq-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.freq-entry{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:.75rem;font-family:monospace;gap:8px}
+.fe-key{font-weight:600;color:var(--text);min-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fe-actual{color:var(--gr);font-weight:700;min-width:38px;text-align:right}
+.fe-est{color:var(--bl);font-weight:700;min-width:38px;text-align:right}
+.fe-err{color:var(--or);font-size:.68rem;min-width:44px;text-align:right}
+.freq-hdr{display:flex;align-items:center;justify-content:space-between;padding:2px 10px;font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+
+/* Presets */
+.presets{display:flex;flex-wrap:wrap;gap:5px}
+.pb{font-size:.7rem;padding:3px 9px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-weight:500;transition:all .15s}
+.pb:hover{color:var(--ac);border-color:var(--ac)}
+
+/* Lbox */
+.lbox{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px;max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.lbox::-webkit-scrollbar{width:3px}.lbox::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.le{font-size:.69rem;font-family:monospace;color:var(--muted);line-height:1.5}
+.le.ins{color:var(--gr)}.le.qry{color:var(--bl)}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{border-top:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 <span>Count-Min Sketch</span> — Frequency Estimation with Error Bounds</h1>
+  <a href="../../index.html">← All Visualizations</a>
+</header>
+
+<div class="layout">
+  <div class="main">
+
+    <!-- Controls -->
+    <div class="irow">
+      <div class="ig" style="flex:3;min-width:130px">
+        <label>Element (key)</label>
+        <input type="text" id="inKey" placeholder="e.g. apple" maxlength="30" spellcheck="false">
+      </div>
+      <div class="ig" style="flex:1;min-width:80px">
+        <label>Count (+Δ)</label>
+        <input type="number" id="inDelta" value="1" min="1" max="999" style="width:90px">
+      </div>
+      <div class="ig" style="flex:0 0 auto">
+        <label>&nbsp;</label>
+        <button class="btn-ins" onclick="doInsert()">+ Add</button>
+      </div>
+      <div class="ig" style="flex:0 0 auto">
+        <label>&nbsp;</label>
+        <button class="btn-qry" onclick="doQuery()">? Query</button>
+      </div>
+      <div class="ig" style="flex:0 0 auto">
+        <label>&nbsp;</label>
+        <button onclick="doReset()">↺ Reset</button>
+      </div>
+    </div>
+
+    <!-- Config -->
+    <div class="ctrls">
+      <span style="font-size:.72rem;color:var(--muted)">Rows (d)</span>
+      <select id="selD" onchange="doReset()">
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+      <span style="font-size:.72rem;color:var(--muted)">Columns (w)</span>
+      <select id="selW" onchange="doReset()">
+        <option value="7">7</option>
+        <option value="10" selected>10</option>
+        <option value="13">13</option>
+        <option value="16">16</option>
+      </select>
+      <div style="margin-left:auto">
+        <div class="presets">
+          <button class="pb" onclick="loadPreset('words')">Word stream</button>
+          <button class="pb" onclick="loadPreset('ips')">IP traffic</button>
+          <button class="pb" onclick="loadPreset('items')">Shopping cart</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="sbar">
+      <span class="badge rdy" id="badge">Ready</span>
+      <span class="smsg" id="smsg">Add elements to build the sketch, then query their frequency estimates.</span>
+    </div>
+
+    <!-- CMS Table -->
+    <div class="cms-wrap">
+      <div class="slbl">Counter Table — <span id="lblDW">3 rows × 10 columns</span></div>
+      <div id="cmsTable" class="cms-table"></div>
+    </div>
+
+    <!-- Hash trace -->
+    <div>
+      <div class="slbl">Hash Function Trace</div>
+      <div id="hashTrace" class="hash-trace">
+        <div style="color:var(--muted);font-size:.78rem;padding:6px 0">Add or query an element to see hash computations.</div>
+      </div>
+    </div>
+
+    <!-- Query result -->
+    <div class="qres-box" id="qresBox">
+      <div class="qres-title">Query Result</div>
+      <div id="qresRows"></div>
+      <div style="margin-top:8px;font-size:.72rem;color:var(--muted)">Error bound (ε·N):</div>
+      <div class="error-bar-wrap"><div class="error-bar" id="errorBar"></div></div>
+      <div id="errorCaption" style="font-size:.7rem;color:var(--or);margin-top:4px"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Total Added (N)</div><div class="v ac" id="statN">0</div></div>
+      <div class="stat-card"><div class="k">Unique Keys</div><div class="v gr" id="statU">0</div></div>
+      <div class="stat-card"><div class="k">ε Error Bound</div><div class="v or" id="statEps">—</div></div>
+    </div>
+
+    <!-- Frequency table -->
+    <div>
+      <div class="slbl">Actual vs Estimated Frequency</div>
+      <div class="freq-hdr">
+        <span>Key</span>
+        <div style="display:flex;gap:20px">
+          <span style="color:var(--gr)">Actual</span>
+          <span style="color:var(--bl)">Estimate</span>
+          <span style="color:var(--or)">Overcount</span>
+        </div>
+      </div>
+      <div class="freq-list" id="freqList">
+        <div style="color:var(--muted);font-size:.76rem;padding:6px 10px">No elements yet.</div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <div class="sidebar">
+    <div class="ibox">
+      <h3>🧠 How It Works</h3>
+      <p>A Count-Min Sketch uses a <b style="color:var(--text)">2D counter array</b> of <code>d</code> rows × <code>w</code> columns and <code>d</code> independent hash functions.</p>
+      <p><b style="color:var(--gr)">Add(key, Δ):</b> For each row <code>i</code>, compute column <code>j = hᵢ(key) mod w</code> and increment <code>table[i][j] += Δ</code>.</p>
+      <p><b style="color:var(--bl)">Query(key):</b> For each row <code>i</code>, look up <code>table[i][hᵢ(key)]</code>. Return the <b style="color:var(--or)">minimum</b> across all rows.</p>
+      <p>Hash <b style="color:var(--text)">collisions</b> can only add to a counter, never subtract — so the sketch <em>never underestimates</em>. The min across rows filters out most collision noise.</p>
+    </div>
+    <div class="ibox">
+      <h3>📐 Error Guarantee</h3>
+      <p>With <code>w = ⌈e/ε⌉</code> columns and <code>d = ⌈ln(1/δ)⌉</code> rows:</p>
+      <p>The estimate <code>f̂</code> satisfies <code>f ≤ f̂ ≤ f + εN</code> with probability <code>≥ 1−δ</code></p>
+      <p>where <code>f</code> is the true count and <code>N</code> is the total count of all items added.</p>
+    </div>
+    <div class="ibox">
+      <h3>⚡ Complexity</h3>
+      <div class="cxr"><span class="l">Add</span><span class="r">O(d)</span></div>
+      <div class="cxr"><span class="l">Query</span><span class="r">O(d)</span></div>
+      <div class="cxr"><span class="l">Space</span><span class="r">O(d·w)</span></div>
+      <div class="cxr"><span class="l">Error</span><span class="r">ε = e/w, δ = e^−d</span></div>
+    </div>
+    <div class="ibox">
+      <h3>🎨 Legend</h3>
+      <p><span style="color:var(--ac)">■</span> Row 1 — H₁ (purple)</p>
+      <p><span style="color:var(--bl)">■</span> Row 2 — H₂ (blue)</p>
+      <p><span style="color:var(--gr)">■</span> Row 3 — H₃ (green)</p>
+      <p><span style="color:var(--yl)">■</span> Row 4 — H₄ (yellow)</p>
+      <p><span style="color:var(--or)">◉</span> Min cell (query result)</p>
+    </div>
+    <div class="ibox">
+      <h3>🌍 Real-world Uses</h3>
+      <p>• <b style="color:var(--text)">Network monitoring</b> — top-k heavy hitters on packet streams</p>
+      <p>• <b style="color:var(--text)">Databases</b> — query optimization, join size estimation (PostgreSQL)</p>
+      <p>• <b style="color:var(--text)">Streaming analytics</b> — trending topics on social media</p>
+      <p>• <b style="color:var(--text)">NLP</b> — approximate word-frequency in large corpora</p>
+    </div>
+    <div>
+      <div class="slbl">Operation Log</div>
+      <div class="lbox" id="lbox">
+        <span class="le" style="color:var(--muted)">No operations yet.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// ── State ──────────────────────────────────────────────
+let d=3, w=10;
+let table=[];          // [d][w] counters
+let trueFreq={};       // actual frequencies
+let totalN=0;
+
+// ── Row colors ──────────────────────────────────────────
+const ROW_COLORS=['ac','bl','gr','yl','pk'];
+const DOT_CLASSES=['d0','d1','d2','d3','d4'];
+const ACTIVE_PFXS=['active-0','active-1','active-2','active-3','active-4'];
+const HASH_ACTIVE=['hash-active-0','hash-active-1','hash-active-2','hash-active-3','hash-active-4'];
+const SEEDS=[0xdeadbeef,0x12345678,0xabcdef01,0x87654321,0xfeedface];
+
+// ── Hash functions ──────────────────────────────────────
+function hashKey(str, seed, width) {
+  let h = seed ^ 0xc74d3d5b;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 0x9e3779b9);
+    h = ((h << 13) | (h >>> 19)) >>> 0;
+    h = Math.imul(h, 0x6b573cb5) ^ (h >>> 16);
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b) >>> 0;
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35) >>> 0;
+  h ^= h >>> 16;
+  return h % width;
+}
+
+function getColumns(key) {
+  return Array.from({length: d}, (_, i) => hashKey(key, SEEDS[i], w));
+}
+
+// ── Init / Reset ────────────────────────────────────────
+function doReset() {
+  d = +$('selD').value;
+  w = +$('selW').value;
+  table = Array.from({length:d}, ()=>new Array(w).fill(0));
+  trueFreq = {};
+  totalN = 0;
+  renderTable();
+  clearTrace();
+  $('qresBox').classList.remove('show');
+  $('freqList').innerHTML='<div style="color:var(--muted);font-size:.76rem;padding:6px 10px">No elements yet.</div>';
+  updateStats();
+  setBadge('rdy','Ready','Sketch reset. Add elements to start.');
+  $('lbox').innerHTML='<span class="le" style="color:var(--muted)">No operations yet.</span>';
+  $('lblDW').textContent=`${d} rows × ${w} columns`;
+}
+
+// ── Table Render ────────────────────────────────────────
+function renderTable(activeKey=null, mode=null) {
+  const wrap = $('cmsTable');
+  wrap.innerHTML='';
+  const cols = activeKey ? getColumns(activeKey) : null;
+
+  // Column index labels
+  const hdrRow = document.createElement('div');
+  hdrRow.className='cms-row';
+  const hdrSpacer = document.createElement('div');
+  hdrSpacer.className='cms-row-label';
+  hdrRow.appendChild(hdrSpacer);
+  for (let j=0;j<w;j++) {
+    const lb=document.createElement('div');
+    lb.className='cms-col-label';
+    lb.textContent=j;
+    hdrRow.appendChild(lb);
+  }
+  wrap.appendChild(hdrRow);
+
+  // Data rows
+  for (let i=0;i<d;i++) {
+    const row=document.createElement('div');
+    row.className='cms-row';
+
+    const lbl=document.createElement('div');
+    lbl.className='cms-row-label';
+    lbl.style.color=`var(--${ROW_COLORS[i]})`;
+    lbl.textContent=`H${i+1} →`;
+    row.appendChild(lbl);
+
+    for (let j=0;j<w;j++) {
+      const cell=document.createElement('div');
+      cell.className='cell';
+      cell.id=`cell_${i}_${j}`;
+
+      const val=document.createElement('div');
+      val.className='c-val';
+      val.textContent=table[i][j]||'0';
+
+      const idx=document.createElement('div');
+      idx.className='c-idx';
+      idx.textContent=j;
+
+      cell.appendChild(val);
+      cell.appendChild(idx);
+
+      if (cols && cols[i]===j) {
+        cell.classList.add(ACTIVE_PFXS[i]);
+        if (mode==='query') {
+          // Mark min cell with orange ring
+          const minVal = Math.min(...cols.map((c,r)=>table[r][c]));
+          if (table[i][j]===minVal) {
+            cell.classList.add('min-cell');
+          }
+        }
+      }
+      row.appendChild(cell);
+    }
+    wrap.appendChild(row);
+  }
+}
+
+// ── Add cell bump animation ─────────────────────────────
+function bumpCell(i, j) {
+  const c = $(`cell_${i}_${j}`);
+  if (!c) return;
+  c.classList.remove('bump');
+  void c.offsetWidth; // reflow
+  c.classList.add('bump');
+}
+
+// ── Hash Trace ──────────────────────────────────────────
+function renderTrace(key, cols, mode) {
+  const trace=$('hashTrace');
+  trace.innerHTML='';
+
+  const minVal = mode==='query' ? Math.min(...cols.map((c,i)=>table[i][c])) : null;
+
+  cols.forEach((col, i) => {
+    const row=document.createElement('div');
+    row.className='hash-row '+HASH_ACTIVE[i];
+
+    const dot=document.createElement('span');
+    dot.className='hash-dot '+DOT_CLASSES[i];
+
+    const lbl=document.createElement('span');
+    lbl.className='hash-lbl';
+    lbl.textContent=`H${i+1}("${key}")`;
+
+    const val=document.createElement('span');
+    val.className='hash-val';
+    val.textContent=`→ col ${col}`;
+
+    const cnt=document.createElement('span');
+    cnt.className='hash-cnt';
+    if (mode==='insert') {
+      cnt.classList.add('cnt-ins');
+      cnt.textContent=`counter = ${table[i][col]}`;
+    } else {
+      const isMin = table[i][col]===minVal;
+      cnt.classList.add(isMin?'cnt-min':'cnt-qry');
+      cnt.textContent=`${table[i][col]}${isMin?' ← min':''}`;
+    }
+
+    row.append(dot, lbl, val, cnt);
+    trace.appendChild(row);
+  });
+}
+
+function clearTrace() {
+  $('hashTrace').innerHTML='<div style="color:var(--muted);font-size:.78rem;padding:6px 0">Add or query an element to see hash computations.</div>';
+}
+
+// ── Insert ──────────────────────────────────────────────
+function doInsert() {
+  const key = $('inKey').value.trim();
+  const delta = Math.max(1, +$('inDelta').value||1);
+  if (!key) { setBadge('rdy','Ready','Enter a key to add.'); return; }
+
+  const cols = getColumns(key);
+
+  // Update counters
+  cols.forEach((col, i) => { table[i][col] += delta; });
+  trueFreq[key] = (trueFreq[key]||0) + delta;
+  totalN += delta;
+
+  // Re-render table with highlights
+  renderTable(key, 'insert');
+
+  // Bump animation
+  cols.forEach((col, i) => bumpCell(i, col));
+
+  // Hash trace (after increment so we see new values)
+  renderTrace(key, cols, 'insert');
+
+  // Hide old query result
+  $('qresBox').classList.remove('show');
+
+  updateStats();
+  updateFreqList();
+  setBadge('ins','Add',`Added "${key}" ×${delta}. Incremented ${d} counters.`);
+  addLog(`+ add "${key}" ×${delta} → cols [${cols.join(', ')}]`, 'ins');
+  $('inKey').value='';
+  $('inDelta').value=1;
+}
+
+// ── Query ───────────────────────────────────────────────
+function doQuery() {
+  const key = $('inKey').value.trim();
+  if (!key) { setBadge('rdy','Ready','Enter a key to query.'); return; }
+
+  const cols = getColumns(key);
+  const vals = cols.map((col, i) => table[i][col]);
+  const estimate = Math.min(...vals);
+  const actual = trueFreq[key]||0;
+  const overcount = estimate - actual;
+  const eps = Math.E / w;
+  const epsN = eps * totalN;
+
+  // Re-render with highlights
+  renderTable(key, 'query');
+  renderTrace(key, cols, 'query');
+
+  // Show result box
+  const box = $('qresBox');
+  box.classList.add('show');
+  const rows = $('qresRows');
+  rows.innerHTML='';
+  const lines=[
+    {l:'Estimate (min)', v:estimate, cls:`var(--or)`},
+    {l:'Actual count', v:actual, cls:`var(--gr)`},
+    {l:'Overcount error', v:overcount, cls:overcount>0?`var(--or)`:`var(--muted)`},
+    {l:'Error bound εN', v:epsN.toFixed(1), cls:`var(--muted)`},
+  ];
+  lines.forEach(({l,v,cls})=>{
+    const r=document.createElement('div');r.className='qres-row';
+    r.innerHTML=`<span class="ql">${l}</span><span class="qv" style="color:${cls}">${v}</span>`;
+    rows.appendChild(r);
+  });
+
+  const pct = totalN>0 ? Math.min(100,(epsN/Math.max(estimate,1))*100) : 0;
+  $('errorBar').style.width=pct+'%';
+  $('errorCaption').textContent=`ε = e/w = ${eps.toFixed(3)}, max overcount ≤ εN = ${epsN.toFixed(1)}`;
+
+  setBadge('qry','Query',`"${key}": estimate = ${estimate}, actual = ${actual}, overcount = ${overcount}`);
+  addLog(`? query "${key}" → est=${estimate}, actual=${actual}`, 'qry');
+  $('inKey').value='';
+}
+
+// ── Stats ───────────────────────────────────────────────
+function updateStats() {
+  $('statN').textContent=totalN;
+  $('statU').textContent=Object.keys(trueFreq).length;
+  const eps = (Math.E/w).toFixed(3);
+  const delta = Math.exp(-d).toFixed(3);
+  $('statEps').textContent=eps;
+}
+
+function updateFreqList() {
+  const list=$('freqList');
+  const keys=Object.keys(trueFreq).sort((a,b)=>trueFreq[b]-trueFreq[a]);
+  if(!keys.length){list.innerHTML='<div style="color:var(--muted);font-size:.76rem;padding:6px 10px">No elements yet.</div>';return;}
+  list.innerHTML='';
+  keys.forEach(k=>{
+    const actual=trueFreq[k];
+    const cols=getColumns(k);
+    const est=Math.min(...cols.map((c,i)=>table[i][c]));
+    const err=est-actual;
+    const div=document.createElement('div');
+    div.className='freq-entry';
+    div.innerHTML=`<span class="fe-key" title="${k}">${k}</span><span class="fe-actual">${actual}</span><span class="fe-est">${est}</span><span class="fe-err">+${err}</span>`;
+    list.appendChild(div);
+  });
+}
+
+// ── UI helpers ──────────────────────────────────────────
+function setBadge(cls, label, msg) {
+  const b=$('badge'), s=$('smsg');
+  b.className='badge '+cls;
+  b.textContent=label;
+  s.textContent=msg;
+}
+
+function addLog(msg, cls) {
+  const lb=$('lbox');
+  // Remove placeholder
+  const first=lb.querySelector('.le[style]');
+  if(first&&first.textContent.includes('No operations'))first.remove();
+  const el=document.createElement('div');
+  el.className='le '+cls;
+  el.textContent=msg;
+  lb.prepend(el);
+  while(lb.children.length>40)lb.removeChild(lb.lastChild);
+}
+
+// ── Presets ─────────────────────────────────────────────
+const PRESETS={
+  words:[
+    ['the',12],['quick',3],['brown',2],['fox',4],['the',5],['lazy',1],
+    ['dog',3],['the',2],['fox',1],['quick',2],['brown',1],['dog',1]
+  ],
+  ips:[
+    ['192.168.1.1',8],['10.0.0.1',3],['172.16.0.1',5],['192.168.1.1',4],
+    ['10.0.0.2',2],['192.168.1.2',1],['172.16.0.1',3],['10.0.0.1',2]
+  ],
+  items:[
+    ['apple',5],['banana',3],['cherry',1],['apple',3],['date',2],
+    ['banana',4],['elderberry',1],['apple',2],['cherry',2],['date',1]
+  ]
+};
+
+async function loadPreset(name) {
+  doReset();
+  await delay(100);
+  for (const [key, delta] of PRESETS[name]) {
+    $('inKey').value=key;
+    $('inDelta').value=delta;
+    doInsert();
+    await delay(120);
+  }
+}
+
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ── Keyboard ─────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.target.id==='inKey'||e.target.id==='inDelta'){
+    if(e.key==='Enter')doInsert();
+    if(e.key==='Tab'){e.preventDefault();doQuery();}
+  }
+});
+
+// ── Init ─────────────────────────────────────────────────
+doReset();
+</script>
+</body>
+</html>
