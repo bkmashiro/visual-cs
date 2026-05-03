@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HyperLogLog — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--s3:#111720;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --ac:#a855f7;--ac0:rgba(168,85,247,.15);
+  --gr:#3fb950;--gr0:rgba(63,185,80,.15);
+  --rd:#f85149;--rd0:rgba(248,81,73,.15);
+  --bl:#58a6ff;--bl0:rgba(88,166,255,.15);
+  --yl:#e3b341;--yl0:rgba(227,179,65,.15);
+  --or:#f97316;--or0:rgba(249,115,22,.15);
+  --pk:#f778ba;--pk0:rgba(247,120,186,.15);
+  --cy:#67e8f9;--cy0:rgba(103,232,249,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;gap:12px;flex-wrap:wrap}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s;white-space:nowrap}
+header a:hover{color:var(--text);border-color:var(--ac)}
+
+.layout{display:grid;grid-template-columns:1fr 320px;flex:1;min-height:0}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;background:var(--s3)}
+
+/* Step bar */
+.step-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.step-bar button{background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s;white-space:nowrap}
+.step-bar button:hover:not(:disabled){border-color:var(--ac);color:var(--ac)}
+.step-bar button:disabled{opacity:.4;cursor:default}
+.step-bar button.play-active{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.step-counter{font-size:.78rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+input[type=range]{flex:1;min-width:80px;accent-color:var(--ac)}
+
+/* Config row */
+.cfg-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.cfg-row select{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:.82rem;outline:none;cursor:pointer}
+.cfg-row select:focus{border-color:var(--ac)}
+.preset-btns{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.pb{font-size:.72rem;padding:4px 11px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-weight:500;transition:all .15s}
+.pb:hover{color:var(--ac);border-color:var(--ac)}
+
+/* Step description */
+.step-desc{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:12px 16px;font-size:.84rem;line-height:1.65;color:var(--muted);min-height:52px}
+.step-desc strong{color:var(--text)}
+.step-desc .hl-ac{color:var(--ac);font-weight:700}
+.step-desc .hl-gr{color:var(--gr);font-weight:700}
+.step-desc .hl-bl{color:var(--bl);font-weight:700}
+.step-desc .hl-yl{color:var(--yl);font-weight:700}
+.step-desc .hl-or{color:var(--or);font-weight:700}
+
+/* Section label */
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+
+/* Item stream */
+.stream-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 16px;overflow-x:auto}
+.stream-row{display:flex;gap:6px;align-items:center;min-width:max-content}
+.stream-item{display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .2s;opacity:.35}
+.stream-item.si-past{opacity:.55}
+.stream-item.si-current{opacity:1;transform:scale(1.12)}
+.item-box{padding:5px 10px;border-radius:7px;background:var(--s2);border:1px solid var(--border);font-size:.8rem;font-weight:700;font-family:monospace;color:var(--text);transition:all .2s;white-space:nowrap}
+.stream-item.si-current .item-box{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.stream-item.si-past .item-box{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+.item-idx{font-size:.6rem;color:var(--muted)}
+
+/* Hash display */
+.hash-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 16px}
+.hash-line{display:flex;align-items:center;gap:10px;font-family:monospace;font-size:.85rem;flex-wrap:wrap}
+.hash-label{color:var(--muted);font-size:.75rem;min-width:100px}
+.hash-bits{display:flex;gap:2px;align-items:center}
+.hbit{width:16px;height:24px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;border:1px solid var(--border);background:var(--s2);color:var(--muted);transition:all .2s;font-family:monospace}
+.hbit.b-one{background:var(--bl0);border-color:var(--bl);color:var(--bl)}
+.hbit.b-zero-lz{background:var(--yl0);border-color:var(--yl);color:var(--yl)}
+.hbit.b-reg{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.hbit.b-zero-lz-top{background:var(--or0);border-color:var(--or);color:var(--or)}
+.bit-sep{width:1px;height:24px;background:var(--border);margin:0 3px}
+.hash-val{color:var(--muted);font-size:.75rem}
+.leading-badge{font-size:.72rem;padding:2px 8px;border-radius:12px;font-weight:700;background:var(--yl0);border:1px solid var(--yl);color:var(--yl)}
+.reg-badge{font-size:.72rem;padding:2px 8px;border-radius:12px;font-weight:700;background:var(--ac0);border:1px solid var(--ac);color:var(--ac)}
+
+/* Registers */
+.regs-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 16px;overflow-x:auto}
+.regs-row{display:flex;gap:5px;min-width:max-content;flex-wrap:wrap}
+.reg-cell{width:44px;height:52px;border-radius:7px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;background:var(--s2);transition:all .25s;cursor:default;flex-shrink:0}
+.reg-cell .rv{font-size:.9rem;font-weight:700;line-height:1;color:var(--muted)}
+.reg-cell .ri{font-size:.55rem;color:var(--muted);margin-top:2px;opacity:.7}
+.reg-cell.rc-active{background:var(--ac0);border-color:var(--ac)}
+.reg-cell.rc-active .rv{color:var(--ac)}
+.reg-cell.rc-updated{background:var(--gr0);border-color:var(--gr)}
+.reg-cell.rc-updated .rv{color:var(--gr)}
+.reg-cell.rc-updated-once{background:var(--bl0);border-color:var(--bl)}
+.reg-cell.rc-updated-once .rv{color:var(--bl)}
+
+/* Estimate panel */
+.est-row{display:flex;gap:10px;flex-wrap:wrap}
+.est-card{flex:1;min-width:110px;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.est-card .ek{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:5px}
+.est-card .ev{font-family:monospace;font-size:1.15rem;font-weight:700}
+.ev.ac{color:var(--ac)}.ev.gr{color:var(--gr)}.ev.bl{color:var(--bl)}.ev.yl{color:var(--yl)}.ev.or{color:var(--or)}
+
+/* Formula box */
+.formula-box{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-family:monospace;font-size:.82rem;color:var(--muted);line-height:1.8}
+.formula-box .fv{color:var(--text);font-weight:700}
+.formula-box .fac{color:var(--ac);font-weight:700}
+.formula-box .fgr{color:var(--gr);font-weight:700}
+.formula-box .fbl{color:var(--bl);font-weight:700}
+.formula-box .fyl{color:var(--yl);font-weight:700}
+
+/* Sidebar */
+.ibox{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px 14px}
+.ibox h3{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:8px}
+.ibox p{margin-bottom:6px;font-size:.77rem;line-height:1.58;color:var(--muted)}
+.ibox p:last-child{margin-bottom:0}
+.ibox code{background:var(--s2);padding:1px 5px;border-radius:3px;font-family:monospace;color:var(--ac);font-size:.75rem}
+.cxr{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:.75rem}
+.cxr:last-child{border-bottom:none}.cxr .l{color:var(--muted)}.cxr .r{font-weight:700;color:var(--bl);font-family:monospace}
+
+@media(max-width:880px){.layout{grid-template-columns:1fr}.sidebar{border-top:1px solid var(--border)}}
+@keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+.bump{animation:bump .3s ease}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔢 <span>HyperLogLog</span> — Cardinality Estimation</h1>
+  <a href="../../index.html">← All Visualizations</a>
+</header>
+
+<div class="layout">
+  <div class="main">
+
+    <!-- Config -->
+    <div class="cfg-row">
+      <span>Registers (b bits):</span>
+      <select id="selB" onchange="rebuild()">
+        <option value="3">b=3 → 8 regs</option>
+        <option value="4" selected>b=4 → 16 regs</option>
+        <option value="5">b=5 → 32 regs</option>
+      </select>
+      <span style="margin-left:4px">Stream:</span>
+      <select id="selPreset" onchange="rebuild()">
+        <option value="fruits">Fruits (10 unique)</option>
+        <option value="ids">User IDs (25 unique)</option>
+        <option value="mixed">Mixed w/ repeats (15 unique)</option>
+        <option value="large">Large stream (40 unique)</option>
+      </select>
+      <div class="preset-btns">
+        <button class="pb" onclick="rebuild()">↺ Rebuild</button>
+      </div>
+    </div>
+
+    <!-- Step bar -->
+    <div class="step-bar">
+      <button id="btnFirst" onclick="gotoStep(0)">|◀ First</button>
+      <button id="btnPrev" onclick="gotoStep(curStep-1)">◀ Prev</button>
+      <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+      <button id="btnNext" onclick="gotoStep(curStep+1)">Next ▶</button>
+      <button id="btnLast" onclick="gotoStep(steps.length-1)">Last ▶|</button>
+      <input type="range" id="stepSlider" min="0" value="0" oninput="gotoStep(+this.value)">
+      <span class="step-counter" id="stepCounter">Step 0 / 0</span>
+    </div>
+
+    <!-- Step description -->
+    <div class="step-desc" id="stepDesc">Select a preset and click Play or use Prev/Next to walk through the algorithm.</div>
+
+    <!-- Item stream -->
+    <div>
+      <div class="slbl">Item Stream</div>
+      <div class="stream-wrap">
+        <div class="stream-row" id="streamRow"></div>
+      </div>
+    </div>
+
+    <!-- Hash representation -->
+    <div>
+      <div class="slbl">Hash Bit Representation</div>
+      <div class="hash-wrap">
+        <div id="hashDisplay" style="display:flex;flex-direction:column;gap:8px">
+          <div style="color:var(--muted);font-size:.8rem">Processing first item will show hash breakdown here.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Registers -->
+    <div>
+      <div class="slbl" id="regsLabel">Registers (M[0..15])</div>
+      <div class="regs-wrap">
+        <div class="regs-row" id="regsRow"></div>
+      </div>
+    </div>
+
+    <!-- Estimate stats -->
+    <div class="est-row" id="estRow">
+      <div class="est-card"><div class="ek">True Cardinality</div><div class="ev bl" id="evTrue">0</div></div>
+      <div class="est-card"><div class="ek">HLL Estimate</div><div class="ev ac" id="evEst">0</div></div>
+      <div class="est-card"><div class="ek">Error</div><div class="ev yl" id="evErr">—</div></div>
+      <div class="est-card"><div class="ek">Items Processed</div><div class="ev muted" id="evN" style="color:var(--muted)">0</div></div>
+      <div class="est-card"><div class="ek">Active Register</div><div class="ev or" id="evReg">—</div></div>
+    </div>
+
+    <!-- Formula -->
+    <div>
+      <div class="slbl">Harmonic Mean Formula</div>
+      <div class="formula-box" id="formulaBox">
+        E = α<sub>m</sub> · m² · (Σ 2<sup>−M[j]</sup>)<sup>−1</sup><br>
+        <span style="color:var(--muted);font-size:.75rem">Process items to see live formula values.</span>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <div class="sidebar">
+    <div class="ibox">
+      <h3>How HyperLogLog Works</h3>
+      <p>HyperLogLog estimates how many <strong style="color:var(--text)">distinct items</strong> are in a data stream using very little memory — <code>O(m)</code> registers instead of storing all items.</p>
+      <p><strong style="color:var(--ac)">Hash:</strong> Each item is hashed to a uniform bit string (32 bits here).</p>
+      <p><strong style="color:var(--ac)">Register index:</strong> The first <code>b</code> bits select one of <code>m = 2^b</code> registers.</p>
+      <p><strong style="color:var(--yl)">Leading zeros:</strong> Count trailing leading zeros in the remaining bits (from the left). This is the <em>position of first 1-bit</em>, giving an exponential observable.</p>
+      <p><strong style="color:var(--gr)">Update:</strong> Each register stores the <strong style="color:var(--text)">maximum</strong> leading-zero count seen for its bucket.</p>
+      <p><strong style="color:var(--bl)">Estimate:</strong> The harmonic mean of <code>2<sup>−M[j]</sup></code> across all registers gives the cardinality estimate.</p>
+    </div>
+    <div class="ibox">
+      <h3>Harmonic Mean Formula</h3>
+      <p>E = α<sub>m</sub> · m² · (<code>Σ 2<sup>−M[j]</sup></code>)<sup>−1</sup></p>
+      <p>Where <code>α_m</code> is a bias-correction constant, <code>m</code> is the number of registers, and each <code>M[j]</code> is the max leading zeros + 1 seen in register <code>j</code>.</p>
+      <p>The harmonic mean dampens the effect of outliers (unusually long runs of zeros), making it more robust than the arithmetic mean.</p>
+    </div>
+    <div class="ibox">
+      <h3>Bit Layout</h3>
+      <p><span style="color:var(--ac)">■</span> First <code>b</code> bits — register index</p>
+      <p><span style="color:var(--or)">■</span> Leading zeros in remaining bits</p>
+      <p><span style="color:var(--bl)">■</span> Remaining payload bits</p>
+      <p>The key insight: a long run of leading zeros in a random hash is exponentially unlikely, so <em>seeing</em> one implies we've processed many distinct items.</p>
+    </div>
+    <div class="ibox">
+      <h3>Complexity</h3>
+      <div class="cxr"><span class="l">Space</span><span class="r">O(m · log log n)</span></div>
+      <div class="cxr"><span class="l">Update</span><span class="r">O(1)</span></div>
+      <div class="cxr"><span class="l">Estimate</span><span class="r">O(m)</span></div>
+      <div class="cxr"><span class="l">Std Error</span><span class="r">1.04 / √m</span></div>
+      <div class="cxr"><span class="l">Merge</span><span class="r">O(m) — take max</span></div>
+    </div>
+    <div class="ibox">
+      <h3>Real-World Uses</h3>
+      <p>• <strong style="color:var(--text)">Redis</strong> — PFADD / PFCOUNT built-in HLL</p>
+      <p>• <strong style="color:var(--text)">Databases</strong> — COUNT DISTINCT query estimation</p>
+      <p>• <strong style="color:var(--text)">Analytics</strong> — unique visitors, DAU/MAU metrics</p>
+      <p>• <strong style="color:var(--text)">Networking</strong> — distinct IPs in traffic streams</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// ── Presets ───────────────────────────────────────────────
+const PRESETS = {
+  fruits: {
+    items: ['apple','banana','cherry','apple','date','elderberry','fig','banana','grape','honeydew',
+            'apple','fig','cherry','kiwi','lemon'],
+    label: 'Fruits (10 unique)'
+  },
+  ids: {
+    items: (()=>{
+      const ids=[];
+      for(let i=1;i<=25;i++) ids.push(`u${String(i).padStart(3,'0')}`);
+      // add some repeats
+      for(let i=1;i<=10;i++) ids.push(`u${String(Math.ceil(i*2.5)).padStart(3,'0')}`);
+      return ids.slice(0,35);
+    })(),
+    label: 'User IDs (25 unique)'
+  },
+  mixed: {
+    items: ['foo','bar','baz','foo','qux','quux','foo','bar','corge','grault',
+            'garply','waldo','fred','plugh','xyzzy','foo','bar','baz','corge','thud'],
+    label: 'Mixed w/ repeats (15 unique)'
+  },
+  large: {
+    items: (()=>{
+      const words=[];
+      const base=['alpha','beta','gamma','delta','epsilon','zeta','eta','theta','iota','kappa',
+                  'lambda','mu','nu','xi','omicron','pi','rho','sigma','tau','upsilon',
+                  'phi','chi','psi','omega','aleph','beth','gimel','dalet','he','waw',
+                  'zayin','chet','tet','yod','kaf','lamed','mem','nun','samekh','ayin'];
+      for(let i=0;i<40;i++) words.push(base[i]);
+      // add repeats
+      for(let i=0;i<20;i++) words.push(base[Math.floor(Math.random()*20)]);
+      return words.slice(0,55);
+    })(),
+    label: 'Large stream (40 unique)'
+  }
+};
+
+// ── State ────────────────────────────────────────────────
+let steps = [];
+let curStep = -1;
+let playTimer = null;
+let bBits = 4;
+let streamItems = [];
+
+// ── Hash (32-bit) ────────────────────────────────────────
+function hash32(str) {
+  let h = 0x811c9dc5;
+  for(let i=0;i<str.length;i++){
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+    h >>>= 0;
+  }
+  return h;
+}
+
+function toBin32(h){
+  return h.toString(2).padStart(32,'0');
+}
+
+// leading zeros in a bit string (counts zeros before first '1')
+function leadingZeros(bits){
+  let z=0;
+  for(let i=0;i<bits.length;i++){
+    if(bits[i]==='1') break;
+    z++;
+  }
+  return z;
+}
+
+// alpha_m bias correction constant
+function alphaM(m){
+  if(m===16) return 0.673;
+  if(m===32) return 0.697;
+  if(m===64) return 0.709;
+  return 0.7213 / (1 + 1.079/m);
+}
+
+function hllEstimate(regs){
+  const m = regs.length;
+  const alpha = alphaM(m);
+  let Z = 0;
+  for(const v of regs) Z += Math.pow(2, -v);
+  let E = alpha * m * m / Z;
+  // small range correction
+  const V = regs.filter(v=>v===0).length;
+  if(E < 2.5*m && V > 0){
+    E = m * Math.log(m/V);
+  }
+  return Math.round(E);
+}
+
+// ── Build Steps ──────────────────────────────────────────
+function buildSteps(items, b){
+  const m = 1 << b;  // 2^b registers
+  const regs = new Array(m).fill(0);
+  const seen = new Set();
+  const stps = [];
+  const alpha = alphaM(m);
+
+  // Intro step
+  stps.push({
+    type: 'intro',
+    regs: [...regs],
+    desc: `<strong>HyperLogLog Visualization</strong> — b=${b} bits → <span class="hl-ac">${m} registers</span>. We will process a stream of ${items.length} items, hashing each one into a 32-bit value. The <span class="hl-ac">first ${b} bits</span> select a register, and the <span class="hl-yl">leading zeros</span> of the remaining bits update that register's maximum. The harmonic mean of all registers gives our cardinality estimate.`,
+    streamIdx: -1,
+    hashBits: null,
+    curReg: -1,
+    trueCard: 0,
+    estimate: 0,
+    seenSet: new Set()
+  });
+
+  for(let i=0;i<items.length;i++){
+    const item = items[i];
+    const h = hash32(item);
+    const bits = toBin32(h);
+    const regIdx = parseInt(bits.slice(0,b), 2);
+    const restBits = bits.slice(b);
+    const lz = leadingZeros(restBits) + 1; // rho = position of first 1 (1-indexed)
+
+    // Step: hash item
+    stps.push({
+      type: 'hash',
+      item,
+      idx: i,
+      h,
+      bits,
+      regIdx,
+      restBits,
+      lz,
+      regs: [...regs],
+      desc: `Hashing item <span class="hl-ac">"${item}"</span> (item ${i+1}/${items.length}). Hash = <span class="hl-bl">0x${h.toString(16).padStart(8,'0').toUpperCase()}</span>. First <span class="hl-ac">${b} bits</span> (shown in purple) select <span class="hl-ac">register M[${regIdx}]</span>. The remaining <span class="hl-yl">${32-b} bits</span> are examined for leading zeros.`,
+      streamIdx: i,
+      curReg: regIdx,
+      trueCard: seen.size,
+      estimate: hllEstimate(regs),
+      seenSet: new Set(seen)
+    });
+
+    // Step: count leading zeros
+    const oldVal = regs[regIdx];
+    stps.push({
+      type: 'lz',
+      item,
+      idx: i,
+      h,
+      bits,
+      regIdx,
+      restBits,
+      lz,
+      oldVal,
+      regs: [...regs],
+      desc: `Leading zeros in the <strong>suffix</strong> (${32-b} bits): <span class="hl-yl">${lz-1} zero${lz-1===1?'':'s'}</span> before the first 1-bit. So ρ = ${lz} (position of first 1, 1-indexed). Current register M[${regIdx}] = <span class="hl-bl">${oldVal}</span>. ${lz > oldVal ? `Since ρ=${lz} > M[${regIdx}]=${oldVal}, we <span class="hl-gr">update the register</span>.` : `Since ρ=${lz} ≤ M[${regIdx}]=${oldVal}, <span class="hl-muted" style="color:var(--muted)">no update needed</span>.`}`,
+      streamIdx: i,
+      curReg: regIdx,
+      trueCard: seen.size,
+      estimate: hllEstimate(regs),
+      seenSet: new Set(seen)
+    });
+
+    // Update register
+    const updated = lz > regs[regIdx];
+    if(updated) regs[regIdx] = lz;
+    seen.add(item);
+
+    // Step: show updated state
+    stps.push({
+      type: 'update',
+      item,
+      idx: i,
+      h,
+      bits,
+      regIdx,
+      restBits,
+      lz,
+      oldVal,
+      regs: [...regs],
+      updated,
+      desc: `M[${regIdx}] = max(${oldVal}, ${lz}) = <span class="hl-gr">${regs[regIdx]}</span>. ${updated ? `<span class="hl-gr">Register updated!</span>` : `Register unchanged.`} True distinct items so far: <span class="hl-bl">${seen.size}</span>. HLL estimate: <span class="hl-ac">${hllEstimate(regs)}</span>.`,
+      streamIdx: i,
+      curReg: updated ? regIdx : -1,
+      trueCard: seen.size,
+      estimate: hllEstimate(regs),
+      seenSet: new Set(seen)
+    });
+  }
+
+  // Final summary step
+  const finalEst = hllEstimate(regs);
+  const finalTrue = seen.size;
+  const err = Math.abs(finalEst - finalTrue);
+  const errPct = finalTrue > 0 ? (err/finalTrue*100).toFixed(1) : '0.0';
+  // Build formula line
+  let Z = 0;
+  for(const v of regs) Z += Math.pow(2,-v);
+  const rawE = (alpha * m * m / Z).toFixed(1);
+
+  stps.push({
+    type: 'final',
+    regs: [...regs],
+    desc: `<strong>Done!</strong> Processed <span class="hl-bl">${items.length} items</span>. True distinct count: <span class="hl-bl">${finalTrue}</span>. HLL estimate: <span class="hl-ac">${finalEst}</span>. Error: <span class="hl-yl">${errPct}%</span>. With ${m} registers, the expected std error is ≈${(104/Math.sqrt(m)).toFixed(1)}%. Formula: E = α${m}·${m}²·(Σ 2<sup>-M[j]</sup>)<sup>-1</sup> = ${alpha.toFixed(3)}·${m*m}·(1/${Z.toFixed(3)}) ≈ ${rawE} → <span class="hl-ac">${finalEst}</span>.`,
+    streamIdx: items.length - 1,
+    curReg: -1,
+    trueCard: finalTrue,
+    estimate: finalEst,
+    seenSet: new Set(seen),
+    alpha,
+    m,
+    Z
+  });
+
+  return stps;
+}
+
+// ── Render ───────────────────────────────────────────────
+function renderStream(step){
+  const row = $('streamRow');
+  row.innerHTML = '';
+  for(let i=0;i<streamItems.length;i++){
+    const div = document.createElement('div');
+    div.className = 'stream-item' + (i < step.streamIdx ? ' si-past' : i === step.streamIdx ? ' si-current' : '');
+    const box = document.createElement('div');
+    box.className = 'item-box';
+    box.textContent = streamItems[i];
+    const idx = document.createElement('div');
+    idx.className = 'item-idx';
+    idx.textContent = i+1;
+    div.appendChild(box);
+    div.appendChild(idx);
+    row.appendChild(div);
+  }
+  // Scroll current item into view
+  if(step.streamIdx >= 0){
+    const items = row.querySelectorAll('.stream-item');
+    if(items[step.streamIdx]){
+      items[step.streamIdx].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    }
+  }
+}
+
+function renderHash(step){
+  const div = $('hashDisplay');
+  if(!step.bits){
+    div.innerHTML = '<div style="color:var(--muted);font-size:.8rem">Hash breakdown will appear here when an item is being processed.</div>';
+    return;
+  }
+  const b = bBits;
+  const bits = step.bits;
+  const regIdx = step.regIdx;
+  const lz = step.lz;
+  const restBits = step.restBits;
+
+  // Build bit row
+  let bitsHtml = '<div class="hash-bits">';
+  for(let i=0;i<32;i++){
+    let cls = 'hbit';
+    if(i < b){
+      cls += ' b-reg';
+    } else {
+      const restPos = i - b;
+      if(restPos < lz-1){ // leading zeros in rest (lz-1 because lz includes first 1)
+        cls += ' b-zero-lz-top';
+      } else if(restPos === lz-1){
+        cls += ' b-one'; // the first 1
+      } else {
+        cls += (bits[i]==='1') ? ' b-one' : '';
+      }
+    }
+    if(i === b-1) bitsHtml += `<span class="hbit ${cls}">${bits[i]}</span><span class="bit-sep"></span>`;
+    else bitsHtml += `<span class="hbit ${cls}">${bits[i]}</span>`;
+  }
+  bitsHtml += '</div>';
+
+  div.innerHTML = `
+    <div class="hash-line">
+      <span class="hash-label">Item: </span>
+      <strong style="color:var(--ac);font-family:monospace">"${step.item}"</strong>
+    </div>
+    <div class="hash-line" style="margin-top:6px">
+      <span class="hash-label">Hash (32-bit): </span>
+      ${bitsHtml}
+    </div>
+    <div class="hash-line" style="margin-top:8px;gap:14px;font-size:.78rem;color:var(--muted)">
+      <span><span class="reg-badge">Register bits [0..${b-1}]</span> → <strong style="color:var(--ac)">M[${regIdx}]</strong></span>
+      <span><span class="leading-badge">Leading zeros: ${lz-1}</span> → ρ = ${lz}</span>
+      <span style="color:var(--muted)">hex: 0x${step.h.toString(16).padStart(8,'0').toUpperCase()}</span>
+    </div>
+  `;
+}
+
+function renderRegs(step){
+  const m = step.regs.length;
+  const row = $('regsRow');
+  row.innerHTML = '';
+  // Track which registers have been updated at all (non-zero)
+  for(let j=0;j<m;j++){
+    const cell = document.createElement('div');
+    cell.className = 'reg-cell';
+    if(j === step.curReg && step.type !== 'intro'){
+      cell.classList.add(step.type === 'update' && step.updated ? 'rc-updated' : 'rc-active');
+    } else if(step.regs[j] > 0){
+      cell.classList.add('rc-updated-once');
+    }
+    const rv = document.createElement('div');
+    rv.className = 'rv';
+    rv.textContent = step.regs[j];
+    const ri = document.createElement('div');
+    ri.className = 'ri';
+    ri.textContent = j;
+    cell.appendChild(rv);
+    cell.appendChild(ri);
+    row.appendChild(cell);
+  }
+}
+
+function renderEstimate(step){
+  $('evTrue').textContent = step.trueCard;
+  $('evEst').textContent = step.estimate;
+  const err = step.trueCard > 0 ? Math.abs(step.estimate - step.trueCard) : 0;
+  const errPct = step.trueCard > 0 ? (Math.abs(step.estimate - step.trueCard)/step.trueCard*100).toFixed(1)+'%' : '—';
+  $('evErr').textContent = errPct;
+  $('evN').textContent = step.streamIdx < 0 ? 0 : step.streamIdx+1;
+  $('evReg').textContent = step.curReg >= 0 ? `M[${step.curReg}]` : '—';
+}
+
+function renderFormula(step){
+  const box = $('formulaBox');
+  const m = step.regs.length;
+  const alpha = alphaM(m);
+  let Z = 0;
+  for(const v of step.regs) Z += Math.pow(2,-v);
+  const E = hllEstimate(step.regs);
+
+  // Build register sum terms (show first 8 + ellipsis if many)
+  const terms = step.regs.map((v,j)=>`2<sup>−${v}</sup>`);
+  const dispTerms = m <= 16 ? terms.join(' + ') : terms.slice(0,6).join(' + ') + ' + … + ' + terms.slice(-2).join(' + ');
+
+  box.innerHTML = `
+    <div>E = <span class="fac">α<sub>${m}</sub></span> · <span class="fbl">${m}</span>² · (Σ<sub>j=0..${m-1}</sub> 2<sup>−M[j]</sup>)<sup>−1</sup></div>
+    <div style="margin-top:6px">  = <span class="fac">${alpha.toFixed(3)}</span> · <span class="fbl">${m*m}</span> · (${dispTerms})<sup>−1</sup></div>
+    <div style="margin-top:6px">  = <span class="fac">${alpha.toFixed(3)}</span> · <span class="fbl">${m*m}</span> · <span class="fyl">${Z.toFixed(4)}</span><sup>−1</sup></div>
+    <div style="margin-top:6px">  = <span class="fgr">${E}</span></div>
+  `;
+}
+
+function renderStep(idx){
+  if(idx < 0 || idx >= steps.length) return;
+  curStep = idx;
+  const step = steps[idx];
+
+  // Description
+  $('stepDesc').innerHTML = step.desc;
+
+  // Stream
+  renderStream(step);
+
+  // Hash
+  renderHash(step);
+
+  // Registers
+  renderRegs(step);
+
+  // Estimate
+  renderEstimate(step);
+
+  // Formula
+  renderFormula(step);
+
+  // Update controls
+  $('stepSlider').value = idx;
+  $('stepCounter').textContent = `Step ${idx+1} / ${steps.length}`;
+  $('btnPrev').disabled = idx === 0;
+  $('btnFirst').disabled = idx === 0;
+  $('btnNext').disabled = idx === steps.length-1;
+  $('btnLast').disabled = idx === steps.length-1;
+}
+
+function gotoStep(idx){
+  idx = Math.max(0, Math.min(steps.length-1, idx));
+  renderStep(idx);
+}
+
+// ── Play ─────────────────────────────────────────────────
+let playing = false;
+function togglePlay(){
+  playing = !playing;
+  const btn = $('btnPlay');
+  if(playing){
+    btn.textContent = '⏸ Pause';
+    btn.classList.add('play-active');
+    autoAdvance();
+  } else {
+    btn.textContent = '▶ Play';
+    btn.classList.remove('play-active');
+    clearTimeout(playTimer);
+  }
+}
+
+function autoAdvance(){
+  if(!playing) return;
+  if(curStep >= steps.length-1){
+    playing = false;
+    $('btnPlay').textContent = '▶ Play';
+    $('btnPlay').classList.remove('play-active');
+    return;
+  }
+  gotoStep(curStep+1);
+  playTimer = setTimeout(autoAdvance, 800);
+}
+
+// ── Build & Rebuild ──────────────────────────────────────
+function rebuild(){
+  clearTimeout(playTimer);
+  playing = false;
+  $('btnPlay').textContent = '▶ Play';
+  $('btnPlay').classList.remove('play-active');
+
+  bBits = +$('selB').value;
+  const m = 1 << bBits;
+  $('regsLabel').textContent = `Registers (M[0..${m-1}])`;
+
+  const presetKey = $('selPreset').value;
+  streamItems = [...PRESETS[presetKey].items];
+
+  steps = buildSteps(streamItems, bBits);
+
+  $('stepSlider').max = steps.length - 1;
+  $('stepSlider').value = 0;
+
+  renderStep(0);
+}
+
+// ── Init ─────────────────────────────────────────────────
+rebuild();
+</script>
+</body>
+</html>
