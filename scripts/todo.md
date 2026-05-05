@@ -25,7 +25,7 @@
 ### Probabilistic & Approximate
 - [x] count-min-sketch — Count-Min Sketch (frequency estimation, hash collision, error bounds) ✅ 2026-05-01
 - [x] hyperloglog — HyperLogLog (cardinality estimation, leading zeros, register merge) ✅ 2026-05-03
-- [ ] reservoir-sampling — Reservoir Sampling (streaming uniform sample)
+- [x] reservoir-sampling — Reservoir Sampling (streaming uniform sample) ✅ 2026-05-05
 - [ ] monte-carlo-pi — Monte Carlo π (point sampling in circle, convergence)
 
 ### Numerical & Mathematical
