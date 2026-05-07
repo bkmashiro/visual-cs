@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monte Carlo π — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--s3:#111720;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --ac:#f778ba;--ac0:rgba(247,120,186,.15);
+  --gr:#3fb950;--gr0:rgba(63,185,80,.15);
+  --rd:#f85149;--rd0:rgba(248,81,73,.15);
+  --bl:#58a6ff;--bl0:rgba(88,166,255,.15);
+  --yl:#e3b341;--yl0:rgba(227,179,65,.15);
+  --cy:#67e8f9;--cy0:rgba(103,232,249,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;gap:12px;flex-wrap:wrap}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s;white-space:nowrap}
+header a:hover{color:var(--text);border-color:var(--ac)}
+
+.layout{display:grid;grid-template-columns:1fr 320px;flex:1;min-height:0}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:22px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:16px;overflow:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;background:var(--s3)}
+@media(max-width:900px){.sidebar{border-left:none;border-top:1px solid var(--border)}}
+
+.step-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.step-bar button{background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s;white-space:nowrap}
+.step-bar button:hover:not(:disabled){border-color:var(--ac);color:var(--ac)}
+.step-bar button:disabled{opacity:.4;cursor:default}
+.step-bar button.play-active{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.step-counter{font-size:.78rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+input[type=range]{accent-color:var(--ac)}
+
+.step-desc{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:12px 16px;font-size:.84rem;line-height:1.65;color:var(--muted);min-height:52px}
+.step-desc strong{color:var(--text)}
+.step-desc .hl-ac{color:var(--ac);font-weight:700}
+.step-desc .hl-gr{color:var(--gr);font-weight:700}
+.step-desc .hl-bl{color:var(--bl);font-weight:700}
+.step-desc .hl-yl{color:var(--yl);font-weight:700}
+.step-desc .hl-cy{color:var(--cy);font-weight:700}
+.step-desc .hl-rd{color:var(--rd);font-weight:700}
+
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+
+canvas{border-radius:8px;display:block}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:'Cascadia Code','Fira Code',monospace;font-size:1.05rem;font-weight:700}
+
+.big-pi{text-align:center;padding:16px;background:var(--s2);border:1px solid var(--ac);border-radius:12px;margin-bottom:8px}
+.big-pi .pi-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+.big-pi .pi-value{font-size:2.2rem;font-weight:800;color:var(--ac);font-family:'Cascadia Code','Fira Code',monospace;letter-spacing:-1px}
+.big-pi .pi-error{font-size:.75rem;color:var(--muted);margin-top:4px}
+
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.9;color:var(--muted)}
+.pseudo .active{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+
+.cfg-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.cfg-row select{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 10px;color:var(--text);font-size:.82rem;outline:none;cursor:pointer}
+.cfg-row select:focus{border-color:var(--ac)}
+
+.legend{display:flex;gap:14px;align-items:center;font-size:.78rem;color:var(--muted);flex-wrap:wrap}
+.leg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+
+.batch-row{display:flex;gap:10px;align-items:center;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
+.batch-row label{display:flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Monte Carlo π</span></h1>
+  <a href="../../index.html">← Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+  <!-- Controls -->
+  <div class="step-bar">
+    <button id="btn-prev" disabled>&#9664; Prev</button>
+    <button id="btn-next">Next &#9654;</button>
+    <button id="btn-play" class="">&#9654;&#9654; Play</button>
+    <button id="btn-reset">&#8635; Reset</button>
+    <div class="batch-row" style="margin-left:8px">
+      <label>Batch: <select id="batch-size">
+        <option value="1">1</option>
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select></label>
+      <label>Speed: <input type="range" id="speed" min="20" max="600" value="120" style="width:80px"> <span id="speed-lbl">120ms</span></label>
+    </div>
+    <div class="step-counter" id="step-counter">Point 0 / 2000</div>
+  </div>
+
+  <!-- Step description -->
+  <div class="step-desc" id="step-desc">
+    <strong>Monte Carlo Method:</strong> Throw random darts at a unit square. The fraction landing inside the inscribed circle approximates π/4. Click <strong>Next</strong> or <strong>Play</strong> to start sampling.
+  </div>
+
+  <!-- Main canvas -->
+  <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="slbl">Point Cloud (unit square × unit square)</div>
+      <div class="legend">
+        <span><span class="leg-dot" style="background:#3fb950"></span>Inside circle</span>
+        <span><span class="leg-dot" style="background:#f85149"></span>Outside circle</span>
+        <span><span class="leg-dot" style="background:#f778ba;box-shadow:0 0 6px #f778ba"></span>Current point</span>
+      </div>
+    </div>
+    <canvas id="canvas-scatter" height="420"></canvas>
+  </div>
+
+  <!-- Convergence chart -->
+  <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+    <div class="slbl">π Estimate Convergence</div>
+    <canvas id="canvas-conv" height="160"></canvas>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <!-- Big π display -->
+  <div class="big-pi">
+    <div class="pi-label">Current π Estimate</div>
+    <div class="pi-value" id="pi-value">—</div>
+    <div class="pi-error" id="pi-error">true π = 3.14159265…</div>
+  </div>
+
+  <!-- Stats -->
+  <div>
+    <div class="slbl">Statistics</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="k">Total Points</div><div class="v" style="color:var(--bl)" id="s-total">0</div></div>
+      <div class="stat-card"><div class="k">Inside Circle</div><div class="v" style="color:var(--gr)" id="s-inside">0</div></div>
+      <div class="stat-card"><div class="k">Outside Circle</div><div class="v" style="color:var(--rd)" id="s-outside">0</div></div>
+      <div class="stat-card"><div class="k">Error</div><div class="v" style="color:var(--yl)" id="s-error">—</div></div>
+    </div>
+  </div>
+
+  <!-- Pseudocode -->
+  <div>
+    <div class="slbl">Pseudocode</div>
+    <div class="pseudo">
+      <div id="p0">inside ← 0</div>
+      <div id="p1">for i = 1 to N:</div>
+      <div id="p2">&nbsp;&nbsp;x ← random(-1, 1)</div>
+      <div id="p3">&nbsp;&nbsp;y ← random(-1, 1)</div>
+      <div id="p4">&nbsp;&nbsp;if x²+y² ≤ 1:</div>
+      <div id="p5">&nbsp;&nbsp;&nbsp;&nbsp;inside += 1</div>
+      <div id="p6">&nbsp;&nbsp;π ≈ 4 × inside / i</div>
+    </div>
+  </div>
+
+  <!-- Formula -->
+  <div>
+    <div class="slbl">Key Insight</div>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.7;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px">
+      <p>A unit circle has area <strong style="color:var(--text)">π</strong>. The enclosing 2×2 square has area <strong style="color:var(--text)">4</strong>. So:</p>
+      <p style="text-align:center;margin:10px 0;font-size:1rem;font-family:monospace;color:var(--ac)">π ≈ 4 × (hits / total)</p>
+      <p>By the <strong style="color:var(--text)">Law of Large Numbers</strong>, this converges to the true π as N → ∞. Error shrinks as <strong style="color:var(--cy)">O(1/√N)</strong> — very slowly! You need ~1M points for 3 correct decimal places.</p>
+    </div>
+  </div>
+
+  <!-- Milestones -->
+  <div>
+    <div class="slbl">Convergence Milestones</div>
+    <div id="milestones" style="font-size:.75rem;color:var(--muted);line-height:1.9;font-family:monospace;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+      No milestones yet — keep sampling!
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const TOTAL = 2000;
+const TRUE_PI = Math.PI;
+
+// Pre-compute all points
+const pts = [];
+for (let i = 0; i < TOTAL; i++) {
+  const x = Math.random() * 2 - 1;
+  const y = Math.random() * 2 - 1;
+  const d2 = x * x + y * y;
+  const inside = d2 <= 1;
+  pts.push({ x, y, inside, d2 });
+}
+
+// Pre-compute running state at each step
+// stepStates[i] => state after seeing pts[0..i-1] (i points total)
+// We'll compute on the fly up to current step
+let stepIdx = 0; // how many points revealed
+let insideCount = 0;
+let milestoneLog = [];
+let piHistory = []; // pi estimate at each step
+
+// milestones: first time error < threshold
+const milestoneThresholds = [0.5, 0.1, 0.05, 0.01];
+const milestonesHit = new Set();
+
+let playing = false;
+let playTimer = null;
+let batchSize = 10;
+let speed = 120;
+
+// ---- Canvas: scatter ----
+const scatterCanvas = document.getElementById('canvas-scatter');
+const sCtx = scatterCanvas.getContext('2d');
+
+// ---- Canvas: convergence ----
+const convCanvas = document.getElementById('canvas-conv');
+const cCtx = convCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const dpr = window.devicePixelRatio || 1;
+  // Scatter
+  const sw = scatterCanvas.parentElement.clientWidth - 32;
+  const sh = Math.min(420, sw);
+  scatterCanvas.style.width = sh + 'px';
+  scatterCanvas.style.height = sh + 'px';
+  scatterCanvas.width = sh * dpr;
+  scatterCanvas.height = sh * dpr;
+  sCtx.scale(dpr, dpr);
+
+  // Conv
+  const cw = convCanvas.parentElement.clientWidth - 32;
+  convCanvas.style.width = cw + 'px';
+  convCanvas.style.height = '160px';
+  convCanvas.width = cw * dpr;
+  convCanvas.height = 160 * dpr;
+  cCtx.scale(dpr, dpr);
+}
+
+function drawScatter() {
+  const dpr = window.devicePixelRatio || 1;
+  const W = scatterCanvas.width / dpr;
+  const H = scatterCanvas.height / dpr;
+  const s = W; // canvas is square
+
+  sCtx.clearRect(0, 0, W, H);
+
+  // Background square
+  sCtx.fillStyle = '#1c2128';
+  sCtx.fillRect(0, 0, s, s);
+
+  // Quarter-circle fill (arc from (-1,-1) square mapped to canvas)
+  // We show full circle in center: square is -1..1 x -1..1 → canvas 0..s x 0..s
+  const cx = s / 2, cy = s / 2, r = s / 2;
+
+  // Circle interior shading
+  sCtx.beginPath();
+  sCtx.arc(cx, cy, r, 0, Math.PI * 2);
+  sCtx.fillStyle = 'rgba(247,120,186,0.05)';
+  sCtx.fill();
+  sCtx.strokeStyle = 'rgba(247,120,186,0.4)';
+  sCtx.lineWidth = 1.5;
+  sCtx.stroke();
+
+  // Grid lines
+  sCtx.strokeStyle = 'rgba(48,54,61,0.8)';
+  sCtx.lineWidth = 0.5;
+  for (let g = 0.25; g < 1; g += 0.25) {
+    const px = g * s;
+    sCtx.beginPath(); sCtx.moveTo(px, 0); sCtx.lineTo(px, s); sCtx.stroke();
+    sCtx.beginPath(); sCtx.moveTo(0, px); sCtx.lineTo(s, px); sCtx.stroke();
+  }
+  // Axes
+  sCtx.strokeStyle = 'rgba(88,166,255,0.25)';
+  sCtx.lineWidth = 1;
+  sCtx.beginPath(); sCtx.moveTo(cx, 0); sCtx.lineTo(cx, s); sCtx.stroke();
+  sCtx.beginPath(); sCtx.moveTo(0, cy); sCtx.lineTo(s, cy); sCtx.stroke();
+
+  // Points (all revealed so far except current)
+  const dotR = Math.max(2, Math.min(4, s / 80));
+  for (let i = 0; i < stepIdx; i++) {
+    const p = pts[i];
+    const px = (p.x + 1) / 2 * s;
+    const py = (1 - (p.y + 1) / 2) * s; // flip y
+    const isCurrent = (i === stepIdx - 1);
+    if (isCurrent) continue; // draw last
+    sCtx.beginPath();
+    sCtx.arc(px, py, dotR, 0, Math.PI * 2);
+    if (p.inside) {
+      sCtx.fillStyle = 'rgba(63,185,80,0.7)';
+    } else {
+      sCtx.fillStyle = 'rgba(248,81,73,0.6)';
+    }
+    sCtx.fill();
+  }
+
+  // Draw current point with glow
+  if (stepIdx > 0) {
+    const p = pts[stepIdx - 1];
+    const px = (p.x + 1) / 2 * s;
+    const py = (1 - (p.y + 1) / 2) * s;
+    sCtx.shadowColor = '#f778ba';
+    sCtx.shadowBlur = 12;
+    sCtx.beginPath();
+    sCtx.arc(px, py, dotR + 2, 0, Math.PI * 2);
+    sCtx.fillStyle = '#f778ba';
+    sCtx.fill();
+    sCtx.shadowBlur = 0;
+  }
+
+  // Border
+  sCtx.strokeStyle = '#30363d';
+  sCtx.lineWidth = 1;
+  sCtx.strokeRect(0, 0, s, s);
+}
+
+function drawConvergence() {
+  const dpr = window.devicePixelRatio || 1;
+  const W = convCanvas.width / dpr;
+  const H = convCanvas.height / dpr;
+
+  cCtx.clearRect(0, 0, W, H);
+  cCtx.fillStyle = '#1c2128';
+  cCtx.fillRect(0, 0, W, H);
+
+  if (piHistory.length < 2) {
+    cCtx.fillStyle = '#8b949e';
+    cCtx.font = '12px sans-serif';
+    cCtx.textAlign = 'center';
+    cCtx.fillText('Convergence chart will appear as points accumulate…', W/2, H/2);
+    return;
+  }
+
+  const pad = { left: 48, right: 12, top: 16, bottom: 30 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top - pad.bottom;
+
+  // Y range: π ± 1.5 or tighter as we get more data
+  const spread = Math.max(0.05, 1.2 / Math.sqrt(piHistory.length));
+  const yMin = TRUE_PI - Math.min(1.5, spread * 4);
+  const yMax = TRUE_PI + Math.min(1.5, spread * 4);
+
+  // True pi line
+  const piY = pad.top + ch * (1 - (TRUE_PI - yMin) / (yMax - yMin));
+  cCtx.strokeStyle = 'rgba(227,179,65,0.4)';
+  cCtx.lineWidth = 1;
+  cCtx.setLineDash([5, 5]);
+  cCtx.beginPath();
+  cCtx.moveTo(pad.left, piY);
+  cCtx.lineTo(pad.left + cw, piY);
+  cCtx.stroke();
+  cCtx.setLineDash([]);
+
+  // π label
+  cCtx.fillStyle = '#e3b341';
+  cCtx.font = '10px monospace';
+  cCtx.textAlign = 'right';
+  cCtx.fillText('π', pad.left - 4, piY + 3);
+
+  // Draw estimate line
+  cCtx.beginPath();
+  cCtx.strokeStyle = '#f778ba';
+  cCtx.lineWidth = 1.5;
+  for (let i = 0; i < piHistory.length; i++) {
+    const x = pad.left + (i / (piHistory.length - 1)) * cw;
+    const yVal = Math.max(yMin, Math.min(yMax, piHistory[i]));
+    const y = pad.top + ch * (1 - (yVal - yMin) / (yMax - yMin));
+    if (i === 0) cCtx.moveTo(x, y);
+    else cCtx.lineTo(x, y);
+  }
+  cCtx.stroke();
+
+  // Current value dot
+  const lastPi = piHistory[piHistory.length - 1];
+  const lx = pad.left + cw;
+  const ly = pad.top + ch * (1 - (Math.max(yMin, Math.min(yMax, lastPi)) - yMin) / (yMax - yMin));
+  cCtx.beginPath();
+  cCtx.arc(lx, ly, 3, 0, Math.PI * 2);
+  cCtx.fillStyle = '#f778ba';
+  cCtx.fill();
+
+  // Y-axis ticks
+  cCtx.fillStyle = '#8b949e';
+  cCtx.font = '9px monospace';
+  cCtx.textAlign = 'right';
+  for (let tick = Math.ceil(yMin * 4) / 4; tick <= yMax; tick += 0.25) {
+    const ty = pad.top + ch * (1 - (tick - yMin) / (yMax - yMin));
+    cCtx.fillText(tick.toFixed(2), pad.left - 4, ty + 3);
+    cCtx.strokeStyle = 'rgba(48,54,61,0.5)';
+    cCtx.lineWidth = 0.5;
+    cCtx.beginPath();
+    cCtx.moveTo(pad.left, ty);
+    cCtx.lineTo(pad.left + cw, ty);
+    cCtx.stroke();
+  }
+
+  // X-axis labels
+  cCtx.fillStyle = '#8b949e';
+  cCtx.font = '9px monospace';
+  cCtx.textAlign = 'center';
+  const xTicks = [1, Math.round(piHistory.length * 0.25), Math.round(piHistory.length * 0.5), Math.round(piHistory.length * 0.75), piHistory.length];
+  xTicks.forEach(t => {
+    if (t < 1) return;
+    const xi = pad.left + ((t - 1) / (piHistory.length - 1)) * cw;
+    cCtx.fillText(t, xi, H - 6);
+  });
+
+  // Border
+  cCtx.strokeStyle = '#30363d';
+  cCtx.lineWidth = 1;
+  cCtx.strokeRect(pad.left, pad.top, cw, ch);
+}
+
+function pseudoHighlight(lines) {
+  for (let i = 0; i <= 6; i++) {
+    document.getElementById('p' + i).classList.remove('active');
+  }
+  lines.forEach(l => document.getElementById('p' + l).classList.add('active'));
+}
+
+function updateMilestones() {
+  let changed = false;
+  milestoneThresholds.forEach(thr => {
+    if (!milestonesHit.has(thr)) {
+      const piEst = 4 * insideCount / stepIdx;
+      if (Math.abs(piEst - TRUE_PI) < thr) {
+        milestonesHit.add(thr);
+        milestoneLog.push({ n: stepIdx, thr, piEst });
+        changed = true;
+      }
+    }
+  });
+  if (changed || milestoneLog.length === 0) {
+    const el = document.getElementById('milestones');
+    if (milestoneLog.length === 0) {
+      el.textContent = 'No milestones yet — keep sampling!';
+    } else {
+      el.innerHTML = milestoneLog.map(m =>
+        `<div style="margin-bottom:2px">
+          <span style="color:var(--yl)">error < ${m.thr}</span>
+          <span style="color:var(--muted)"> @ n=</span><span style="color:var(--bl)">${m.n}</span>
+          <span style="color:var(--muted)"> → π≈</span><span style="color:var(--ac)">${m.piEst.toFixed(5)}</span>
+        </div>`
+      ).join('');
+    }
+  }
+}
+
+function updateUI() {
+  // Stats
+  document.getElementById('s-total').textContent = stepIdx;
+  document.getElementById('s-inside').textContent = insideCount;
+  document.getElementById('s-outside').textContent = stepIdx - insideCount;
+
+  if (stepIdx === 0) {
+    document.getElementById('pi-value').textContent = '—';
+    document.getElementById('pi-error').textContent = 'true π = 3.14159265…';
+    document.getElementById('s-error').textContent = '—';
+    document.getElementById('step-counter').textContent = `Point 0 / ${TOTAL}`;
+    document.getElementById('step-desc').innerHTML = `<strong>Monte Carlo Method:</strong> Throw random darts at a unit square. The fraction landing inside the inscribed circle approximates π/4. Click <strong>Next</strong> or <strong>Play</strong> to start sampling.`;
+    pseudoHighlight([0]);
+    drawScatter();
+    drawConvergence();
+    return;
+  }
+
+  const piEst = 4 * insideCount / stepIdx;
+  const err = Math.abs(piEst - TRUE_PI);
+  const errPct = (err / TRUE_PI * 100).toFixed(3);
+
+  document.getElementById('pi-value').textContent = piEst.toFixed(6);
+  document.getElementById('pi-error').textContent = `error = ${err.toFixed(6)} (${errPct}%)`;
+  document.getElementById('s-error').textContent = err.toFixed(5);
+  document.getElementById('step-counter').textContent = `Point ${stepIdx} / ${TOTAL}`;
+
+  const p = pts[stepIdx - 1];
+  const pInside = p.inside;
+  const piDisp = piEst.toFixed(5);
+
+  if (stepIdx <= 5) {
+    pseudoHighlight([1, 2, 3, 4, pInside ? 5 : 6, 6]);
+  } else {
+    pseudoHighlight([pInside ? 5 : 4, 6]);
+  }
+
+  const insideWord = pInside
+    ? `<span class="hl-gr">inside</span> (x²+y²=${p.d2.toFixed(3)} ≤ 1)`
+    : `<span class="hl-rd">outside</span> (x²+y²=${p.d2.toFixed(3)} > 1)`;
+
+  document.getElementById('step-desc').innerHTML =
+    `<strong>Point #${stepIdx}</strong> at (${p.x.toFixed(3)}, ${p.y.toFixed(3)}) — ${insideWord}. ` +
+    `Inside: <span class="hl-gr">${insideCount}</span> / Total: <span class="hl-bl">${stepIdx}</span> → ` +
+    `π ≈ 4 × ${insideCount}/${stepIdx} = <span class="hl-ac">${piDisp}</span> ` +
+    `(error: <span class="hl-yl">${err.toFixed(5)}</span>)`;
+
+  document.getElementById('btn-prev').disabled = stepIdx <= 0;
+  document.getElementById('btn-next').disabled = stepIdx >= TOTAL;
+
+  drawScatter();
+  drawConvergence();
+  updateMilestones();
+}
+
+function advanceBy(n) {
+  const end = Math.min(stepIdx + n, TOTAL);
+  while (stepIdx < end) {
+    if (pts[stepIdx].inside) insideCount++;
+    stepIdx++;
+    const piEst = 4 * insideCount / stepIdx;
+    piHistory.push(piEst);
+  }
+  updateUI();
+}
+
+function goBack(n) {
+  // Recompute from scratch up to stepIdx - n
+  const target = Math.max(0, stepIdx - n);
+  stepIdx = 0; insideCount = 0; piHistory = [];
+  milestonesHit.clear(); milestoneLog = [];
+  document.getElementById('milestones').textContent = 'No milestones yet — keep sampling!';
+  while (stepIdx < target) {
+    if (pts[stepIdx].inside) insideCount++;
+    stepIdx++;
+    const piEst = 4 * insideCount / stepIdx;
+    piHistory.push(piEst);
+  }
+  updateUI();
+}
+
+function startPlay() {
+  if (playing) return;
+  playing = true;
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+  document.getElementById('btn-play').classList.add('play-active');
+  playTimer = setInterval(() => {
+    if (stepIdx >= TOTAL) {
+      stopPlay();
+      return;
+    }
+    advanceBy(batchSize);
+  }, speed);
+}
+
+function stopPlay() {
+  playing = false;
+  clearInterval(playTimer);
+  playTimer = null;
+  document.getElementById('btn-play').textContent = '▶▶ Play';
+  document.getElementById('btn-play').classList.remove('play-active');
+}
+
+function resetAll() {
+  stopPlay();
+  stepIdx = 0; insideCount = 0; piHistory = [];
+  milestonesHit.clear(); milestoneLog = [];
+  document.getElementById('milestones').textContent = 'No milestones yet — keep sampling!';
+  // Regenerate random points
+  pts.length = 0;
+  for (let i = 0; i < TOTAL; i++) {
+    const x = Math.random() * 2 - 1;
+    const y = Math.random() * 2 - 1;
+    const d2 = x * x + y * y;
+    pts.push({ x, y, inside: d2 <= 1, d2 });
+  }
+  document.getElementById('btn-prev').disabled = true;
+  document.getElementById('btn-next').disabled = false;
+  updateUI();
+}
+
+// Event listeners
+document.getElementById('btn-next').addEventListener('click', () => advanceBy(batchSize));
+document.getElementById('btn-prev').addEventListener('click', () => goBack(batchSize));
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (playing) stopPlay();
+  else startPlay();
+});
+document.getElementById('btn-reset').addEventListener('click', resetAll);
+
+document.getElementById('batch-size').addEventListener('change', (e) => {
+  batchSize = parseInt(e.target.value);
+  if (playing) { stopPlay(); startPlay(); }
+});
+document.getElementById('speed').addEventListener('input', (e) => {
+  speed = parseInt(e.target.value);
+  document.getElementById('speed-lbl').textContent = speed + 'ms';
+  if (playing) { stopPlay(); startPlay(); }
+});
+
+window.addEventListener('resize', () => {
+  resizeCanvases();
+  drawScatter();
+  drawConvergence();
+});
+
+// Init
+resizeCanvases();
+updateUI();
+
+})();
+</script>
+</body>
+</html>
