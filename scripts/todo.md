@@ -29,7 +29,7 @@
 - [x] monte-carlo-pi — Monte Carlo π (point sampling in circle, convergence) ✅ 2026-05-07
 
 ### Numerical & Mathematical
-- [ ] fft — Fast Fourier Transform (butterfly diagram, bit-reversal permutation)
+- [x] fft — Fast Fourier Transform (butterfly diagram, bit-reversal permutation) ✅ 2026-05-09
 - [ ] strassen — Strassen Matrix Multiplication (7-multiply recursion tree)
 - [ ] quickselect — QuickSelect / BFPRT (linear-time k-th element)
 - [ ] extended-gcd — Extended Euclidean Algorithm (Bézout coefficients)

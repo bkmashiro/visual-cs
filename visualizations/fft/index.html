@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FFT — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--s3:#111720;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --ac:#67e8f9;--ac0:rgba(103,232,249,.15);
+  --gr:#3fb950;--gr0:rgba(63,185,80,.15);
+  --rd:#f85149;--rd0:rgba(248,81,73,.15);
+  --yl:#e3b341;--yl0:rgba(227,179,65,.15);
+  --pu:#d2a8ff;--pu0:rgba(210,168,255,.15);
+  --or:#f97316;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;gap:12px;flex-wrap:wrap}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s;white-space:nowrap}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:1fr 300px;flex:1;min-height:0}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;background:var(--s3)}
+.step-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.step-bar button{background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s;white-space:nowrap}
+.step-bar button:hover:not(:disabled){border-color:var(--ac);color:var(--ac)}
+.step-bar button:disabled{opacity:.4;cursor:default}
+.step-bar button.play-active{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.step-counter{font-size:.78rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+.speed-row{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);min-width:130px}
+.speed-row input{flex:1;accent-color:var(--ac)}
+.step-desc{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:13px 16px;font-size:.84rem;line-height:1.65;color:var(--muted);min-height:70px}
+.step-desc strong{color:var(--text)}
+.hl-ac{color:var(--ac);font-weight:700}
+.hl-gr{color:var(--gr);font-weight:700}
+.hl-yl{color:var(--yl);font-weight:700}
+.hl-pu{color:var(--pu);font-weight:700}
+.hl-rd{color:var(--rd);font-weight:700}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+canvas{display:block;border-radius:8px}
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.71rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.95;color:var(--muted)}
+.pseudo .ac{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 4px}
+.tbox{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;gap:14px;align-items:center}
+.tbox canvas{border-radius:50%;border:1px solid var(--border);flex-shrink:0}
+.tbox .tinfo{flex:1}
+.tbox .tlbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px}
+.tbox .tval{font-family:'Cascadia Code','Fira Code',monospace;font-size:.82rem;font-weight:700;color:var(--ac)}
+.tbox .tang{font-size:.72rem;color:var(--muted);margin-top:2px}
+.val-table{font-size:.71rem;font-family:'Cascadia Code','Fira Code',monospace;width:100%;border-collapse:collapse}
+.val-table th{color:var(--muted);text-align:left;padding:3px 5px;border-bottom:1px solid var(--border);font-weight:600;font-size:.65rem;text-transform:uppercase}
+.val-table td{padding:3px 5px;color:var(--text);transition:color .2s,background .2s}
+.val-table tr.r-top td{color:var(--ac);background:var(--ac0);font-weight:700}
+.val-table tr.r-bot td{color:var(--pu);background:var(--pu0);font-weight:700}
+.val-table tr.r-done td{color:var(--yl);font-weight:700}
+.info-box{font-size:.78rem;color:var(--muted);line-height:1.65}
+.info-box strong{color:var(--text)}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Fast Fourier Transform</span></h1>
+  <a href="../../index.html">← Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+
+  <div class="step-bar">
+    <button id="btn-prev" disabled>◀ Prev</button>
+    <button id="btn-next">Next ▶</button>
+    <button id="btn-play">▶ Play</button>
+    <button id="btn-reset">↺ Reset</button>
+    <span class="step-counter" id="step-ctr"></span>
+    <div class="speed-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="300" max="2000" value="900" step="100">
+      <span id="speed-lbl">0.9s</span>
+    </div>
+  </div>
+
+  <div class="panel" style="padding:12px 14px">
+    <div class="slbl" style="margin-bottom:10px">Butterfly Network — N=8, log₂8 = 3 stages</div>
+    <canvas id="net-canvas" height="320" style="width:100%"></canvas>
+  </div>
+
+  <div class="panel" style="padding:12px 14px">
+    <div class="slbl" style="margin-bottom:8px" id="mag-label">Signal magnitudes — current state</div>
+    <canvas id="mag-canvas" height="80" style="width:100%"></canvas>
+  </div>
+
+  <div class="step-desc" id="step-desc"></div>
+
+</div>
+<div class="sidebar">
+
+  <div>
+    <div class="slbl">Current Array A[0..7]</div>
+    <table class="val-table" id="val-table">
+      <thead><tr><th>k</th><th>Re</th><th>Im</th><th>|·|</th></tr></thead>
+      <tbody id="val-tbody"></tbody>
+    </table>
+  </div>
+
+  <div id="twiddle-wrap">
+    <div class="slbl">Twiddle Factor</div>
+    <div class="tbox">
+      <canvas id="tw-canvas" width="60" height="60"></canvas>
+      <div class="tinfo">
+        <div class="tlbl">W</div>
+        <div class="tval" id="tw-val">—</div>
+        <div class="tang" id="tw-angle"></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="slbl">Pseudocode</div>
+    <div class="pseudo" id="pseudo">
+      <div id="pl0">FFT(x, N):</div>
+      <div id="pl1">&nbsp; bit_reverse(x)</div>
+      <div id="pl2">&nbsp; <b>for</b> s = 1 to log₂N:</div>
+      <div id="pl3">&nbsp;&nbsp;&nbsp; m ← 2<sup>s</sup></div>
+      <div id="pl4">&nbsp;&nbsp;&nbsp; w_m ← e<sup>−2πi/m</sup></div>
+      <div id="pl5">&nbsp;&nbsp;&nbsp; <b>for</b> k = 0,m,…,N−m:</div>
+      <div id="pl6">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; w ← 1</div>
+      <div id="pl7">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>for</b> j = 0 to m/2−1:</div>
+      <div id="pl8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t ← w · x[k+j+m/2]</div>
+      <div id="pl9">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; u ← x[k+j]</div>
+      <div id="pl10">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x[k+j]     ← u + t</div>
+      <div id="pl11">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x[k+j+m/2] ← u − t</div>
+      <div id="pl12">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; w ← w · w_m</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="slbl">About FFT</div>
+    <div class="info-box">
+      <p>Cooley-Tukey radix-2 DIT FFT reduces DFT cost from <strong>O(N²)</strong> to <strong>O(N log N)</strong> by recursively splitting even/odd indices.</p>
+      <br>
+      <p>Each <span class="hl-ac">butterfly</span> merges two sub-transforms via a <span class="hl-yl">twiddle factor</span> W = e<sup>−2πik/N</sup> — a unit-circle rotation that encodes phase shift.</p>
+      <br>
+      <p><strong>N=8:</strong> brute DFT needs 64 mults; FFT needs only 12 butterfly ops (3 stages × 4 butterflies).</p>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+// ─── Complex arithmetic ───────────────────────────────────────────
+const C = {
+  add:(a,b)=>({re:a.re+b.re,im:a.im+b.im}),
+  sub:(a,b)=>({re:a.re-b.re,im:a.im-b.im}),
+  mul:(a,b)=>({re:a.re*b.re-a.im*b.im,im:a.re*b.im+a.im*b.re}),
+  abs:(a)=>Math.sqrt(a.re*a.re+a.im*a.im),
+  clone:(a)=>({re:a.re,im:a.im}),
+  fmt:(a,d=2)=>{
+    const r=a.re.toFixed(d);
+    const ai=Math.abs(a.im).toFixed(d);
+    if(Math.abs(a.im)<0.005)return r;
+    return a.im>=0?`${r}+${ai}i`:`${r}−${ai}i`;
+  }
+};
+function tw(k,N){const θ=-2*Math.PI*k/N;return{re:Math.cos(θ),im:Math.sin(θ)};}
+function bitRev(n,bits){let r=0;for(let i=0;i<bits;i++){r=(r<<1)|(n&1);n>>=1;}return r;}
+function cloneArr(arr){return arr.map(C.clone);}
+
+// ─── Signal: cos(2πn/8) + 0.5·sin(2π·2·n/8) ─────────────────────
+// Gives peaks at k=1,7 (magnitude 4) and k=2,6 (magnitude 2)
+const N=8, LOG2N=3;
+const RAW=Array.from({length:N},(_,n)=>({
+  re: Math.cos(2*Math.PI*n/N) + 0.5*Math.sin(2*Math.PI*2*n/N),
+  im:0
+}));
+
+// ─── Pre-compute stage-boundary arrays ───────────────────────────
+// stageVals[s] = array after ALL butterflies in stage s are done
+// stageVals[0] = bit-reversed input
+const stageVals = [];
+{
+  const perm=Array.from({length:N},(_,i)=>bitRev(i,LOG2N));
+  const br=new Array(N);
+  for(let i=0;i<N;i++) br[perm[i]]=C.clone(RAW[i]);
+  stageVals.push(cloneArr(br));
+  let arr=cloneArr(br);
+  for(let s=1;s<=LOG2N;s++){
+    const m=1<<s,half=m>>1;
+    for(let k=0;k<N;k+=m){
+      for(let j=0;j<half;j++){
+        const top=k+j,bot=k+j+half;
+        const W=tw(j,m);
+        const t=C.mul(W,arr[bot]),u=C.clone(arr[top]);
+        arr[top]=C.add(u,t); arr[bot]=C.sub(u,t);
+      }
+    }
+    stageVals.push(cloneArr(arr));
+  }
+}
+
+// ─── Build step list ──────────────────────────────────────────────
+// Each step: {vals, activeTop, activeBot, activeStage, phase, pseudoLines, twiddle, desc}
+const STEPS=[];
+
+// Step 0: raw input
+STEPS.push({
+  vals:cloneArr(RAW),
+  activeTop:-1,activeBot:-1,activeStage:0,
+  phase:'input',
+  pseudoLines:[0],
+  twiddle:null,
+  desc:`<strong>Input signal x[n]</strong> — 8 samples of <span class="hl-ac">cos(2πn/8) + ½·sin(4πn/8)</span>. `+
+       `The DFT expresses this as a sum of N=8 complex sinusoids. Naïve DFT costs `+
+       `<span class="hl-rd">O(N²) = 64</span> complex multiplications; Cooley-Tukey FFT reduces this to `+
+       `<span class="hl-gr">O(N log N) = 24</span>.`
+});
+
+// Step 1: bit-reversal permutation
+STEPS.push({
+  vals:cloneArr(stageVals[0]),
+  activeTop:-1,activeBot:-1,activeStage:0,
+  phase:'bitrev',
+  pseudoLines:[1],
+  twiddle:null,
+  desc:`<strong>Bit-reversal permutation</strong> — each index i is swapped with its <span class="hl-ac">bit-reversed counterpart</span>. `+
+       `For N=8 (3 bits): 0→0, <span class="hl-pu">1→4</span>, 2→2, <span class="hl-pu">3→6</span>, <span class="hl-pu">4→1</span>, 5→5, <span class="hl-pu">6→3</span>, 7→7. `+
+       `This sorts indices by their LSB-first binary representation, enabling the recursive `+
+       `even/odd split to work in-place without extra storage.`
+});
+
+// Stages 1–3: individual butterflies (4 per stage = 12 total)
+{
+  let workArr=cloneArr(stageVals[0]);
+  for(let s=1;s<=LOG2N;s++){
+    const m=1<<s,half=m>>1;
+    let bfIdx=0;
+    for(let k=0;k<N;k+=m){
+      for(let j=0;j<half;j++){
+        const top=k+j,bot=k+j+half;
+        const W=tw(j,m);
+        const t=C.mul(W,workArr[bot]),u=C.clone(workArr[top]);
+        workArr[top]=C.add(u,t); workArr[bot]=C.sub(u,t);
+
+        const twAngleDeg=(-360*j/m).toFixed(0);
+        const twStr=`W_${m}^${j} = ${C.fmt(W,3)}`;
+        const twAngleStr=`angle = ${twAngleDeg}°`;
+
+        let desc=`<strong>Stage ${s}, Butterfly ${bfIdx}</strong> (m=${m}, group k=${k}, offset j=${j})<br>`+
+          `<span class="hl-ac">A[${top}]</span> and <span class="hl-pu">A[${bot}]</span> combined `+
+          `with twiddle <span class="hl-yl">W_${m}^${j} = e<sup>−2πi·${j}/${m}</sup></span>:<br>`+
+          `&nbsp; A[${top}] ← A[${top}] + W·A[${bot}] = <span class="hl-ac">${C.fmt(workArr[top])}</span><br>`+
+          `&nbsp; A[${bot}] ← A[${top}]<sub>old</sub> − W·A[${bot}]<sub>old</sub> = <span class="hl-pu">${C.fmt(workArr[bot])}</span>`;
+
+        STEPS.push({
+          vals:cloneArr(workArr),
+          activeTop:top,activeBot:bot,activeStage:s,
+          phase:`stage${s}`,
+          pseudoLines:[2,3,4,5,6,7,8,9,10,11,12],
+          twiddle:{str:twStr,angle:twAngleStr,W,j,m},
+          desc
+        });
+        bfIdx++;
+      }
+    }
+  }
+}
+
+// Final step: done
+STEPS.push({
+  vals:cloneArr(stageVals[LOG2N]),
+  activeTop:-1,activeBot:-1,activeStage:-1,
+  phase:'done',
+  pseudoLines:[],
+  twiddle:null,
+  desc:`<strong>FFT complete!</strong> The output X[k] is the frequency spectrum. `+
+       `<span class="hl-ac">X[1]≈4</span> and <span class="hl-ac">X[7]≈4</span> reveal the cosine at k=1; `+
+       `<span class="hl-pu">X[2]≈2</span> and <span class="hl-pu">X[6]≈2</span> reveal the sine at k=2. `+
+       `All other bins are <span class="hl-gr">≈0</span>. Total work: `+
+       `<strong>${LOG2N} stages × ${N/2} butterflies = ${LOG2N*N/2} butterfly ops</strong> `+
+       `(vs ${N*N} for brute-force DFT).`
+});
+
+const TOTAL=STEPS.length; // 15
+let stepIdx=0, playing=false, timer=null;
+
+// ─── Canvas setup ─────────────────────────────────────────────────
+const netCanvas=document.getElementById('net-canvas');
+const netCtx=netCanvas.getContext('2d');
+const magCanvas=document.getElementById('mag-canvas');
+const magCtx=magCanvas.getContext('2d');
+const twCanvas=document.getElementById('tw-canvas');
+const twCtx=twCanvas.getContext('2d');
+
+const DPR=window.devicePixelRatio||1;
+
+function setupCanvas(el,ctx,h){
+  const rect=el.parentElement.getBoundingClientRect();
+  el.width=Math.round(rect.width*DPR);
+  el.height=h*DPR;
+  el.style.width=rect.width+'px';
+  el.style.height=h+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+
+function initCanvases(){
+  setupCanvas(netCanvas,netCtx,320);
+  setupCanvas(magCanvas,magCtx,80);
+}
+
+// ─── Butterfly network drawing constants ──────────────────────────
+const PAD_X=52, PAD_Y=28;
+const NODE_R=17;
+
+// Butterfly pair connections per stage
+function bfPairs(stage){
+  const pairs=[];
+  const m=1<<stage,half=m>>1;
+  for(let k=0;k<N;k+=m)
+    for(let j=0;j<half;j++)
+      pairs.push([k+j,k+j+half]);
+  return pairs;
+}
+
+// All pairs for all stages (for static wires)
+const ALL_PAIRS=[[],[1,2,3].map(s=>bfPairs(s))].flat(2);
+const STAGE_PAIRS=[null,bfPairs(1),bfPairs(2),bfPairs(3)];
+
+function nx(col,W){return PAD_X+col*(W-2*PAD_X)/LOG2N;}
+function ny(row,H){return PAD_Y+row*(H-2*PAD_Y)/(N-1);}
+
+// ─── Draw butterfly network ───────────────────────────────────────
+function drawNet(){
+  const step=STEPS[stepIdx];
+  const cw=netCanvas.width/DPR, ch=netCanvas.height/DPR;
+
+  netCtx.clearRect(0,0,cw,ch);
+  netCtx.fillStyle='#1c2128';
+  netCtx.fillRect(0,0,cw,ch);
+
+  // Column header labels
+  const colLabels=['Input','Stage 1','Stage 2','Stage 3'];
+  for(let c=0;c<4;c++){
+    const x=nx(c,cw);
+    const active=(c===step.activeStage)||(step.phase==='done'&&c===3);
+    netCtx.fillStyle=active?'#67e8f9':'#8b949e';
+    netCtx.font=`${active?'bold ':''}11px -apple-system,sans-serif`;
+    netCtx.textAlign='center';
+    netCtx.textBaseline='top';
+    netCtx.fillText(colLabels[c],x,6);
+  }
+
+  // Draw static wires (all stages)
+  for(let s=1;s<=LOG2N;s++){
+    const pairs=STAGE_PAIRS[s];
+    for(const [ti,bi] of pairs){
+      const isActive=(step.activeStage===s&&step.activeTop===ti&&step.activeBot===bi);
+      const x1=nx(s-1,cw),x2=nx(s,cw);
+      const yt=ny(ti,ch),yb=ny(bi,ch);
+
+      if(isActive){
+        // Highlighted butterfly — 4 lines
+        const drawLine=(x1,y1,x2,y2,col,dash)=>{
+          netCtx.beginPath();
+          netCtx.moveTo(x1,y1); netCtx.lineTo(x2,y2);
+          netCtx.strokeStyle=col;
+          netCtx.lineWidth=2.5;
+          netCtx.setLineDash(dash||[]);
+          netCtx.stroke();
+          netCtx.setLineDash([]);
+        };
+        drawLine(x1,yt,x2,yt,'#67e8f9');  // top straight
+        drawLine(x1,yb,x2,yb,'#d2a8ff');  // bot straight
+        drawLine(x1,yt,x2,yb,'#d2a8ff',[5,4]); // top→bot cross (pu)
+        drawLine(x1,yb,x2,yt,'#67e8f9',[5,4]); // bot→top cross (ac)
+
+        // Mid-point twiddle label
+        const mx=(x1+x2)/2, my=(yt+yb)/2;
+        netCtx.fillStyle='#e3b341';
+        netCtx.font='bold 10px monospace';
+        netCtx.textAlign='center';
+        netCtx.textBaseline='middle';
+        netCtx.fillText('W',mx+2,my);
+      } else {
+        // Gray wire
+        netCtx.beginPath();
+        netCtx.moveTo(x1,yt); netCtx.lineTo(x2,yt);
+        netCtx.moveTo(x1,yb); netCtx.lineTo(x2,yb);
+        netCtx.moveTo(x1,yt); netCtx.lineTo(x2,yb);
+        netCtx.moveTo(x1,yb); netCtx.lineTo(x2,yt);
+        const past=step.activeStage>s||(step.phase==='done');
+        netCtx.strokeStyle=past?'rgba(48,54,61,0.9)':'rgba(48,54,61,0.5)';
+        netCtx.lineWidth=1;
+        netCtx.stroke();
+      }
+    }
+  }
+
+  // Draw nodes
+  for(let c=0;c<4;c++){
+    for(let r=0;r<N;r++){
+      const x=nx(c,cw), y=ny(r,ch);
+      let val=null, state='dim';
+
+      if(c===0){
+        val=step.phase==='input'?RAW[r]:stageVals[0][r];
+        state='normal';
+      } else {
+        const completedStage=step.activeStage>c||(step.phase==='done'&&c<=LOG2N);
+        const currentStage=step.activeStage===c;
+        if(completedStage){
+          val=stageVals[c][r];
+          state=step.phase==='done'?'done':'past';
+        } else if(currentStage){
+          val=step.vals[r];
+          if(r===step.activeTop) state='active-top';
+          else if(r===step.activeBot) state='active-bot';
+          else state='normal';
+        }
+      }
+
+      // Node fill & stroke
+      let fill='#111720', stroke='rgba(48,54,61,0.4)';
+      if(state==='active-top'){fill='rgba(103,232,249,0.18)';stroke='#67e8f9';}
+      else if(state==='active-bot'){fill='rgba(210,168,255,0.18)';stroke='#d2a8ff';}
+      else if(state==='done'){fill='rgba(227,179,65,0.12)';stroke='#e3b341';}
+      else if(state==='past'){fill='#161b22';stroke='#30363d';}
+      else if(state==='normal'){fill='#161b22';stroke='#30363d';}
+
+      netCtx.beginPath();
+      netCtx.arc(x,y,NODE_R,0,2*Math.PI);
+      netCtx.fillStyle=fill;
+      netCtx.fill();
+      netCtx.strokeStyle=stroke;
+      netCtx.lineWidth=state.startsWith('active')||state==='done'?1.8:1;
+      netCtx.stroke();
+
+      // Value text inside node
+      if(val!==null && state!=='dim'){
+        const mag=C.abs(val);
+        let textCol='#8b949e';
+        if(state==='active-top') textCol='#67e8f9';
+        else if(state==='active-bot') textCol='#d2a8ff';
+        else if(state==='done') textCol='#e3b341';
+        else if(state==='past') textCol='#8b949e';
+        else textCol='#e6edf3';
+
+        netCtx.fillStyle=textCol;
+        netCtx.font='bold 10px monospace';
+        netCtx.textAlign='center';
+        netCtx.textBaseline='middle';
+        netCtx.fillText(mag.toFixed(1),x,y);
+      }
+
+      // Index labels (left of col0, right of col3)
+      if(c===0){
+        const label=step.phase==='input'?`x[${r}]`:`x'[${r}]`;
+        netCtx.fillStyle='#8b949e';
+        netCtx.font='9px sans-serif';
+        netCtx.textAlign='right';
+        netCtx.textBaseline='middle';
+        netCtx.fillText(label,x-NODE_R-4,y);
+      }
+      if(c===3&&(step.phase==='done'||step.activeStage>3)){
+        netCtx.fillStyle='#e3b341';
+        netCtx.font='bold 9px sans-serif';
+        netCtx.textAlign='left';
+        netCtx.textBaseline='middle';
+        netCtx.fillText(`X[${r}]`,x+NODE_R+4,y);
+      }
+    }
+  }
+}
+
+// ─── Draw magnitude bar chart ─────────────────────────────────────
+function drawMag(){
+  const step=STEPS[stepIdx];
+  const cw=magCanvas.width/DPR, ch=magCanvas.height/DPR;
+  magCtx.clearRect(0,0,cw,ch);
+  magCtx.fillStyle='#1c2128';
+  magCtx.fillRect(0,0,cw,ch);
+
+  const vals=step.vals;
+  const maxMag=Math.max(...vals.map(C.abs),1);
+  const barW=(cw-16)/N;
+  const maxH=ch-24;
+
+  for(let i=0;i<N;i++){
+    const mag=C.abs(vals[i]);
+    const h=Math.max(2,(mag/maxMag)*maxH);
+    const x=8+i*barW;
+    const y=ch-16-h;
+
+    let col='#30363d';
+    if(step.phase==='done') col='#e3b341';
+    else if(i===step.activeTop) col='#67e8f9';
+    else if(i===step.activeBot) col='#d2a8ff';
+    else if(step.activeStage>0) col='#3fb950';
+    else col='#58a6ff';
+
+    magCtx.fillStyle=col;
+    magCtx.beginPath();
+    magCtx.roundRect(x+1,y,barW-4,h,3);
+    magCtx.fill();
+
+    // Index label
+    const lbl=step.phase==='done'?`X[${i}]`:`A[${i}]`;
+    magCtx.fillStyle='#8b949e';
+    magCtx.font='8px sans-serif';
+    magCtx.textAlign='center';
+    magCtx.textBaseline='top';
+    magCtx.fillText(lbl,x+barW/2,ch-14);
+
+    // Mag value on top of bar
+    if(mag>0.05){
+      magCtx.fillStyle=col;
+      magCtx.font='bold 8px monospace';
+      magCtx.textBaseline='bottom';
+      magCtx.fillText(mag.toFixed(1),x+barW/2,y-1);
+    }
+  }
+}
+
+// ─── Draw twiddle unit circle ─────────────────────────────────────
+function drawTwiddle(){
+  const step=STEPS[stepIdx];
+  const w=twCanvas.width, h=twCanvas.height;
+  twCtx.clearRect(0,0,w,h);
+  twCtx.fillStyle='#1c2128';
+  twCtx.fillRect(0,0,w,h);
+
+  const cx=w/2, cy=h/2, r=22;
+
+  // Unit circle
+  twCtx.beginPath();
+  twCtx.arc(cx,cy,r,0,2*Math.PI);
+  twCtx.strokeStyle='#30363d';
+  twCtx.lineWidth=1;
+  twCtx.stroke();
+
+  // Axes
+  twCtx.strokeStyle='rgba(48,54,61,0.8)';
+  twCtx.beginPath();
+  twCtx.moveTo(cx-r-4,cy); twCtx.lineTo(cx+r+4,cy);
+  twCtx.moveTo(cx,cy-r-4); twCtx.lineTo(cx,cy+r+4);
+  twCtx.stroke();
+
+  if(step.twiddle){
+    const W=step.twiddle.W;
+    const px=cx+W.re*r, py=cy-W.im*r; // note: canvas y is inverted
+    // Arrow to W
+    twCtx.beginPath();
+    twCtx.moveTo(cx,cy); twCtx.lineTo(px,py);
+    twCtx.strokeStyle='#e3b341';
+    twCtx.lineWidth=2;
+    twCtx.stroke();
+    // Dot at W
+    twCtx.beginPath();
+    twCtx.arc(px,py,4,0,2*Math.PI);
+    twCtx.fillStyle='#e3b341';
+    twCtx.fill();
+  } else {
+    // Show 1 (positive real axis)
+    twCtx.beginPath();
+    twCtx.moveTo(cx,cy); twCtx.lineTo(cx+r,cy);
+    twCtx.strokeStyle='#67e8f9';
+    twCtx.lineWidth=2;
+    twCtx.stroke();
+    twCtx.beginPath();
+    twCtx.arc(cx+r,cy,4,0,2*Math.PI);
+    twCtx.fillStyle='#67e8f9';
+    twCtx.fill();
+  }
+}
+
+// ─── Update sidebar ───────────────────────────────────────────────
+function updateSidebar(){
+  const step=STEPS[stepIdx];
+
+  // Value table
+  const tbody=document.getElementById('val-tbody');
+  tbody.innerHTML='';
+  for(let i=0;i<N;i++){
+    const v=step.vals[i];
+    const tr=document.createElement('tr');
+    let cls='';
+    if(i===step.activeTop) cls='r-top';
+    else if(i===step.activeBot) cls='r-bot';
+    else if(step.phase==='done') cls='r-done';
+    if(cls) tr.className=cls;
+    tr.innerHTML=`<td>${step.phase==='done'?'X':'A'}[${i}]</td><td>${v.re.toFixed(2)}</td><td>${v.im.toFixed(2)}</td><td>${C.abs(v).toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  // Twiddle
+  const tw=step.twiddle;
+  if(tw){
+    document.getElementById('tw-val').textContent=tw.str;
+    document.getElementById('tw-angle').textContent=tw.angle;
+  } else {
+    document.getElementById('tw-val').textContent=step.activeStage===0?'W = 1 (identity)':'—';
+    document.getElementById('tw-angle').textContent='';
+  }
+
+  // Pseudocode highlight
+  const activeLines=new Set(step.pseudoLines||[]);
+  for(let i=0;i<=12;i++){
+    const el=document.getElementById(`pl${i}`);
+    if(!el) continue;
+    el.className=activeLines.has(i)?'ac':'';
+  }
+
+  // Description
+  document.getElementById('step-desc').innerHTML=step.desc;
+
+  // Mag label
+  document.getElementById('mag-label').textContent=
+    step.phase==='done'?'Output spectrum |X[k]| — frequency domain':'Signal magnitudes |A[k]| — current computation state';
+
+  // Step counter
+  document.getElementById('step-ctr').textContent=`Step ${stepIdx+1} / ${TOTAL}`;
+
+  // Nav buttons
+  document.getElementById('btn-prev').disabled=stepIdx===0;
+  document.getElementById('btn-next').disabled=stepIdx===TOTAL-1;
+}
+
+// ─── Main render ──────────────────────────────────────────────────
+function render(){
+  drawNet();
+  drawMag();
+  drawTwiddle();
+  updateSidebar();
+}
+
+// ─── Navigation ───────────────────────────────────────────────────
+function goTo(i){
+  stepIdx=Math.max(0,Math.min(TOTAL-1,i));
+  render();
+}
+
+document.getElementById('btn-prev').onclick=()=>{stopPlay();goTo(stepIdx-1);};
+document.getElementById('btn-next').onclick=()=>{stopPlay();goTo(stepIdx+1);};
+document.getElementById('btn-reset').onclick=()=>{stopPlay();goTo(0);};
+
+const speedEl=document.getElementById('speed');
+const speedLbl=document.getElementById('speed-lbl');
+speedEl.oninput=()=>{ speedLbl.textContent=(speedEl.value/1000).toFixed(1)+'s'; };
+
+function getSpeed(){return parseInt(speedEl.value,10);}
+
+function stopPlay(){
+  playing=false;
+  clearTimeout(timer);
+  document.getElementById('btn-play').textContent='▶ Play';
+  document.getElementById('btn-play').classList.remove('play-active');
+}
+
+function tick(){
+  if(!playing) return;
+  if(stepIdx>=TOTAL-1){ stopPlay(); return; }
+  goTo(stepIdx+1);
+  timer=setTimeout(tick,getSpeed());
+}
+
+document.getElementById('btn-play').onclick=()=>{
+  if(playing){ stopPlay(); return; }
+  if(stepIdx>=TOTAL-1) goTo(0);
+  playing=true;
+  document.getElementById('btn-play').textContent='⏸ Pause';
+  document.getElementById('btn-play').classList.add('play-active');
+  timer=setTimeout(tick,getSpeed());
+};
+
+// ─── Resize handling ──────────────────────────────────────────────
+let resizeTimer;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{ initCanvases(); render(); },100);
+});
+
+// ─── Init ─────────────────────────────────────────────────────────
+initCanvases();
+render();
+</script>
+</body>
+</html>

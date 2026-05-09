@@ -589,7 +589,8 @@ const CAT_COLORS = {
   'Data Structure': 'var(--cat-datastructure)',
   'Number Theory': 'var(--cat-numbertheory)',
   'Optimization': 'var(--cat-optimization)',
-  'Linked List': 'var(--cat-linkedlist)'
+  'Linked List': 'var(--cat-linkedlist)',
+  'Numerical': '#67e8f9'
 };
 
 // All algorithm data
@@ -680,7 +681,8 @@ const ALGORITHMS = [
   { name: "Egg Drop Problem", slug: "egg-drop", category: "Dynamic Programming", difficulty: "Advanced", time: "O(n·k²)", space: "O(n·k)", desc: "Find the minimum number of trials to identify the critical floor in the worst case. Watch the 2D DP table fill as the floor-vs-egg tradeoff is optimized at each state.", tags: ["dp","egg-drop","minimax","optimization","worst-case"], isNew: true },
   { name: "Count-Min Sketch", slug: "count-min-sketch", category: "Probabilistic", difficulty: "Intermediate", time: "O(d)", space: "O(d·w)", desc: "Estimate item frequencies in a stream using a 2D counter table and d hash functions. The minimum across all rows gives an estimate that never underestimates — watch hash collisions add noise and the min filter it out.", tags: ["probabilistic","streaming","frequency","hash","approximate","sketch"], isNew: true },
   { name: "HyperLogLog", slug: "hyperloglog", category: "Probabilistic", difficulty: "Intermediate", time: "O(1)", space: "O(m)", desc: "Estimate the number of distinct items in a stream using only O(m) registers. Watch each item get hashed, see the leading-zero count update its register, and observe the harmonic mean formula converge to the true cardinality.", tags: ["probabilistic","streaming","cardinality","hash","approximate","hyperloglog"], isNew: true },
-  { name: "Monte Carlo π", slug: "monte-carlo-pi", category: "Probabilistic", difficulty: "Beginner", time: "O(N)", space: "O(N)", desc: "Estimate π by throwing random darts at a unit square. Watch inside/outside points accumulate, see the π estimate converge, and discover why O(1/√N) convergence is brutally slow.", tags: ["probabilistic","monte-carlo","simulation","random","pi","convergence"], isNew: true }
+  { name: "Monte Carlo π", slug: "monte-carlo-pi", category: "Probabilistic", difficulty: "Beginner", time: "O(N)", space: "O(N)", desc: "Estimate π by throwing random darts at a unit square. Watch inside/outside points accumulate, see the π estimate converge, and discover why O(1/√N) convergence is brutally slow.", tags: ["probabilistic","monte-carlo","simulation","random","pi","convergence"], isNew: true },
+  { name: "Fast Fourier Transform", slug: "fft", category: "Numerical", difficulty: "Advanced", time: "O(N log N)", space: "O(N)", desc: "Watch Cooley-Tukey radix-2 DIT FFT decompose a signal stage by stage. Bit-reversal permutation reorders inputs; each stage applies butterfly operations with twiddle-factor rotations to halve the problem recursively.", tags: ["numerical","fft","butterfly","twiddle","signal","dft","cooley-tukey"], isNew: true }
 ];
 
 // State
