@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strassen Matrix Multiplication — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--s3:#111720;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --ac:#67e8f9;--ac0:rgba(103,232,249,.15);
+  --gr:#3fb950;--gr0:rgba(63,185,80,.15);
+  --rd:#f85149;--rd0:rgba(248,81,73,.15);
+  --yl:#e3b341;--yl0:rgba(227,179,65,.15);
+  --pu:#d2a8ff;--pu0:rgba(210,168,255,.15);
+  --or:#f97316;--or0:rgba(249,115,22,.15);
+  --pk:#f778ba;--pk0:rgba(247,120,186,.15);
+  --tl:#2dd4bf;--tl0:rgba(45,212,191,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;gap:12px;flex-wrap:wrap}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--pu)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s;white-space:nowrap}
+header a:hover{color:var(--text);border-color:var(--pu)}
+.layout{display:grid;grid-template-columns:1fr 300px;flex:1;min-height:0}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;background:var(--s3)}
+
+/* Controls */
+.step-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.step-bar button{background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s;white-space:nowrap}
+.step-bar button:hover:not(:disabled){border-color:var(--pu);color:var(--pu)}
+.step-bar button:disabled{opacity:.4;cursor:default}
+.step-bar button.play-active{background:var(--pu0);border-color:var(--pu);color:var(--pu)}
+.step-counter{font-size:.78rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+.speed-row{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);min-width:130px}
+.speed-row input{flex:1;accent-color:var(--pu)}
+
+/* Step description */
+.step-desc{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:13px 16px;font-size:.84rem;line-height:1.65;color:var(--muted);min-height:70px}
+.step-desc strong{color:var(--text)}
+.hl-ac{color:var(--ac);font-weight:700}
+.hl-gr{color:var(--gr);font-weight:700}
+.hl-yl{color:var(--yl);font-weight:700}
+.hl-pu{color:var(--pu);font-weight:700}
+.hl-rd{color:var(--rd);font-weight:700}
+.hl-or{color:var(--or);font-weight:700}
+.hl-pk{color:var(--pk);font-weight:700}
+.hl-tl{color:var(--tl);font-weight:700}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+
+/* Matrix display area */
+.matrices-row{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.mat-container{display:flex;flex-direction:column;align-items:center;gap:6px}
+.mat-label{font-size:.85rem;font-weight:700;color:var(--muted);font-family:monospace}
+.mat-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;background:var(--s2);border:1px solid var(--border);border-radius:8px;position:relative}
+.mat-bracket{position:absolute;top:0;bottom:0;width:8px;border:2px solid var(--border);pointer-events:none}
+.mat-bracket.left{left:-2px;border-right:none;border-radius:4px 0 0 4px}
+.mat-bracket.right{right:-2px;border-left:none;border-radius:0 4px 4px 0}
+.cell{
+  width:54px;height:44px;display:flex;align-items:center;justify-content:center;
+  border-radius:6px;border:1.5px solid var(--border);
+  background:var(--s2);font-family:monospace;font-size:.85rem;font-weight:700;
+  transition:background .25s,border-color .25s,color .25s,transform .15s;
+  position:relative;cursor:default;
+  flex-direction:column;gap:1px;
+}
+.cell .val{font-size:.9rem}
+.cell .lbl{font-size:.58rem;color:var(--muted);font-weight:400}
+.cell.h-ac{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.cell.h-pu{background:var(--pu0);border-color:var(--pu);color:var(--pu)}
+.cell.h-yl{background:var(--yl0);border-color:var(--yl);color:var(--yl)}
+.cell.h-gr{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+.cell.h-or{background:var(--or0);border-color:var(--or);color:var(--or)}
+.cell.h-rd{background:var(--rd0);border-color:var(--rd);color:var(--rd)}
+.cell.h-pk{background:var(--pk0);border-color:var(--pk);color:var(--pk)}
+.cell.h-tl{background:var(--tl0);border-color:var(--tl);color:var(--tl)}
+.cell.done{background:var(--gr0);border-color:var(--gr);color:var(--gr)}
+
+.op-sym{font-size:1.5rem;color:var(--muted);align-self:center;margin-top:20px}
+.eq-sym{font-size:1.5rem;color:var(--pu);align-self:center;margin-top:20px}
+
+/* Formula panel */
+.formula-panel{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.formula-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:10px}
+.formula-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.m-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:7px;border:1.5px solid var(--border);
+  background:var(--s2);font-family:monospace;font-size:.82rem;font-weight:700;
+  transition:all .25s;white-space:nowrap;
+}
+.m-chip.active{transform:scale(1.05)}
+.m-chip.done{border-color:var(--gr);background:var(--gr0);color:var(--gr)}
+.m-chip.pending{opacity:.35}
+.m-chip .chip-val{font-size:.75rem;color:var(--muted);font-weight:400}
+
+/* C assembly */
+.c-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.c-formula{font-family:monospace;font-size:.8rem;color:var(--muted);line-height:1.8;flex:1;min-width:200px}
+.c-formula .active-term{color:var(--pu);font-weight:700}
+.c-formula .done-term{color:var(--gr)}
+
+/* Sidebar m-table */
+.m-table{width:100%;border-collapse:collapse;font-size:.76rem;font-family:monospace}
+.m-table th{color:var(--muted);text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);font-size:.65rem;text-transform:uppercase}
+.m-table td{padding:4px 6px;border-bottom:1px solid rgba(48,54,61,0.4);transition:all .2s;color:var(--muted)}
+.m-table tr.active td{color:var(--pu);background:var(--pu0);font-weight:700}
+.m-table tr.done td{color:var(--gr);font-weight:600}
+
+/* Pseudocode */
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.71rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.95;color:var(--muted)}
+.pseudo .ac{color:var(--pu);font-weight:700;background:var(--pu0);border-radius:3px;padding:0 3px}
+
+/* Info */
+.info-box{font-size:.78rem;color:var(--muted);line-height:1.65}
+.info-box strong{color:var(--text)}
+
+/* Recursion tree */
+.tree-panel{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto}
+.tree-svg{display:block;margin:0 auto}
+
+/* Phase badge */
+.phase-badge{display:inline-block;font-size:.65rem;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 7px;border-radius:4px;margin-right:6px}
+.phase-mul{background:var(--ac0);color:var(--ac);border:1px solid var(--ac)}
+.phase-add{background:var(--pu0);color:var(--pu);border:1px solid var(--pu)}
+.phase-done{background:var(--gr0);color:var(--gr);border:1px solid var(--gr)}
+.phase-intro{background:var(--yl0);color:var(--yl);border:1px solid var(--yl)}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>Strassen Matrix Multiplication</span></h1>
+  <a href="../../index.html">← Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+
+  <div class="step-bar">
+    <button id="btn-prev" disabled>◀ Prev</button>
+    <button id="btn-next">Next ▶</button>
+    <button id="btn-play">▶ Play</button>
+    <button id="btn-reset">↺ Reset</button>
+    <span class="step-counter" id="step-ctr"></span>
+    <div class="speed-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="400" max="2400" value="1100" step="100">
+      <span id="speed-lbl">1.1s</span>
+    </div>
+  </div>
+
+  <!-- Input matrices -->
+  <div class="panel">
+    <div class="slbl">Input Matrices</div>
+    <div class="matrices-row">
+      <!-- Matrix A -->
+      <div class="mat-container">
+        <div class="mat-label">A</div>
+        <div class="mat-grid" id="mat-A">
+          <div class="cell" id="a00"><div class="val" id="a00v"></div><div class="lbl">A₁₁</div></div>
+          <div class="cell" id="a01"><div class="val" id="a01v"></div><div class="lbl">A₁₂</div></div>
+          <div class="cell" id="a10"><div class="val" id="a10v"></div><div class="lbl">A₂₁</div></div>
+          <div class="cell" id="a11"><div class="val" id="a11v"></div><div class="lbl">A₂₂</div></div>
+        </div>
+      </div>
+      <div class="op-sym">×</div>
+      <!-- Matrix B -->
+      <div class="mat-container">
+        <div class="mat-label">B</div>
+        <div class="mat-grid" id="mat-B">
+          <div class="cell" id="b00"><div class="val" id="b00v"></div><div class="lbl">B₁₁</div></div>
+          <div class="cell" id="b01"><div class="val" id="b01v"></div><div class="lbl">B₁₂</div></div>
+          <div class="cell" id="b10"><div class="val" id="b10v"></div><div class="lbl">B₂₁</div></div>
+          <div class="cell" id="b11"><div class="val" id="b11v"></div><div class="lbl">B₂₂</div></div>
+        </div>
+      </div>
+      <div class="eq-sym">=</div>
+      <!-- Matrix C -->
+      <div class="mat-container">
+        <div class="mat-label">C</div>
+        <div class="mat-grid" id="mat-C">
+          <div class="cell" id="c00"><div class="val" id="c00v">?</div><div class="lbl">C₁₁</div></div>
+          <div class="cell" id="c01"><div class="val" id="c01v">?</div><div class="lbl">C₁₂</div></div>
+          <div class="cell" id="c10"><div class="val" id="c10v">?</div><div class="lbl">C₂₁</div></div>
+          <div class="cell" id="c11"><div class="val" id="c11v">?</div><div class="lbl">C₂₂</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 multiplications -->
+  <div class="formula-panel">
+    <div class="formula-title">7 Sub-Multiplications (Strassen's Key Insight)</div>
+    <div class="formula-row" id="m-chips"></div>
+  </div>
+
+  <!-- Current step formula -->
+  <div class="panel" id="cur-formula-panel">
+    <div class="slbl" id="cur-formula-label">Current Operation</div>
+    <div style="font-family:monospace;font-size:.9rem;color:var(--text);line-height:2;padding:4px 0" id="cur-formula"></div>
+  </div>
+
+  <!-- C assembly formulas -->
+  <div class="panel">
+    <div class="slbl">Result Assembly (additions only — no more multiplications!)</div>
+    <div class="c-row">
+      <div class="c-formula" id="c-formulas"></div>
+    </div>
+  </div>
+
+  <div class="step-desc" id="step-desc"></div>
+
+</div>
+<div class="sidebar">
+
+  <div>
+    <div class="slbl">M Values</div>
+    <table class="m-table" id="m-table">
+      <thead><tr><th>M</th><th>Formula</th><th>Value</th></tr></thead>
+      <tbody id="m-tbody"></tbody>
+    </table>
+  </div>
+
+  <div>
+    <div class="slbl">Pseudocode</div>
+    <div class="pseudo" id="pseudo">
+      <div id="pl0">Strassen(A, B):</div>
+      <div id="pl1">&nbsp; // 7 multiplications</div>
+      <div id="pl2">&nbsp; M₁ ← (A₁₁+A₂₂)(B₁₁+B₂₂)</div>
+      <div id="pl3">&nbsp; M₂ ← (A₂₁+A₂₂)·B₁₁</div>
+      <div id="pl4">&nbsp; M₃ ← A₁₁·(B₁₂−B₂₂)</div>
+      <div id="pl5">&nbsp; M₄ ← A₂₂·(B₂₁−B₁₁)</div>
+      <div id="pl6">&nbsp; M₅ ← (A₁₁+A₁₂)·B₂₂</div>
+      <div id="pl7">&nbsp; M₆ ← (A₂₁−A₁₁)(B₁₁+B₁₂)</div>
+      <div id="pl8">&nbsp; M₇ ← (A₁₂−A₂₂)(B₂₁+B₂₂)</div>
+      <div id="pl9">&nbsp; // assemble result</div>
+      <div id="pl10">&nbsp; C₁₁ ← M₁+M₄−M₅+M₇</div>
+      <div id="pl11">&nbsp; C₁₂ ← M₃+M₅</div>
+      <div id="pl12">&nbsp; C₂₁ ← M₂+M₄</div>
+      <div id="pl13">&nbsp; C₂₂ ← M₁−M₂+M₃+M₆</div>
+      <div id="pl14">&nbsp; <b>return</b> C</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="slbl">Complexity</div>
+    <div class="info-box">
+      <p>Naïve 2×2: <strong>8 multiplications</strong> + 4 additions.</p>
+      <br>
+      <p>Strassen: <strong style="color:var(--gr)">7 multiplications</strong> + 18 additions. Saves 1 multiply — trades arithmetic for additions which are cheaper.</p>
+      <br>
+      <p>Recursively on n×n blocks:<br>
+      <span style="color:var(--pu)">T(n) = 7·T(n/2) + O(n²)</span><br>
+      → <strong>O(n<sup>log₂7</sup>) ≈ O(n<sup>2.807</sup>)</strong><br>
+      vs naïve <strong style="color:var(--rd)">O(n³)</strong>.</p>
+      <br>
+      <p>For large n, the log₂7 ≈ 2.807 exponent beats 3 significantly — at n=1024 this is roughly <strong>4.7× fewer operations</strong>.</p>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ─── Problem data ─────────────────────────────────────────────────
+const A = [[1, 2], [3, 4]];
+const B = [[5, 6], [7, 8]];
+
+// Named elements for display
+const Av = { a11: A[0][0], a12: A[0][1], a21: A[1][0], a22: A[1][1] };
+const Bv = { b11: B[0][0], b12: B[0][1], b21: B[1][0], b22: B[1][1] };
+
+// ─── Strassen's 7 multiplications ────────────────────────────────
+const M = [];
+M[1] = (Av.a11 + Av.a22) * (Bv.b11 + Bv.b22);  // (A11+A22)(B11+B22)
+M[2] = (Av.a21 + Av.a22) * Bv.b11;              // (A21+A22)·B11
+M[3] = Av.a11 * (Bv.b12 - Bv.b22);             // A11·(B12-B22)
+M[4] = Av.a22 * (Bv.b21 - Bv.b11);             // A22·(B21-B11)
+M[5] = (Av.a11 + Av.a12) * Bv.b22;              // (A11+A12)·B22
+M[6] = (Av.a21 - Av.a11) * (Bv.b11 + Bv.b12);  // (A21-A11)(B11+B12)
+M[7] = (Av.a12 - Av.a22) * (Bv.b21 + Bv.b22);  // (A12-A22)(B21+B22)
+
+// ─── Result ───────────────────────────────────────────────────────
+const C = [
+  [M[1] + M[4] - M[5] + M[7],  M[3] + M[5]],
+  [M[2] + M[4],                 M[1] - M[2] + M[3] + M[6]]
+];
+
+// ─── Color palette for M1..M7 ────────────────────────────────────
+const MCOLS = ['','ac','pu','yl','gr','or','pk','tl'];
+// ac=cyan, pu=purple, yl=yellow, gr=green, or=orange, pk=pink, tl=teal
+
+// ─── Highlight specs per step ─────────────────────────────────────
+// Each cell: [row,col,matrix], matrix: 'A'|'B'|'C'
+// aHl/bHl = arrays of {r,c,col} — which cells to highlight in A/B/C
+const MF = [
+  null, // index 0 unused
+  // M1: (A11+A22)(B11+B22)
+  { aH:[{r:0,c:0,col:'ac'},{r:1,c:1,col:'ac'}], bH:[{r:0,c:0,col:'pu'},{r:1,c:1,col:'pu'}],
+    label:'M₁', expr:'(A₁₁ + A₂₂) × (B₁₁ + B₂₂)', pline:2,
+    exprFull:`(<span class="hl-ac">A₁₁</span> + <span class="hl-ac">A₂₂</span>) × (<span class="hl-pu">B₁₁</span> + <span class="hl-pu">B₂₂</span>)` },
+  // M2: (A21+A22)·B11
+  { aH:[{r:1,c:0,col:'ac'},{r:1,c:1,col:'ac'}], bH:[{r:0,c:0,col:'pu'}],
+    label:'M₂', expr:'(A₂₁ + A₂₂) × B₁₁', pline:3,
+    exprFull:`(<span class="hl-ac">A₂₁</span> + <span class="hl-ac">A₂₂</span>) × <span class="hl-pu">B₁₁</span>` },
+  // M3: A11·(B12-B22)
+  { aH:[{r:0,c:0,col:'ac'}], bH:[{r:0,c:1,col:'pu'},{r:1,c:1,col:'rd'}],
+    label:'M₃', expr:'A₁₁ × (B₁₂ − B₂₂)', pline:4,
+    exprFull:`<span class="hl-ac">A₁₁</span> × (<span class="hl-pu">B₁₂</span> − <span class="hl-rd">B₂₂</span>)` },
+  // M4: A22·(B21-B11)
+  { aH:[{r:1,c:1,col:'ac'}], bH:[{r:1,c:0,col:'pu'},{r:0,c:0,col:'rd'}],
+    label:'M₄', expr:'A₂₂ × (B₂₁ − B₁₁)', pline:5,
+    exprFull:`<span class="hl-ac">A₂₂</span> × (<span class="hl-pu">B₂₁</span> − <span class="hl-rd">B₁₁</span>)` },
+  // M5: (A11+A12)·B22
+  { aH:[{r:0,c:0,col:'ac'},{r:0,c:1,col:'ac'}], bH:[{r:1,c:1,col:'pu'}],
+    label:'M₅', expr:'(A₁₁ + A₁₂) × B₂₂', pline:6,
+    exprFull:`(<span class="hl-ac">A₁₁</span> + <span class="hl-ac">A₁₂</span>) × <span class="hl-pu">B₂₂</span>` },
+  // M6: (A21-A11)·(B11+B12)
+  { aH:[{r:1,c:0,col:'ac'},{r:0,c:0,col:'rd'}], bH:[{r:0,c:0,col:'pu'},{r:0,c:1,col:'pu'}],
+    label:'M₆', expr:'(A₂₁ − A₁₁) × (B₁₁ + B₁₂)', pline:7,
+    exprFull:`(<span class="hl-ac">A₂₁</span> − <span class="hl-rd">A₁₁</span>) × (<span class="hl-pu">B₁₁</span> + <span class="hl-pu">B₁₂</span>)` },
+  // M7: (A12-A22)·(B21+B22)
+  { aH:[{r:0,c:1,col:'ac'},{r:1,c:1,col:'rd'}], bH:[{r:1,c:0,col:'pu'},{r:1,c:1,col:'pu'}],
+    label:'M₇', expr:'(A₁₂ − A₂₂) × (B₂₁ + B₂₂)', pline:8,
+    exprFull:`(<span class="hl-ac">A₁₂</span> − <span class="hl-rd">A₂₂</span>) × (<span class="hl-pu">B₂₁</span> + <span class="hl-pu">B₂₂</span>)` },
+];
+
+// ─── Step definitions ─────────────────────────────────────────────
+const STEPS = [];
+
+// Step 0: intro
+STEPS.push({
+  phase:'intro', mActive:0, mDone:[], cDone:[],
+  aH:[], bH:[], cH:[],
+  pseudoLines:[0],
+  label:'Introduction',
+  formula:'Normal 2×2 matrix multiplication requires <b>8 multiplications</b>. Strassen\'s algorithm uses only <b>7</b> — and that one saved multiplication is the key to beating O(n³) asymptotically.',
+  desc:`<span class="phase-badge phase-intro">Intro</span><strong>Strassen Matrix Multiplication</strong><br><br>
+We want C = A × B for 2×2 matrices.<br>
+<span class="hl-ac">A</span> = [[${Av.a11}, ${Av.a12}], [${Av.a21}, ${Av.a22}]]
+<span class="hl-pu">B</span> = [[${Bv.b11}, ${Bv.b12}], [${Bv.b21}, ${Bv.b22}]]<br><br>
+Naïve multiplication: each Cᵢⱼ = Aᵢ₁B₁ⱼ + Aᵢ₂B₂ⱼ → <span class="hl-rd">8 multiplications</span> total.<br>
+Strassen replaces those 8 with clever linear combinations that need only <span class="hl-gr">7 multiplications</span>.<br>
+Applied recursively on n×n blocks, this gives <span class="hl-pu">O(n^log₂7) ≈ O(n^2.807)</span> vs the naïve O(n³).`
+});
+
+// Steps 1..7: compute each M
+for(let i=1;i<=7;i++){
+  const mf=MF[i];
+  const avals=mf.aH.map(h=>`<span class="hl-${h.col}">A[${h.r}][${h.c}]=${A[h.r][h.c]}</span>`);
+  STEPS.push({
+    phase:'multiply', mActive:i, mDone:Array.from({length:i-1},(_,k)=>k+1), cDone:[],
+    aH:mf.aH, bH:mf.bH, cH:[],
+    pseudoLines:[mf.pline],
+    label:`Compute ${mf.label}`,
+    formula:`<b>${mf.label}</b> = ${mf.exprFull} = <span class="hl-yl">${M[i]}</span>`,
+    desc:`<span class="phase-badge phase-mul">Multiply</span><strong>Computing M${i} = ${mf.expr}</strong><br><br>
+Highlighted cells in <span class="hl-ac">A (cyan)</span> and <span class="hl-pu">B (purple)</span> are combined. <span class="hl-rd">Red</span> cells are subtracted.<br><br>
+M${i} = ${mf.exprFull.replace(/<[^>]+>/g,'')} = <span class="hl-yl"><b>${M[i]}</b></span><br><br>
+This is multiplication #${i} of 7. Only ${7-i} more multiplications needed${i<7?'.':' — then we just add!'}`
+  });
+}
+
+// Steps 8..11: assemble C11, C12, C21, C22
+const CASSEMBLY = [
+  { cr:0, cc:0, id:'c00', label:'C₁₁', terms:[1,4,-5,7], pline:10,
+    formula:'C₁₁ = M₁ + M₄ − M₅ + M₇',
+    formulaFull:`C₁₁ = <span class="hl-ac">M₁</span> + <span class="hl-gr">M₄</span> − <span class="hl-or">M₅</span> + <span class="hl-tl">M₇</span>` },
+  { cr:0, cc:1, id:'c01', label:'C₁₂', terms:[3,5], pline:11,
+    formula:'C₁₂ = M₃ + M₅',
+    formulaFull:`C₁₂ = <span class="hl-yl">M₃</span> + <span class="hl-or">M₅</span>` },
+  { cr:1, cc:0, id:'c10', label:'C₂₁', terms:[2,4], pline:12,
+    formula:'C₂₁ = M₂ + M₄',
+    formulaFull:`C₂₁ = <span class="hl-pu">M₂</span> + <span class="hl-gr">M₄</span>` },
+  { cr:1, cc:1, id:'c11', label:'C₂₂', terms:[1,-2,3,6], pline:13,
+    formula:'C₂₂ = M₁ − M₂ + M₃ + M₆',
+    formulaFull:`C₂₂ = <span class="hl-ac">M₁</span> − <span class="hl-pu">M₂</span> + <span class="hl-yl">M₃</span> + <span class="hl-pk">M₆</span>` },
+];
+
+for(let ci=0;ci<4;ci++){
+  const ca=CASSEMBLY[ci];
+  const val=C[ca.cr][ca.cc];
+  const cDone=CASSEMBLY.slice(0,ci).map(x=>({id:x.id}));
+  // highlight the M cells referenced (we'll highlight C cell being filled)
+  const cH=[{r:ca.cr,c:ca.cc,col:'pu'}];
+  STEPS.push({
+    phase:'add', mActive:0, mDone:[1,2,3,4,5,6,7], cDone,
+    aH:[], bH:[], cH,
+    pseudoLines:[ca.pline],
+    label:`Compute ${ca.label}`,
+    formula:`<b>${ca.formulaFull}</b> = <span class="hl-yl">${val}</span>`,
+    desc:`<span class="phase-badge phase-add">Add</span><strong>Assembling ${ca.label} = ${val}</strong><br><br>
+${ca.formulaFull.replace(/<[^>]+>/g,'')}<br><br>
+${ca.terms.map(t=>`${t>0?'+':'−'} M${Math.abs(t)} = ${t<0?-M[Math.abs(t)]:M[Math.abs(t)]}`).join('  ')}<br>
+= <span class="hl-yl"><b>${val}</b></span><br><br>
+No multiplications here — only additions and subtractions! This is why Strassen is powerful.`
+  });
+}
+
+// Final step
+STEPS.push({
+  phase:'done', mActive:0, mDone:[1,2,3,4,5,6,7],
+  cDone:CASSEMBLY.map(x=>({id:x.id})),
+  aH:[], bH:[], cH:[{r:0,c:0,col:'gr'},{r:0,c:1,col:'gr'},{r:1,c:0,col:'gr'},{r:1,c:1,col:'gr'}],
+  pseudoLines:[14],
+  label:'Done!',
+  formula:`<b>C = A × B</b> complete — 7 multiplications, 18 additions.`,
+  desc:`<span class="phase-badge phase-done">Done</span><strong>Matrix product computed!</strong><br><br>
+C = [[${C[0][0]}, ${C[0][1]}], [${C[1][0]}, ${C[1][1]}]]<br><br>
+Total: <span class="hl-gr"><b>7 multiplications</b></span> + 18 additions (vs 8 multiplications + 4 additions for naïve).<br><br>
+The saving grows exponentially when applied recursively: for n×n matrices partitioned into 2×2 blocks of n/2×n/2 sub-matrices, T(n) = 7·T(n/2) + O(n²) → <span class="hl-pu"><b>O(n^2.807)</b></span>.`
+});
+
+const TOTAL = STEPS.length;
+let stepIdx = 0, playing = false, timer = null;
+
+// ─── Initialize matrix display ───────────────────────────────────
+function initMatrices(){
+  const ids=[['a00','a01'],['a10','a11']];
+  for(let r=0;r<2;r++) for(let c=0;c<2;c++){
+    document.getElementById(ids[r][c]+'v').textContent=A[r][c];
+  }
+  const bids=[['b00','b01'],['b10','b11']];
+  for(let r=0;r<2;r++) for(let c=0;c<2;c++){
+    document.getElementById(bids[r][c]+'v').textContent=B[r][c];
+  }
+}
+
+// ─── Build M chips ────────────────────────────────────────────────
+function buildMChips(){
+  const row=document.getElementById('m-chips');
+  row.innerHTML='';
+  for(let i=1;i<=7;i++){
+    const chip=document.createElement('div');
+    chip.className='m-chip pending';
+    chip.id=`chip-m${i}`;
+    chip.innerHTML=`<span style="color:var(--${MCOLS[i]})">M${i}</span>&nbsp;<span class="chip-val" id="chip-m${i}-val">?</span>`;
+    row.appendChild(chip);
+  }
+}
+
+// ─── Build M table rows ───────────────────────────────────────────
+function buildMTable(){
+  const tbody=document.getElementById('m-tbody');
+  tbody.innerHTML='';
+  const formulas=['','(A₁₁+A₂₂)(B₁₁+B₂₂)','(A₂₁+A₂₂)·B₁₁','A₁₁·(B₁₂−B₂₂)','A₂₂·(B₂₁−B₁₁)','(A₁₁+A₁₂)·B₂₂','(A₂₁−A₁₁)(B₁₁+B₁₂)','(A₁₂−A₂₂)(B₂₁+B₂₂)'];
+  for(let i=1;i<=7;i++){
+    const tr=document.createElement('tr');
+    tr.id=`m-tr-${i}`;
+    tr.innerHTML=`<td style="color:var(--${MCOLS[i]})">M${i}</td><td>${formulas[i]}</td><td id="m-val-${i}">?</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+// ─── Build C formulas panel ───────────────────────────────────────
+function buildCFormulas(){
+  const el=document.getElementById('c-formulas');
+  el.innerHTML=CASSEMBLY.map((ca,i)=>`
+    <div id="cf-${ca.id}" style="padding:2px 0;color:var(--muted);transition:color .25s">
+      ${ca.formulaFull} = <span id="cf-${ca.id}-val" style="font-weight:700">?</span>
+    </div>`).join('');
+}
+
+// ─── Apply cell highlights ────────────────────────────────────────
+const AIDS=[['a00','a01'],['a10','a11']];
+const BIDS=[['b00','b01'],['b10','b11']];
+const CIDS=[['c00','c01'],['c10','c11']];
+
+function clearHighlights(){
+  [...AIDS.flat(),...BIDS.flat(),...CIDS.flat()].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.className='cell';
+  });
+}
+
+function applyHighlights(aH,bH,cH){
+  clearHighlights();
+  aH.forEach(({r,c,col})=>{
+    const el=document.getElementById(AIDS[r][c]);
+    if(el) el.className=`cell h-${col}`;
+  });
+  bH.forEach(({r,c,col})=>{
+    const el=document.getElementById(BIDS[r][c]);
+    if(el) el.className=`cell h-${col}`;
+  });
+  cH.forEach(({r,c,col})=>{
+    const el=document.getElementById(CIDS[r][c]);
+    if(el) el.className=`cell h-${col}`;
+  });
+}
+
+// ─── Update chips ─────────────────────────────────────────────────
+function updateChips(mActive, mDone){
+  for(let i=1;i<=7;i++){
+    const chip=document.getElementById(`chip-m${i}`);
+    const valEl=document.getElementById(`chip-m${i}-val`);
+    const isDone=mDone.includes(i);
+    const isActive=mActive===i;
+    if(isActive){
+      chip.className=`m-chip active`;
+      chip.style.borderColor=`var(--${MCOLS[i]})`;
+      chip.style.background=`var(--${MCOLS[i]}0)`;
+      chip.style.color=`var(--${MCOLS[i]})`;
+      valEl.textContent=M[i];
+    } else if(isDone){
+      chip.className=`m-chip done`;
+      chip.style.borderColor='';chip.style.background='';chip.style.color='';
+      valEl.textContent=M[i];
+    } else {
+      chip.className=`m-chip pending`;
+      chip.style.borderColor='';chip.style.background='';chip.style.color='';
+      valEl.textContent='?';
+    }
+  }
+}
+
+// ─── Update M table ───────────────────────────────────────────────
+function updateMTable(mActive, mDone){
+  for(let i=1;i<=7;i++){
+    const tr=document.getElementById(`m-tr-${i}`);
+    const valEl=document.getElementById(`m-val-${i}`);
+    if(mActive===i){
+      tr.className='active';
+      valEl.textContent=M[i];
+    } else if(mDone.includes(i)){
+      tr.className='done';
+      valEl.textContent=M[i];
+    } else {
+      tr.className='';
+      valEl.textContent='?';
+    }
+  }
+}
+
+// ─── Update pseudocode ────────────────────────────────────────────
+function updatePseudo(lines){
+  const active=new Set(lines||[]);
+  for(let i=0;i<=14;i++){
+    const el=document.getElementById(`pl${i}`);
+    if(el) el.className=active.has(i)?'ac':'';
+  }
+}
+
+// ─── Update C assembly panel ──────────────────────────────────────
+function updateCFormulas(step){
+  CASSEMBLY.forEach((ca,i)=>{
+    const row=document.getElementById(`cf-${ca.id}`);
+    const valEl=document.getElementById(`cf-${ca.id}-val`);
+    const isDone=(step.cDone||[]).some(x=>x.id===ca.id);
+    const isActive=step.phase==='add' && step.cH.some(h=>h.r===ca.cr&&h.c===ca.cc);
+    if(isActive){
+      row.style.color='var(--pu)';
+      valEl.textContent=C[ca.cr][ca.cc];
+    } else if(isDone||step.phase==='done'){
+      row.style.color='var(--gr)';
+      valEl.textContent=C[ca.cr][ca.cc];
+    } else {
+      row.style.color='var(--muted)';
+      valEl.textContent='?';
+    }
+  });
+}
+
+// ─── Update C matrix cells ────────────────────────────────────────
+function updateCMatrix(step){
+  CASSEMBLY.forEach(ca=>{
+    const el=document.getElementById(ca.id);
+    const valEl=document.getElementById(ca.id+'v');
+    const isDone=(step.cDone||[]).some(x=>x.id===ca.id);
+    const isActive=step.cH.some(h=>h.r===ca.cr&&h.c===ca.cc);
+    if(step.phase==='done'){
+      el.className='cell done';
+      valEl.textContent=C[ca.cr][ca.cc];
+    } else if(isActive){
+      el.className='cell h-pu';
+      valEl.textContent=C[ca.cr][ca.cc];
+    } else if(isDone){
+      el.className='cell h-gr';
+      valEl.textContent=C[ca.cr][ca.cc];
+    } else {
+      el.className='cell';
+      valEl.textContent='?';
+    }
+  });
+}
+
+// ─── Main render ──────────────────────────────────────────────────
+function render(){
+  const step=STEPS[stepIdx];
+  applyHighlights(step.aH||[], step.bH||[], step.cH||[]);
+  updateChips(step.mActive, step.mDone||[]);
+  updateMTable(step.mActive, step.mDone||[]);
+  updatePseudo(step.pseudoLines||[]);
+  updateCFormulas(step);
+  updateCMatrix(step);
+
+  document.getElementById('cur-formula-label').textContent=step.label;
+  document.getElementById('cur-formula').innerHTML=step.formula;
+  document.getElementById('step-desc').innerHTML=step.desc;
+  document.getElementById('step-ctr').textContent=`Step ${stepIdx+1} / ${TOTAL}`;
+  document.getElementById('btn-prev').disabled=stepIdx===0;
+  document.getElementById('btn-next').disabled=stepIdx===TOTAL-1;
+}
+
+// ─── Navigation ───────────────────────────────────────────────────
+function goTo(i){
+  stepIdx=Math.max(0,Math.min(TOTAL-1,i));
+  render();
+}
+
+document.getElementById('btn-prev').onclick=()=>{stopPlay();goTo(stepIdx-1);};
+document.getElementById('btn-next').onclick=()=>{stopPlay();goTo(stepIdx+1);};
+document.getElementById('btn-reset').onclick=()=>{stopPlay();goTo(0);};
+
+const speedEl=document.getElementById('speed');
+const speedLbl=document.getElementById('speed-lbl');
+speedEl.oninput=()=>{speedLbl.textContent=(speedEl.value/1000).toFixed(1)+'s';};
+
+function getSpeed(){return parseInt(speedEl.value,10);}
+
+function stopPlay(){
+  playing=false; clearTimeout(timer);
+  document.getElementById('btn-play').textContent='▶ Play';
+  document.getElementById('btn-play').classList.remove('play-active');
+}
+
+function tick(){
+  if(!playing) return;
+  if(stepIdx>=TOTAL-1){stopPlay();return;}
+  goTo(stepIdx+1);
+  timer=setTimeout(tick,getSpeed());
+}
+
+document.getElementById('btn-play').onclick=()=>{
+  if(playing){stopPlay();return;}
+  if(stepIdx>=TOTAL-1) goTo(0);
+  playing=true;
+  document.getElementById('btn-play').textContent='⏸ Pause';
+  document.getElementById('btn-play').classList.add('play-active');
+  timer=setTimeout(tick,getSpeed());
+};
+
+// ─── Init ─────────────────────────────────────────────────────────
+initMatrices();
+buildMChips();
+buildMTable();
+buildCFormulas();
+render();
+</script>
+</body>
+</html>
