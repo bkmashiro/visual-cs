@@ -31,7 +31,7 @@
 ### Numerical & Mathematical
 - [x] fft — Fast Fourier Transform (butterfly diagram, bit-reversal permutation) ✅ 2026-05-09
 - [x] strassen — Strassen Matrix Multiplication (7-multiply recursion tree) ✅ 2026-05-11
-- [ ] quickselect — QuickSelect / BFPRT (linear-time k-th element)
+- [x] quickselect — QuickSelect / BFPRT (linear-time k-th element) ✅ 2026-05-13
 - [ ] extended-gcd — Extended Euclidean Algorithm (Bézout coefficients)
 - [ ] chinese-remainder — Chinese Remainder Theorem (Garner's algorithm)
 

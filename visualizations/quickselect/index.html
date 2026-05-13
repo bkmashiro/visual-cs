@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickSelect / BFPRT — visual-cs</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--s2:#1c2128;--s3:#111720;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;
+  --ac:#67e8f9;--ac0:rgba(103,232,249,.15);
+  --gr:#3fb950;--gr0:rgba(63,185,80,.15);
+  --rd:#f85149;--rd0:rgba(248,81,73,.15);
+  --yl:#e3b341;--yl0:rgba(227,179,65,.15);
+  --pu:#d2a8ff;--pu0:rgba(210,168,255,.15);
+  --or:#f97316;--or0:rgba(249,115,22,.15);
+  --tl:#2dd4bf;--tl0:rgba(45,212,191,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;gap:12px;flex-wrap:wrap}
+header h1{font-size:1.05rem;font-weight:700}
+header h1 span{color:var(--ac)}
+header a{color:var(--muted);text-decoration:none;font-size:.78rem;border:1px solid var(--border);padding:4px 11px;border-radius:6px;transition:all .2s;white-space:nowrap}
+header a:hover{color:var(--text);border-color:var(--ac)}
+.layout{display:grid;grid-template-columns:1fr 300px;flex:1;min-height:0}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.main{padding:20px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:14px;overflow:auto}
+.sidebar{padding:18px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;background:var(--s3)}
+
+/* Controls */
+.step-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.step-bar button{background:var(--s2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s;white-space:nowrap}
+.step-bar button:hover:not(:disabled){border-color:var(--ac);color:var(--ac)}
+.step-bar button:disabled{opacity:.4;cursor:default}
+.step-bar button.play-active{background:var(--ac0);border-color:var(--ac);color:var(--ac)}
+.step-counter{font-size:.78rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+.speed-row{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);min-width:130px}
+.speed-row input{flex:1;accent-color:var(--ac)}
+
+/* Step description */
+.step-desc{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:13px 16px;font-size:.84rem;line-height:1.65;color:var(--muted);min-height:70px}
+.step-desc strong{color:var(--text)}
+.hl-ac{color:var(--ac);font-weight:700}
+.hl-gr{color:var(--gr);font-weight:700}
+.hl-yl{color:var(--yl);font-weight:700}
+.hl-pu{color:var(--pu);font-weight:700}
+.hl-rd{color:var(--rd);font-weight:700}
+.hl-or{color:var(--or);font-weight:700}
+.hl-tl{color:var(--tl);font-weight:700}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+.slbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:7px}
+
+/* Array visualization */
+.array-area{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;padding:10px 0;min-height:110px}
+.arr-cell{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:all .25s;
+}
+.arr-bar{
+  width:38px;border-radius:5px 5px 2px 2px;
+  transition:height .25s,background .25s,border-color .25s;
+  border:2px solid var(--border);
+  background:var(--s2);
+}
+.arr-val{font-size:.72rem;font-family:monospace;font-weight:700;color:var(--muted);transition:color .25s}
+.arr-idx{font-size:.58rem;color:var(--muted);opacity:.5}
+
+/* Cell state classes */
+.arr-cell.c-active .arr-bar{background:var(--s2);border-color:var(--border)}
+.arr-cell.c-range .arr-bar{background:var(--s2);border-color:var(--border);opacity:1}
+.arr-cell.c-out  .arr-bar{opacity:.22}
+.arr-cell.c-pivot .arr-bar{background:var(--yl0);border-color:var(--yl)}
+.arr-cell.c-pivot .arr-val{color:var(--yl)}
+.arr-cell.c-left  .arr-bar{background:var(--ac0);border-color:var(--ac)}
+.arr-cell.c-left  .arr-val{color:var(--ac)}
+.arr-cell.c-right .arr-bar{background:var(--or0);border-color:var(--or)}
+.arr-cell.c-right .arr-val{color:var(--or)}
+.arr-cell.c-found .arr-bar{background:var(--gr0);border-color:var(--gr)}
+.arr-cell.c-found .arr-val{color:var(--gr)}
+.arr-cell.c-compare .arr-bar{background:var(--pu0);border-color:var(--pu)}
+.arr-cell.c-compare .arr-val{color:var(--pu)}
+.arr-cell.c-swap .arr-bar{background:var(--tl0);border-color:var(--tl)}
+.arr-cell.c-swap .arr-val{color:var(--tl)}
+
+/* Range marker */
+.range-bar{height:4px;border-radius:2px;background:var(--border);margin:4px 0;position:relative;overflow:visible}
+.range-indicator{position:absolute;height:4px;border-radius:2px;background:var(--ac);opacity:.6;transition:left .25s,width .25s}
+
+/* Pseudocode */
+.pseudo{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.72rem;font-family:'Cascadia Code','Fira Code',monospace;line-height:2;color:var(--muted)}
+.pseudo .hl{color:var(--ac);font-weight:700;background:var(--ac0);border-radius:3px;padding:0 3px}
+
+/* Stats */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-card .k{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:3px}
+.stat-card .v{font-family:monospace;font-size:1.1rem;font-weight:700}
+
+/* BFPRT note */
+.bfprt-box{background:var(--s2);border:1px solid var(--pu);border-radius:9px;padding:13px 15px;font-size:.8rem;line-height:1.7;color:var(--muted)}
+.bfprt-box strong{color:var(--pu)}
+.bfprt-box code{background:var(--s3);border-radius:3px;padding:0 4px;font-family:monospace;font-size:.75rem;color:var(--pu)}
+
+/* Config controls */
+.cfg-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
+.cfg-row label{white-space:nowrap}
+.cfg-row input[type=range]{flex:1;min-width:80px;accent-color:var(--ac)}
+.cfg-row span{min-width:24px;text-align:right;font-family:monospace}
+
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--muted)}
+.leg-dot{width:10px;height:10px;border-radius:2px;border:1.5px solid}
+</style>
+</head>
+<body>
+<header>
+  <h1>visual-cs / <span>QuickSelect / BFPRT</span></h1>
+  <a href="../../index.html">← Back to Index</a>
+</header>
+<div class="layout">
+<div class="main">
+
+  <!-- Controls -->
+  <div class="step-bar">
+    <button id="btn-prev">&#8592; Prev</button>
+    <button id="btn-play">&#9654; Play</button>
+    <button id="btn-next">Next &#8594;</button>
+    <button id="btn-regen">&#8635; New Array</button>
+    <div class="speed-row">
+      <span>Speed</span>
+      <input type="range" id="speed" min="100" max="1500" value="600" step="100">
+      <span id="speed-lbl">600ms</span>
+    </div>
+    <span class="step-counter" id="step-counter">Step 0 / 0</span>
+  </div>
+
+  <!-- Step description -->
+  <div class="step-desc" id="step-desc">Press Play or Next to start the visualization.</div>
+
+  <!-- Config -->
+  <div class="panel">
+    <div class="slbl">Configuration</div>
+    <div class="cfg-row">
+      <label>Array size</label>
+      <input type="range" id="cfg-size" min="8" max="20" value="14" step="1">
+      <span id="cfg-size-lbl">14</span>
+      <label style="margin-left:12px">Find k-th smallest (k)</label>
+      <input type="range" id="cfg-k" min="1" max="14" value="5" step="1">
+      <span id="cfg-k-lbl">5</span>
+      <button id="btn-apply" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:600;margin-left:8px">Apply</button>
+    </div>
+  </div>
+
+  <!-- Array visualization -->
+  <div class="panel">
+    <div class="slbl">Array</div>
+    <div class="array-area" id="array-area"></div>
+    <div class="range-bar" id="range-bar">
+      <div class="range-indicator" id="range-indicator" style="left:0;width:0%"></div>
+    </div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--yl0);border-color:var(--yl)"></div> Pivot</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--ac0);border-color:var(--ac)"></div> ≤ pivot (left)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--or0);border-color:var(--or)"></div> > pivot (right)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--pu0);border-color:var(--pu)"></div> Comparing</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--tl0);border-color:var(--tl)"></div> Swapping</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--gr0);border-color:var(--gr)"></div> Found!</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--s2);border-color:var(--border);opacity:.3"></div> Out of range</div>
+    </div>
+  </div>
+
+</div>
+<div class="sidebar">
+
+  <!-- Stats -->
+  <div>
+    <div class="slbl">Statistics</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="k">Finding</div>
+        <div class="v" id="stat-k" style="color:var(--ac)">k = 5</div>
+      </div>
+      <div class="stat-card">
+        <div class="k">Answer</div>
+        <div class="v" id="stat-ans" style="color:var(--gr)">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="k">Comparisons</div>
+        <div class="v" id="stat-cmp" style="color:var(--yl)">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="k">Swaps</div>
+        <div class="v" id="stat-sw" style="color:var(--or)">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="k">Partitions</div>
+        <div class="v" id="stat-parts" style="color:var(--pu)">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="k">Range</div>
+        <div class="v" id="stat-range" style="color:var(--muted);font-size:.85rem">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pseudocode -->
+  <div>
+    <div class="slbl">Pseudocode</div>
+    <div class="pseudo" id="pseudo">
+<span id="pc0">quickSelect(arr, lo, hi, k):</span>
+<span id="pc1">  if lo == hi: return arr[lo]</span>
+<span id="pc2">  pivotIdx = partition(arr,lo,hi)</span>
+<span id="pc3">  if k == pivotIdx:</span>
+<span id="pc4">    return arr[pivotIdx]  ✓</span>
+<span id="pc5">  elif k &lt; pivotIdx:</span>
+<span id="pc6">    recurse LEFT half</span>
+<span id="pc7">  else:</span>
+<span id="pc8">    recurse RIGHT half</span>
+<span id="pc9">
+partition(arr, lo, hi):</span>
+<span id="pc10">  pivot = arr[hi]  (last elem)</span>
+<span id="pc11">  i = lo - 1</span>
+<span id="pc12">  for j = lo to hi-1:</span>
+<span id="pc13">    if arr[j] &lt;= pivot: i++</span>
+<span id="pc14">      swap arr[i], arr[j]</span>
+<span id="pc15">  swap arr[i+1], arr[hi]</span>
+<span id="pc16">  return i+1</span>
+    </div>
+  </div>
+
+  <!-- BFPRT note -->
+  <div class="bfprt-box">
+    <strong>BFPRT (Median of Medians)</strong><br>
+    QuickSelect runs in <strong>O(n) average</strong> but <strong>O(n²) worst case</strong> with bad pivots.<br><br>
+    BFPRT guarantees <strong>O(n) worst case</strong> by choosing the pivot as the <em>median of medians</em>:<br><br>
+    <strong>1.</strong> Split array into groups of 5<br>
+    <strong>2.</strong> Find median of each group<br>
+    <strong>3.</strong> Recursively find median of those medians<br>
+    <strong>4.</strong> Use that as pivot → always splits ≥ 30% / ≤ 70%<br><br>
+    Recurrence: <code>T(n) ≤ T(n/5) + T(7n/10) + O(n)</code> → <code>T(n) = O(n)</code>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let ARR = [], K = 5;
+let steps = [];
+let stepIdx = 0;
+let playing = false;
+let playTimer = null;
+
+// ── Generate random array ──────────────────────────────────────────
+function genArray(n) {
+  const a = [];
+  for (let i = 0; i < n; i++) a.push(Math.floor(Math.random() * 90) + 5);
+  return a;
+}
+
+// ── Pre-compute ALL steps ──────────────────────────────────────────
+// Each step: { arr, lo, hi, pivotIdx, highlight, desc, pcLine, cmp, sw, parts, found }
+// highlight[i]: class string for cell i
+
+function computeSteps(arr, k) {
+  const steps = [];
+  const a = arr.slice();
+  let cmp = 0, sw = 0, parts = 0;
+  const n = a.length;
+
+  function addStep(highlight, desc, pcLine, lo, hi, extra = {}) {
+    steps.push({
+      arr: a.slice(),
+      lo, hi,
+      highlight: highlight.slice(),
+      desc,
+      pcLine,
+      cmp, sw, parts,
+      found: extra.found ?? false,
+      answer: extra.answer ?? null,
+    });
+  }
+
+  function partition(lo, hi) {
+    parts++;
+    const pivot = a[hi];
+    const hl0 = new Array(n).fill('c-out');
+    for (let i = lo; i <= hi; i++) hl0[i] = 'c-range';
+    hl0[hi] = 'c-pivot';
+    addStep(hl0, `<strong>Partition</strong> [${lo}…${hi}] — pivot = <span class="hl-yl">${pivot}</span> (index ${hi}). Will move elements ≤ pivot to the left.`, 'pc10', lo, hi);
+
+    let i = lo - 1;
+    for (let j = lo; j < hi; j++) {
+      cmp++;
+      const hl1 = new Array(n).fill('c-out');
+      for (let x = lo; x <= hi; x++) hl1[x] = 'c-range';
+      hl1[hi] = 'c-pivot';
+      hl1[j] = 'c-compare';
+      if (i >= lo) for (let x = lo; x <= i; x++) hl1[x] = 'c-left';
+      addStep(hl1,
+        `Compare <span class="hl-pu">arr[${j}]=${a[j]}</span> with pivot <span class="hl-yl">${pivot}</span>. ${a[j] <= pivot ? `<span class="hl-ac">${a[j]} ≤ ${pivot}</span>, extend left region.` : `<span class="hl-or">${a[j]} > ${pivot}</span>, stays right.`}`,
+        'pc13', lo, hi);
+
+      if (a[j] <= pivot) {
+        i++;
+        if (i !== j) {
+          sw++;
+          [a[i], a[j]] = [a[j], a[i]];
+          const hl2 = new Array(n).fill('c-out');
+          for (let x = lo; x <= hi; x++) hl2[x] = 'c-range';
+          hl2[hi] = 'c-pivot';
+          for (let x = lo; x <= i; x++) hl2[x] = 'c-left';
+          hl2[i] = 'c-swap';
+          hl2[j] = 'c-swap';
+          addStep(hl2,
+            `Swap <span class="hl-tl">arr[${i}]</span> ↔ <span class="hl-tl">arr[${j}]</span> → values ${a[j]} and ${a[i]}. Left boundary extended to index ${i}.`,
+            'pc14', lo, hi);
+        } else {
+          const hl2 = new Array(n).fill('c-out');
+          for (let x = lo; x <= hi; x++) hl2[x] = 'c-range';
+          hl2[hi] = 'c-pivot';
+          for (let x = lo; x <= i; x++) hl2[x] = 'c-left';
+          addStep(hl2,
+            `arr[${j}]=${a[j]} ≤ pivot, already in place — no swap needed.`,
+            'pc14', lo, hi);
+        }
+      }
+    }
+
+    // Place pivot
+    i++;
+    sw++;
+    [a[i], a[hi]] = [a[hi], a[i]];
+    const hl3 = new Array(n).fill('c-out');
+    for (let x = lo; x <= hi; x++) hl3[x] = 'c-range';
+    for (let x = lo; x < i; x++) hl3[x] = 'c-left';
+    for (let x = i + 1; x <= hi; x++) hl3[x] = 'c-right';
+    hl3[i] = 'c-pivot';
+    addStep(hl3,
+      `Place pivot <span class="hl-yl">${a[i]}</span> at final position <strong>${i}</strong>. Left [${lo}…${i-1}] ≤ pivot, right [${i+1}…${hi}] > pivot.`,
+      'pc15', lo, hi);
+
+    return i;
+  }
+
+  function quickSelect(lo, hi, kIdx) {
+    if (lo === hi) {
+      const hl = new Array(n).fill('c-out');
+      hl[lo] = 'c-found';
+      addStep(hl,
+        `Range has one element — <span class="hl-gr">arr[${lo}] = ${a[lo]}</span> is the <strong>${k}-th smallest</strong> element!`,
+        'pc1', lo, hi, { found: true, answer: a[lo] });
+      return;
+    }
+
+    const hl0 = new Array(n).fill('c-out');
+    for (let x = lo; x <= hi; x++) hl0[x] = 'c-range';
+    addStep(hl0,
+      `<strong>QuickSelect</strong> on range [${lo}…${hi}] (${hi-lo+1} elements). Looking for index <span class="hl-ac">${kIdx}</span> (${k}-th smallest = 0-indexed position ${kIdx}).`,
+      'pc0', lo, hi);
+
+    const pivotIdx = partition(lo, hi);
+
+    if (kIdx === pivotIdx) {
+      const hl = new Array(n).fill('c-out');
+      for (let x = lo; x <= hi; x++) hl[x] = 'c-range';
+      hl[pivotIdx] = 'c-found';
+      addStep(hl,
+        `🎯 Pivot landed at index <strong>${pivotIdx}</strong> — exactly position <span class="hl-ac">${kIdx}</span> we need! <span class="hl-gr">Answer = ${a[pivotIdx]}</span>`,
+        'pc4', lo, hi, { found: true, answer: a[pivotIdx] });
+      return;
+    } else if (kIdx < pivotIdx) {
+      const hl = new Array(n).fill('c-out');
+      for (let x = lo; x < pivotIdx; x++) hl[x] = 'c-range';
+      hl[pivotIdx] = 'c-pivot';
+      addStep(hl,
+        `k-index <span class="hl-ac">${kIdx}</span> < pivot position <span class="hl-yl">${pivotIdx}</span>. <strong>Recurse LEFT</strong> [${lo}…${pivotIdx-1}] — discard the right half entirely!`,
+        'pc6', lo, pivotIdx - 1);
+      quickSelect(lo, pivotIdx - 1, kIdx);
+    } else {
+      const hl = new Array(n).fill('c-out');
+      hl[pivotIdx] = 'c-pivot';
+      for (let x = pivotIdx + 1; x <= hi; x++) hl[x] = 'c-range';
+      addStep(hl,
+        `k-index <span class="hl-ac">${kIdx}</span> > pivot position <span class="hl-yl">${pivotIdx}</span>. <strong>Recurse RIGHT</strong> [${pivotIdx+1}…${hi}] — discard the left half entirely!`,
+        'pc8', pivotIdx + 1, hi);
+      quickSelect(pivotIdx + 1, hi, kIdx);
+    }
+  }
+
+  // Initial step
+  const hl0 = new Array(n).fill('c-range');
+  addStep(hl0,
+    `Find the <span class="hl-ac">${k}-th smallest</span> element in this unsorted array of ${n} numbers. QuickSelect will find it in <strong>O(n) average time</strong> — no full sort needed!`,
+    'pc0', 0, n - 1);
+
+  const kIdx = k - 1; // 0-indexed
+  quickSelect(0, n - 1, kIdx);
+
+  return steps;
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+const MAX_BAR = 90;
+
+function render() {
+  const s = steps[stepIdx];
+  const n = s.arr.length;
+  const maxVal = Math.max(...s.arr);
+
+  // Array cells
+  const area = document.getElementById('array-area');
+  area.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const v = s.arr[i];
+    const barH = Math.max(14, Math.round((v / maxVal) * MAX_BAR));
+    const cell = document.createElement('div');
+    cell.className = 'arr-cell ' + (s.highlight[i] || 'c-range');
+    cell.innerHTML = `
+      <div class="arr-bar" style="height:${barH}px"></div>
+      <div class="arr-val">${v}</div>
+      <div class="arr-idx">${i}</div>
+    `;
+    area.appendChild(cell);
+  }
+
+  // Range indicator
+  const cellW = 44; // approx cell + gap
+  const totalW = n * cellW;
+  const lo = s.lo ?? 0, hi = s.hi ?? n - 1;
+  const leftPct = (lo / n) * 100;
+  const widthPct = ((hi - lo + 1) / n) * 100;
+  document.getElementById('range-indicator').style.left = leftPct + '%';
+  document.getElementById('range-indicator').style.width = widthPct + '%';
+
+  // Description
+  document.getElementById('step-desc').innerHTML = s.desc;
+
+  // Pseudocode highlight
+  for (let i = 0; i <= 16; i++) {
+    const el = document.getElementById('pc' + i);
+    if (el) el.className = '';
+  }
+  if (s.pcLine && document.getElementById(s.pcLine)) {
+    document.getElementById(s.pcLine).className = 'hl';
+  }
+
+  // Stats
+  document.getElementById('stat-k').textContent = `k = ${K}`;
+  document.getElementById('stat-cmp').textContent = s.cmp;
+  document.getElementById('stat-sw').textContent = s.sw;
+  document.getElementById('stat-parts').textContent = s.parts;
+  document.getElementById('stat-range').textContent = `[${s.lo ?? 0}…${s.hi ?? n-1}]`;
+  document.getElementById('stat-ans').textContent = s.answer !== null ? s.answer : '—';
+
+  // Counter
+  document.getElementById('step-counter').textContent = `Step ${stepIdx + 1} / ${steps.length}`;
+
+  // Buttons
+  document.getElementById('btn-prev').disabled = stepIdx === 0;
+  document.getElementById('btn-next').disabled = stepIdx === steps.length - 1;
+}
+
+function init() {
+  const size = parseInt(document.getElementById('cfg-size').value);
+  K = parseInt(document.getElementById('cfg-k').value);
+  // Clamp K
+  if (K > size) { K = size; document.getElementById('cfg-k').value = size; document.getElementById('cfg-k-lbl').textContent = size; }
+  ARR = genArray(size);
+  steps = computeSteps(ARR, K);
+  stepIdx = 0;
+  stopPlay();
+  render();
+}
+
+function stopPlay() {
+  playing = false;
+  clearTimeout(playTimer);
+  document.getElementById('btn-play').textContent = '▶ Play';
+  document.getElementById('btn-play').classList.remove('play-active');
+}
+
+function startPlay() {
+  playing = true;
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+  document.getElementById('btn-play').classList.add('play-active');
+  tick();
+}
+
+function tick() {
+  if (!playing) return;
+  if (stepIdx >= steps.length - 1) { stopPlay(); return; }
+  stepIdx++;
+  render();
+  const speed = parseInt(document.getElementById('speed').value);
+  playTimer = setTimeout(tick, speed);
+}
+
+// ── Event Listeners ────────────────────────────────────────────────
+document.getElementById('btn-prev').addEventListener('click', () => {
+  stopPlay();
+  if (stepIdx > 0) { stepIdx--; render(); }
+});
+document.getElementById('btn-next').addEventListener('click', () => {
+  stopPlay();
+  if (stepIdx < steps.length - 1) { stepIdx++; render(); }
+});
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (playing) stopPlay();
+  else {
+    if (stepIdx >= steps.length - 1) stepIdx = 0;
+    startPlay();
+  }
+});
+document.getElementById('btn-regen').addEventListener('click', () => {
+  stopPlay();
+  const size = parseInt(document.getElementById('cfg-size').value);
+  K = parseInt(document.getElementById('cfg-k').value);
+  ARR = genArray(size);
+  steps = computeSteps(ARR, K);
+  stepIdx = 0;
+  render();
+});
+document.getElementById('btn-apply').addEventListener('click', () => {
+  stopPlay();
+  init();
+});
+
+document.getElementById('speed').addEventListener('input', function() {
+  document.getElementById('speed-lbl').textContent = this.value + 'ms';
+});
+document.getElementById('cfg-size').addEventListener('input', function() {
+  document.getElementById('cfg-size-lbl').textContent = this.value;
+  const k = document.getElementById('cfg-k');
+  k.max = this.value;
+  if (parseInt(k.value) > parseInt(this.value)) { k.value = this.value; document.getElementById('cfg-k-lbl').textContent = this.value; }
+});
+document.getElementById('cfg-k').addEventListener('input', function() {
+  document.getElementById('cfg-k-lbl').textContent = this.value;
+});
+
+// ── Boot ───────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
