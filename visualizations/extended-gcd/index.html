@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extended Euclidean Algorithm — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --s2: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --accent0: rgba(88,166,255,.15);
+  --good: #3fb950;
+  --good0: rgba(63,185,80,.15);
+  --warn: #f78166;
+  --warn0: rgba(247,129,102,.15);
+  --gold: #e3b341;
+  --gold0: rgba(227,179,65,.15);
+  --violet: #a371f7;
+  --violet0: rgba(163,113,247,.15);
+  --cyan: #67e8f9;
+  --cyan0: rgba(103,232,249,.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header h1 { font-size: 1.05rem; font-weight: 700; }
+header h1 span { color: var(--accent); }
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all .2s;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+
+/* Controls */
+.controls {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+.ctrl-group { display: flex; align-items: center; gap: 8px; }
+.ctrl-group label { color: var(--muted); font-size: .82rem; }
+button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 15px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  transition: all .15s;
+}
+button:hover { border-color: var(--accent); color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; }
+button.primary:hover { opacity: .85; }
+button:disabled { opacity: .35; cursor: default; pointer-events: none; }
+input[type="number"] {
+  width: 72px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: .9rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  outline: none;
+  transition: border-color .2s;
+}
+input[type="number"]:focus { border-color: var(--accent); }
+input[type="range"] { width: 90px; accent-color: var(--accent); }
+
+/* Presets */
+.presets { display: flex; flex-wrap: wrap; gap: 5px; }
+.pb {
+  font-size: .7rem;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+}
+.pb:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Step counter */
+.step-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .82rem;
+}
+.step-counter { color: var(--muted); }
+.step-counter span { color: var(--accent); font-weight: 700; }
+.phase-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.phase-badge.forward { background: var(--accent0); color: var(--accent); border: 1px solid var(--accent); }
+.phase-badge.backward { background: var(--violet0); color: var(--violet); border: 1px solid var(--violet); }
+.phase-badge.done { background: var(--good0); color: var(--good); border: 1px solid var(--good); }
+
+/* Layout */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  overflow: hidden;
+}
+@media (max-width: 720px) {
+  main { grid-template-columns: 1fr; overflow-y: auto; }
+}
+.panel {
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.panel:last-child { border-right: none; }
+
+/* Section titles */
+.sec-title {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+/* Division table */
+.div-table-wrap { overflow-x: auto; }
+table.div-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .82rem;
+  width: 100%;
+}
+table.div-table th {
+  color: var(--muted);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 5px 10px;
+  text-align: center;
+}
+table.div-table td {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--s2);
+  text-align: center;
+  transition: all .25s;
+  vertical-align: middle;
+}
+table.div-table td.eq { color: var(--muted); }
+table.div-table td.dim { color: var(--muted); opacity: .5; }
+
+/* Row highlight states */
+tr.row-active td { border-color: var(--accent); background: var(--accent0); }
+tr.row-active td.dividend-cell { color: var(--accent); font-weight: 700; }
+tr.row-gcd td { border-color: var(--good); background: var(--good0); }
+tr.row-gcd td.gcd-cell { color: var(--good); font-weight: 700; }
+tr.row-done td { opacity: .6; }
+tr.row-bezout td { border-color: var(--violet); background: var(--violet0); }
+
+/* Number cells with colors */
+.num-a { color: var(--gold); font-weight: 700; }
+.num-b { color: var(--cyan); font-weight: 700; }
+.num-q { color: var(--muted); }
+.num-r { color: var(--warn); font-weight: 700; }
+.num-s { color: var(--violet); font-weight: 700; }
+.num-t { color: var(--accent); font-weight: 700; }
+
+/* Bézout equation display */
+.bezout-box {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .9rem;
+  line-height: 1.8;
+}
+.bezout-box .equation { font-size: 1.05rem; }
+.bezout-box.active { border-color: var(--violet); background: var(--violet0); }
+.bezout-box.done { border-color: var(--good); background: var(--good0); }
+
+/* Back-sub table */
+table.back-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .8rem;
+  width: 100%;
+}
+table.back-table th {
+  color: var(--muted);
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 5px 8px;
+  text-align: center;
+}
+table.back-table td {
+  padding: 7px 10px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border);
+  background: var(--s2);
+  text-align: center;
+  transition: all .25s;
+  vertical-align: middle;
+}
+tr.bt-active td { border-color: var(--violet); background: var(--violet0); }
+tr.bt-done td { opacity: .65; }
+tr.bt-result td { border-color: var(--good); background: var(--good0); }
+
+/* Step description */
+.desc-box {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: .87rem;
+  line-height: 1.65;
+  color: var(--text);
+  min-height: 70px;
+}
+.desc-box .label {
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.desc-box code {
+  background: rgba(255,255,255,.07);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .83em;
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: .75rem;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Info panel */
+.info-box {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  font-size: .84rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.info-box h3 { color: var(--accent); margin-bottom: 10px; font-size: .95rem; }
+.info-box p { margin-bottom: 8px; }
+.info-box code {
+  background: rgba(255,255,255,.07);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .83em;
+  color: var(--text);
+}
+
+footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .78rem;
+}
+footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Extended <span>Euclidean</span> Algorithm</h1>
+  <a href="../../index.html">← Back to Index</a>
+</header>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <label>a =</label>
+    <input type="number" id="inputA" value="252" min="1" max="99999">
+  </div>
+  <div class="ctrl-group">
+    <label>b =</label>
+    <input type="number" id="inputB" value="105" min="1" max="99999">
+  </div>
+  <div class="ctrl-group">
+    <button class="primary" id="btnRun">Run</button>
+  </div>
+  <div class="ctrl-group">
+    <button id="btnPrev" disabled>◀ Prev</button>
+    <button id="btnNext" disabled>Next ▶</button>
+    <button id="btnPlay">▶ Auto</button>
+    <button id="btnReset" class="secondary">Reset</button>
+  </div>
+  <div class="ctrl-group">
+    <label>Speed:</label>
+    <input type="range" id="speed" min="1" max="10" value="5">
+  </div>
+  <div class="presets">
+    <span class="pb" data-a="252" data-b="105">252,105</span>
+    <span class="pb" data-a="1071" data-b="462">1071,462</span>
+    <span class="pb" data-a="35" data-b="15">35,15</span>
+    <span class="pb" data-a="100" data-b="75">100,75</span>
+    <span class="pb" data-a="17" data-b="13">17,13 (coprime)</span>
+    <span class="pb" data-a="48" data-b="18">48,18</span>
+  </div>
+</div>
+
+<div class="step-bar">
+  <div class="step-counter">Step <span id="stepNum">0</span> / <span id="stepTotal">0</span></div>
+  <div id="phaseBadge" class="phase-badge forward">Forward</div>
+</div>
+
+<main>
+  <!-- Left panel: Euclidean division steps -->
+  <div class="panel" id="leftPanel">
+    <div>
+      <div class="sec-title">Euclidean Division Steps</div>
+      <div class="div-table-wrap">
+        <table class="div-table" id="divTable">
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>Dividend</th>
+              <th>=</th>
+              <th>Quotient</th>
+              <th>×</th>
+              <th>Divisor</th>
+              <th>+</th>
+              <th>Remainder</th>
+            </tr>
+          </thead>
+          <tbody id="divBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-title">Step Description</div>
+      <div class="desc-box" id="descBox">
+        <div class="label">Current Action</div>
+        <div id="descText">Enter values for a and b, then click Run to begin.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div><span style="color:var(--gold)">dividend (a-side)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div><span style="color:var(--cyan)">divisor (b-side)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--warn)"></div><span style="color:var(--warn)">remainder → next dividend</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--good)"></div><span style="color:var(--good)">gcd (last non-zero remainder)</span></div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <h3>🔢 Extended Euclidean Algorithm</h3>
+      <p>Extends the basic Euclidean Algorithm to also compute <strong>Bézout coefficients</strong> <code>x</code> and <code>y</code> satisfying <code>a·x + b·y = gcd(a,b)</code>.</p>
+      <p><strong>Time:</strong> <code>O(log min(a,b))</code> — same as basic GCD, just tracks two extra sequences.</p>
+      <p><strong>Applications:</strong> Modular inverse (<code>a⁻¹ mod m</code>), Chinese Remainder Theorem, RSA key generation, solving linear Diophantine equations.</p>
+    </div>
+  </div>
+
+  <!-- Right panel: Back-substitution & Bézout coefficients -->
+  <div class="panel" id="rightPanel">
+    <div>
+      <div class="sec-title">Bézout Coefficient Tracking (s, t)</div>
+      <div class="div-table-wrap">
+        <table class="back-table" id="backTable">
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>r</th>
+              <th>s (coeff of a)</th>
+              <th>t (coeff of b)</th>
+              <th>Verify: a·s + b·t</th>
+            </tr>
+          </thead>
+          <tbody id="backBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-title">Current Bézout Identity</div>
+      <div class="bezout-box" id="bezoutBox">
+        <div style="color:var(--muted);font-size:.85rem">Awaiting computation…</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-title">Recurrence Relations</div>
+      <div class="info-box" style="margin-top:0">
+        <p>After finding all quotients <code>q₀, q₁, …</code>, we track three sequences in parallel:</p>
+        <p><code>r_{i+1} = r_{i-1} − q_i · r_i</code></p>
+        <p><code>s_{i+1} = s_{i-1} − q_i · s_i</code></p>
+        <p><code>t_{i+1} = t_{i-1} − q_i · t_i</code></p>
+        <p>Initialized: <code>r₀=a, r₁=b</code> / <code>s₀=1, s₁=0</code> / <code>t₀=0, t₁=1</code></p>
+        <p>Invariant maintained: <code>a·sᵢ + b·tᵢ = rᵢ</code> at every step.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--violet)"></div><span style="color:var(--violet)">s (a-coefficient)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><span style="color:var(--accent)">t (b-coefficient)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--good)"></div><span style="color:var(--good)">final Bézout coefficients</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p><a href="https://github.com/bkmashiro/visual-cs">visual-cs</a> — Pure HTML/CSS/JS</p>
+</footer>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let steps = [];        // pre-computed step objects
+let stepIdx = -1;      // current index (-1 = not started)
+let isPlaying = false;
+let playTimer = null;
+let inputA = 252, inputB = 105;
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const divBody    = document.getElementById('divBody');
+const backBody   = document.getElementById('backBody');
+const descText   = document.getElementById('descText');
+const bezoutBox  = document.getElementById('bezoutBox');
+const phaseBadge = document.getElementById('phaseBadge');
+const stepNum    = document.getElementById('stepNum');
+const stepTotal  = document.getElementById('stepTotal');
+const btnPrev    = document.getElementById('btnPrev');
+const btnNext    = document.getElementById('btnNext');
+const btnPlay    = document.getElementById('btnPlay');
+const btnRun     = document.getElementById('btnRun');
+const btnReset   = document.getElementById('btnReset');
+const speedSlider= document.getElementById('speed');
+
+// ── Algorithm + Step Pre-computation ──────────────────────────────────────
+function computeSteps(a, b) {
+  const result = [];
+
+  // ── Phase 0: Introduction step ─────────────────────────────────────
+  result.push({
+    phase: 'intro',
+    desc: `Starting Extended Euclidean Algorithm with <code>a = ${a}</code>, <code>b = ${b}</code>. We'll find <code>gcd(${a}, ${b})</code> and integers <code>x, y</code> such that <code>${a}·x + ${b}·y = gcd(${a}, ${b})</code>.`,
+    activeDiv: -1,
+    activeBT: -1,
+    divRows: [],
+    btRows: [],
+    bezout: null
+  });
+
+  // ── Forward phase: compute Euclidean steps ─────────────────────────
+  // Build the full list of (r, q) pairs first
+  let r0 = a, r1 = b;
+  const eucSteps = [];  // { r_prev, r_curr, q, r_next }
+  while (r1 !== 0) {
+    const q = Math.floor(r0 / r1);
+    const r2 = r0 - q * r1;
+    eucSteps.push({ rPrev: r0, rCurr: r1, q, rNext: r2 });
+    r0 = r1;
+    r1 = r2;
+  }
+  const gcdVal = r0; // last non-zero remainder
+
+  // Build extended coefficient sequence
+  // r[i], s[i], t[i] — invariant: a*s[i] + b*t[i] = r[i]
+  const rSeq = [a, b];
+  const sSeq = [1, 0];
+  const tSeq = [0, 1];
+  for (const es of eucSteps) {
+    const i = rSeq.length - 1;
+    const q = es.q;
+    rSeq.push(rSeq[i-1] - q * rSeq[i]);
+    sSeq.push(sSeq[i-1] - q * sSeq[i]);
+    tSeq.push(tSeq[i-1] - q * tSeq[i]);
+  }
+  // rSeq ends with ..., gcdVal, 0
+  // coefficients for gcd are at index eucSteps.length (= rSeq.length - 2)
+  const gcdIdx = eucSteps.length;
+
+  // Now build the forward steps (one per Euclidean division)
+  const divRowsAccum = [];
+  for (let i = 0; i < eucSteps.length; i++) {
+    const es = eucSteps[i];
+    divRowsAccum.push({
+      idx: i,
+      rPrev: es.rPrev,
+      rCurr: es.rCurr,
+      q: es.q,
+      rNext: es.rNext,
+      isGcd: es.rNext === 0
+    });
+
+    const desc = es.rNext === 0
+      ? `<code>${es.rPrev} = ${es.q} × ${es.rCurr} + 0</code> — remainder is <strong>0</strong>. The GCD is the last non-zero remainder: <code>gcd(${a}, ${b}) = <strong>${es.rCurr}</strong></code>.`
+      : `<code>${es.rPrev} = ${es.q} × ${es.rCurr} + ${es.rNext}</code> — remainder <code>${es.rNext}</code> becomes the new divisor.`;
+
+    result.push({
+      phase: 'forward',
+      desc,
+      activeDiv: i,
+      activeBT: -1,
+      divRows: divRowsAccum.slice(),
+      btRows: [],
+      bezout: null
+    });
+  }
+
+  // ── Backward phase: reveal coefficient table row by row ────────────
+  const btRowsAccum = [];
+  // We'll show the coefficient tracking for each row (r[0]..r[gcdIdx])
+  // Highlight the final GCD row specially
+  for (let i = 0; i <= gcdIdx; i++) {
+    btRowsAccum.push({
+      idx: i,
+      r: rSeq[i],
+      s: sSeq[i],
+      t: tSeq[i],
+      isFinal: i === gcdIdx,
+      a, b
+    });
+
+    let desc;
+    if (i === 0) {
+      desc = `Initialize: <code>r₀ = ${a}</code>, <code>s₀ = 1</code>, <code>t₀ = 0</code> → <code>${a}·1 + ${b}·0 = ${a}</code>. Base case for the a-side.`;
+    } else if (i === 1) {
+      desc = `Initialize: <code>r₁ = ${b}</code>, <code>s₁ = 0</code>, <code>t₁ = 1</code> → <code>${a}·0 + ${b}·1 = ${b}</code>. Base case for the b-side.`;
+    } else {
+      const q = eucSteps[i-1].q;
+      desc = `Recurrence step ${i}: <code>q = ${q}</code> — compute <code>r${i} = r${i-2} − ${q}·r${i-1} = ${rSeq[i-2]} − ${q}·${rSeq[i-1]} = ${rSeq[i]}</code>, <code>s${i} = ${sSeq[i-2]} − ${q}·${sSeq[i-1]} = ${sSeq[i]}</code>, <code>t${i} = ${tSeq[i-2]} − ${q}·${tSeq[i-1]} = ${tSeq[i]}</code>.`;
+    }
+
+    if (i === gcdIdx) {
+      desc = `✅ Final Bézout coefficients: <code>gcd(${a}, ${b}) = ${gcdVal}</code> with <code>x = ${sSeq[gcdIdx]}</code>, <code>y = ${tSeq[gcdIdx]}</code>. Verify: <code>${a}·(${sSeq[gcdIdx]}) + ${b}·(${tSeq[gcdIdx]}) = ${a * sSeq[gcdIdx] + b * tSeq[gcdIdx]}</code> ✓`;
+    }
+
+    result.push({
+      phase: i === gcdIdx ? 'done' : 'backward',
+      desc,
+      activeDiv: gcdIdx - 1,   // keep last division row highlighted
+      activeBT: i,
+      divRows: divRowsAccum.slice(),
+      btRows: btRowsAccum.slice(),
+      bezout: {
+        a, b, gcdVal,
+        s: sSeq[gcdIdx],
+        t: tSeq[gcdIdx],
+        final: i === gcdIdx
+      }
+    });
+  }
+
+  return { steps: result, eucSteps, rSeq, sSeq, tSeq, gcdVal, gcdIdx };
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────────
+function renderStep(idx) {
+  if (steps.length === 0 || idx < 0) return;
+  const s = steps[idx];
+
+  // Phase badge
+  if (s.phase === 'intro' || s.phase === 'forward') {
+    phaseBadge.textContent = 'Forward';
+    phaseBadge.className = 'phase-badge forward';
+  } else if (s.phase === 'done') {
+    phaseBadge.textContent = 'Done';
+    phaseBadge.className = 'phase-badge done';
+  } else {
+    phaseBadge.textContent = 'Backward';
+    phaseBadge.className = 'phase-badge backward';
+  }
+
+  stepNum.textContent = idx + 1;
+
+  // Description
+  descText.innerHTML = s.desc;
+
+  // Division table
+  divBody.innerHTML = '';
+  for (const row of s.divRows) {
+    const tr = document.createElement('tr');
+    let cls = '';
+    if (row.idx === s.activeDiv) {
+      cls = row.isGcd ? 'row-gcd' : 'row-active';
+    } else if (row.idx < s.activeDiv) {
+      cls = 'row-done';
+    }
+    tr.className = cls;
+
+    const rPrevColor = row.idx === 0 ? 'num-a' : 'num-r';
+    tr.innerHTML = `
+      <td>${row.idx + 1}</td>
+      <td class="dividend-cell ${rPrevColor}">${row.rPrev}</td>
+      <td class="eq">=</td>
+      <td class="num-q">${row.q}</td>
+      <td class="eq">×</td>
+      <td class="${row.idx === 0 ? 'num-b' : 'num-r'}">${row.rCurr}</td>
+      <td class="eq">+</td>
+      <td class="${row.isGcd ? 'num-q dim' : 'num-r'} ${row.isGcd ? 'gcd-cell' : ''}">${row.rNext === 0 ? (row.rNext + ' &nbsp;← gcd = ' + row.rCurr) : row.rNext}</td>
+    `;
+    divBody.appendChild(tr);
+  }
+
+  // Back-sub table
+  backBody.innerHTML = '';
+  for (const row of s.btRows) {
+    const tr = document.createElement('tr');
+    let cls = '';
+    if (row.idx === s.activeBT) {
+      cls = row.isFinal ? 'bt-result' : 'bt-active';
+    } else if (row.idx < s.activeBT) {
+      cls = 'bt-done';
+    }
+    tr.className = cls;
+
+    const verify = row.a * row.s + row.b * row.t;
+    tr.innerHTML = `
+      <td>${row.idx}</td>
+      <td class="${row.isFinal ? 'num-b' : 'num-r'}">${row.r}</td>
+      <td class="num-s">${row.s}</td>
+      <td class="num-t">${row.t}</td>
+      <td style="color:var(--muted);font-size:.78rem">${verify}</td>
+    `;
+    backBody.appendChild(tr);
+  }
+
+  // Bézout box
+  if (!s.bezout) {
+    bezoutBox.className = 'bezout-box';
+    bezoutBox.innerHTML = `<div style="color:var(--muted);font-size:.85rem">Bézout coefficients will appear during the backward phase…</div>`;
+  } else if (s.bezout.final) {
+    const { a, b, gcdVal, s: sx, t: tx } = s.bezout;
+    bezoutBox.className = 'bezout-box done';
+    bezoutBox.innerHTML = `
+      <div class="equation">
+        <span class="num-a">${a}</span><span style="color:var(--muted)"> · </span><span class="num-s">(${sx})</span>
+        <span style="color:var(--muted)"> + </span>
+        <span class="num-b">${b}</span><span style="color:var(--muted)"> · </span><span class="num-t">(${tx})</span>
+        <span style="color:var(--muted)"> = </span>
+        <span style="color:var(--good);font-weight:700">${gcdVal}</span>
+      </div>
+      <div style="margin-top:10px;color:var(--muted);font-size:.8rem">
+        gcd(<span class="num-a">${a}</span>, <span class="num-b">${b}</span>) = <span style="color:var(--good);font-weight:700">${gcdVal}</span> &nbsp;|&nbsp;
+        x = <span class="num-s">${sx}</span> &nbsp;|&nbsp; y = <span class="num-t">${tx}</span>
+        ${gcdVal === 1 ? `<br><span style="color:var(--violet)">→ ${a} and ${b} are coprime. Modular inverse: ${a}⁻¹ mod ${b} ≡ ${((sx % b) + b) % b}</span>` : ''}
+      </div>
+    `;
+  } else {
+    const row = s.btRows[s.btRows.length - 1];
+    if (row) {
+      const { a: A, b: B, r, s: sx, t: tx } = row;
+      bezoutBox.className = 'bezout-box active';
+      bezoutBox.innerHTML = `
+        <div class="equation">
+          <span class="num-a">${A}</span><span style="color:var(--muted)"> · </span><span class="num-s">(${sx})</span>
+          <span style="color:var(--muted)"> + </span>
+          <span class="num-b">${B}</span><span style="color:var(--muted)"> · </span><span class="num-t">(${tx})</span>
+          <span style="color:var(--muted)"> = </span>
+          <span class="num-r">${r}</span>
+        </div>
+        <div style="margin-top:6px;color:var(--muted);font-size:.78rem">
+          Invariant holds: <code>${A}·${sx} + ${B}·${tx} = ${A * sx + B * tx}</code> ✓
+        </div>
+      `;
+    }
+  }
+
+  // Buttons
+  btnPrev.disabled = idx <= 0;
+  btnNext.disabled = idx >= steps.length - 1;
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function goTo(idx) {
+  stepIdx = Math.max(0, Math.min(steps.length - 1, idx));
+  renderStep(stepIdx);
+}
+
+function goNext() {
+  if (stepIdx < steps.length - 1) goTo(stepIdx + 1);
+  else stopPlay();
+}
+
+function goPrev() {
+  if (stepIdx > 0) goTo(stepIdx - 1);
+}
+
+// ── Auto-play ──────────────────────────────────────────────────────────────
+function startPlay() {
+  if (stepIdx >= steps.length - 1) goTo(0);
+  isPlaying = true;
+  btnPlay.textContent = '⏸ Pause';
+  btnPrev.disabled = true;
+  scheduleNext();
+}
+
+function stopPlay() {
+  isPlaying = false;
+  btnPlay.textContent = '▶ Auto';
+  btnPrev.disabled = stepIdx <= 0;
+  clearTimeout(playTimer);
+}
+
+function scheduleNext() {
+  if (!isPlaying) return;
+  const ms = 1100 - speedSlider.value * 100;
+  playTimer = setTimeout(() => {
+    if (stepIdx >= steps.length - 1) { stopPlay(); return; }
+    goNext();
+    scheduleNext();
+  }, ms);
+}
+
+// ── Run / Reset ────────────────────────────────────────────────────────────
+function run() {
+  stopPlay();
+  inputA = Math.max(1, parseInt(document.getElementById('inputA').value) || 252);
+  inputB = Math.max(1, parseInt(document.getElementById('inputB').value) || 105);
+  // Ensure a >= b for cleaner display
+  if (inputA < inputB) { [inputA, inputB] = [inputB, inputA]; }
+  document.getElementById('inputA').value = inputA;
+  document.getElementById('inputB').value = inputB;
+
+  const { steps: s } = computeSteps(inputA, inputB);
+  steps = s;
+  stepIdx = 0;
+  stepTotal.textContent = steps.length;
+  btnPrev.disabled = false;
+  btnNext.disabled = false;
+  renderStep(0);
+}
+
+function reset() {
+  stopPlay();
+  steps = [];
+  stepIdx = -1;
+  stepNum.textContent = '0';
+  stepTotal.textContent = '0';
+  divBody.innerHTML = '';
+  backBody.innerHTML = '';
+  descText.textContent = 'Enter values for a and b, then click Run to begin.';
+  bezoutBox.className = 'bezout-box';
+  bezoutBox.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Awaiting computation…</div>';
+  phaseBadge.textContent = 'Forward';
+  phaseBadge.className = 'phase-badge forward';
+  btnPrev.disabled = true;
+  btnNext.disabled = true;
+}
+
+// ── Event Listeners ────────────────────────────────────────────────────────
+btnRun.addEventListener('click', run);
+btnReset.addEventListener('click', reset);
+btnPrev.addEventListener('click', () => { stopPlay(); goPrev(); });
+btnNext.addEventListener('click', () => { stopPlay(); goNext(); });
+btnPlay.addEventListener('click', () => {
+  if (isPlaying) stopPlay();
+  else { if (steps.length === 0) run(); startPlay(); }
+});
+
+document.querySelectorAll('.pb').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('inputA').value = btn.dataset.a;
+    document.getElementById('inputB').value = btn.dataset.b;
+    run();
+  });
+});
+
+document.getElementById('inputA').addEventListener('keypress', e => { if (e.key === 'Enter') run(); });
+document.getElementById('inputB').addEventListener('keypress', e => { if (e.key === 'Enter') run(); });
+
+// ── Init ───────────────────────────────────────────────────────────────────
+run();
+</script>
+</body>
+</html>
