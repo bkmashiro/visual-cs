@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chinese Remainder Theorem — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --s2: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --accent0: rgba(88,166,255,.15);
+  --good: #3fb950;
+  --good0: rgba(63,185,80,.15);
+  --warn: #f78166;
+  --warn0: rgba(247,129,102,.15);
+  --gold: #e3b341;
+  --gold0: rgba(227,179,65,.15);
+  --violet: #a371f7;
+  --violet0: rgba(163,113,247,.15);
+  --cyan: #67e8f9;
+  --cyan0: rgba(103,232,249,.12);
+  --pink: #f778ba;
+  --pink0: rgba(247,120,186,.13);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header h1 { font-size: 1.05rem; font-weight: 700; }
+header h1 span { color: var(--accent); }
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all .2s;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+
+.controls {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+.ctrl-group { display: flex; align-items: center; gap: 8px; }
+.ctrl-group label { color: var(--muted); font-size: .82rem; }
+
+.congruence-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.cong-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: .82rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+.cong-row .label { color: var(--muted); }
+
+button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 15px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  transition: all .15s;
+}
+button:hover { border-color: var(--accent); color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; }
+button.primary:hover { opacity: .85; }
+button:disabled { opacity: .35; cursor: default; pointer-events: none; }
+
+input[type="number"] {
+  width: 58px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: .88rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  outline: none;
+  transition: border-color .2s;
+}
+input[type="number"]:focus { border-color: var(--accent); }
+input[type="range"] { width: 80px; accent-color: var(--accent); }
+select {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: .82rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.presets { display: flex; flex-wrap: wrap; gap: 5px; }
+.pb {
+  font-size: .7rem;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+}
+.pb:hover { color: var(--accent); border-color: var(--accent); }
+
+.step-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .82rem;
+}
+.step-counter { color: var(--muted); }
+.step-counter span { color: var(--accent); font-weight: 700; }
+.phase-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.phase-badge.setup  { background: var(--accent0);  color: var(--accent);  border: 1px solid var(--accent); }
+.phase-badge.garner { background: var(--gold0);    color: var(--gold);    border: 1px solid var(--gold); }
+.phase-badge.assemble { background: var(--violet0); color: var(--violet); border: 1px solid var(--violet); }
+.phase-badge.done   { background: var(--good0);    color: var(--good);    border: 1px solid var(--good); }
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  overflow: hidden;
+}
+@media (max-width: 720px) {
+  main { grid-template-columns: 1fr; overflow-y: auto; }
+}
+.panel {
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.panel:last-child { border-right: none; }
+
+.sec-title {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+/* Congruence / coefficient table */
+table.cong-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .83rem;
+  width: 100%;
+}
+table.cong-table th {
+  color: var(--muted);
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 5px 10px;
+  text-align: center;
+}
+table.cong-table td {
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--s2);
+  text-align: center;
+  transition: all .25s;
+  vertical-align: middle;
+}
+tr.ct-active td   { border-color: var(--gold);   background: var(--gold0); }
+tr.ct-inner td    { border-color: var(--violet);  background: var(--violet0); }
+tr.ct-done td     { opacity: .65; }
+tr.ct-result td   { border-color: var(--good);    background: var(--good0); }
+
+.num-r  { color: var(--gold);   font-weight: 700; }
+.num-m  { color: var(--cyan);   font-weight: 700; }
+.num-c  { color: var(--violet); font-weight: 700; }
+.num-x  { color: var(--good);   font-weight: 700; }
+.num-inv{ color: var(--pink);   font-weight: 700; }
+
+/* Inner loop operation box */
+.op-box {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: .84rem;
+  line-height: 1.75;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  min-height: 60px;
+  transition: all .25s;
+}
+.op-box.active { border-color: var(--gold); background: var(--gold0); }
+.op-box .op-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: .62rem;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+/* Step description */
+.desc-box {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: .87rem;
+  line-height: 1.65;
+  color: var(--text);
+  min-height: 72px;
+}
+.desc-box .label {
+  font-size: .62rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.desc-box code {
+  background: rgba(255,255,255,.07);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .83em;
+}
+
+/* Coprime matrix */
+.coprime-grid {
+  display: grid;
+  gap: 4px;
+}
+.coprime-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--s2);
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .78rem;
+  transition: all .25s;
+  text-align: center;
+  line-height: 1.3;
+}
+.coprime-cell.ok  { border-color: var(--good);  background: var(--good0); color: var(--good); }
+.coprime-cell.bad { border-color: var(--warn);  background: var(--warn0); color: var(--warn); }
+.coprime-cell.hdr { color: var(--muted); border-color: transparent; background: transparent; font-size: .7rem; }
+
+/* Assembly display */
+.assembly-box {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .85rem;
+  line-height: 2;
+}
+.assembly-box.done { border-color: var(--good); background: var(--good0); }
+.asm-term { display: inline-block; transition: all .3s; }
+.asm-term.active { color: var(--violet); font-weight: 700; }
+.asm-term.done-t { color: var(--muted); }
+.asm-total {
+  margin-top: 8px;
+  font-size: .95rem;
+  color: var(--text);
+}
+.asm-total span { color: var(--good); font-weight: 700; font-size: 1.1rem; }
+
+/* Verification table */
+table.verify-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .82rem;
+  width: 100%;
+}
+table.verify-table th {
+  color: var(--muted);
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 5px 10px;
+  text-align: center;
+}
+table.verify-table td {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--s2);
+  text-align: center;
+  transition: all .25s;
+}
+tr.vt-ok  td { border-color: var(--good); background: var(--good0); }
+tr.vt-bad td { border-color: var(--warn); background: var(--warn0); }
+
+/* Legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: .75rem;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* Info box */
+.info-box {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  font-size: .84rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.info-box h3 { color: var(--accent); margin-bottom: 10px; font-size: .95rem; }
+.info-box p { margin-bottom: 8px; }
+.info-box code {
+  background: rgba(255,255,255,.07);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: .83em;
+  color: var(--text);
+}
+
+footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .78rem;
+}
+footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Chinese <span>Remainder</span> Theorem</h1>
+  <a href="../../index.html">← Back to Index</a>
+</header>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <label># equations:</label>
+    <select id="selN">
+      <option value="2">2</option>
+      <option value="3" selected>3</option>
+      <option value="4">4</option>
+    </select>
+  </div>
+
+  <!-- Congruence inputs: x ≡ r (mod m) -->
+  <div class="congruence-inputs" id="congInputs"></div>
+
+  <div class="ctrl-group">
+    <button class="primary" id="btnRun">Run</button>
+    <button id="btnPrev" disabled>◀ Prev</button>
+    <button id="btnNext" disabled>Next ▶</button>
+    <button id="btnPlay">▶ Auto</button>
+  </div>
+  <div class="ctrl-group">
+    <label>Speed:</label>
+    <input type="range" id="speed" min="1" max="10" value="5">
+  </div>
+  <div class="presets">
+    <span class="pb" data-preset="0">2 mod 3, 3 mod 5, 2 mod 7</span>
+    <span class="pb" data-preset="1">1 mod 5, 2 mod 7, 3 mod 11</span>
+    <span class="pb" data-preset="2">3 mod 4, 5 mod 7, 2 mod 9</span>
+    <span class="pb" data-preset="3">1 mod 2, 2 mod 3, 3 mod 5, 4 mod 7</span>
+    <span class="pb" data-preset="4">0 mod 3, 1 mod 4, 6 mod 7</span>
+  </div>
+</div>
+
+<div class="step-bar">
+  <div class="step-counter">Step <span id="stepNum">0</span> / <span id="stepTotal">0</span></div>
+  <div id="phaseBadge" class="phase-badge setup">Setup</div>
+</div>
+
+<main>
+  <!-- Left panel: Congruences + Garner coefficient table + description -->
+  <div class="panel" id="leftPanel">
+    <div>
+      <div class="sec-title">Congruences &amp; Garner Coefficients</div>
+      <table class="cong-table" id="congTable">
+        <thead>
+          <tr>
+            <th>i</th>
+            <th>Congruence</th>
+            <th>m<sub>i</sub></th>
+            <th>r<sub>i</sub></th>
+            <th>coeff[i]</th>
+          </tr>
+        </thead>
+        <tbody id="congBody"></tbody>
+      </table>
+    </div>
+
+    <div>
+      <div class="sec-title">Inner Loop Operation</div>
+      <div class="op-box" id="opBox">
+        <div class="op-label">Pending</div>
+        <span style="color:var(--muted)">Inner loop updates will appear here during Garner's computation.</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-title">Step Description</div>
+      <div class="desc-box" id="descBox">
+        <div class="label">Current Action</div>
+        <div id="descText">Enter congruences and click Run to begin.</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div><span style="color:var(--gold)">active coefficient</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--violet)"></div><span style="color:var(--violet)">inner loop j</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div><span style="color:var(--pink)">modular inverse</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--good)"></div><span style="color:var(--good)">final / verified</span></div>
+    </div>
+  </div>
+
+  <!-- Right panel: Coprime check + Assembly + Verification -->
+  <div class="panel" id="rightPanel">
+    <div>
+      <div class="sec-title">Pairwise Coprimality Check</div>
+      <div id="coprimeGrid"></div>
+    </div>
+
+    <div>
+      <div class="sec-title">Mixed-Radix Assembly</div>
+      <div class="assembly-box" id="assemblyBox">
+        <div style="color:var(--muted);font-size:.84rem">Assembly will appear after Garner's computation…</div>
+      </div>
+    </div>
+
+    <div id="verifySection" style="display:none">
+      <div class="sec-title">Verification</div>
+      <table class="verify-table" id="verifyTable">
+        <thead>
+          <tr>
+            <th>Congruence</th>
+            <th>x mod m<sub>i</sub></th>
+            <th>Expected r<sub>i</sub></th>
+            <th>✓?</th>
+          </tr>
+        </thead>
+        <tbody id="verifyBody"></tbody>
+      </table>
+    </div>
+
+    <div class="info-box">
+      <h3>📐 Chinese Remainder Theorem</h3>
+      <p>If <code>m₁, m₂, …, mₙ</code> are <strong>pairwise coprime</strong>, then for any remainders <code>r₁, …, rₙ</code> the system <code>x ≡ rᵢ (mod mᵢ)</code> has a unique solution in <code>[0, M)</code> where <code>M = m₁·m₂·⋯·mₙ</code>.</p>
+      <p><strong>Garner's algorithm</strong> expresses <code>x</code> in a mixed-radix form:<br>
+      <code>x = a₀ + a₁·m₀ + a₂·m₀m₁ + ⋯</code><br>
+      Each coefficient <code>aᵢ</code> is found by a short inner loop that "peels off" lower-index contributions using modular inverses.</p>
+      <p><strong>Time:</strong> <code>O(n² · log M)</code> — dominated by the O(n²) modular inverse calls.</p>
+      <p><strong>Uses:</strong> RSA / multi-prime arithmetic, fast big-integer operations, competitive programming.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p><a href="https://github.com/bkmashiro/visual-cs">visual-cs</a> — Pure HTML/CSS/JS</p>
+</footer>
+
+<script>
+// ── Presets ────────────────────────────────────────────────────────────────
+const PRESETS = [
+  [{r:2,m:3},{r:3,m:5},{r:2,m:7}],
+  [{r:1,m:5},{r:2,m:7},{r:3,m:11}],
+  [{r:3,m:4},{r:5,m:7},{r:2,m:9}],
+  [{r:1,m:2},{r:2,m:3},{r:3,m:5},{r:4,m:7}],
+  [{r:0,m:3},{r:1,m:4},{r:6,m:7}],
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let steps = [];
+let stepIdx = -1;
+let isPlaying = false;
+let playTimer = null;
+
+// Current input config
+let currentN = 3;
+let currentCongruences = PRESETS[0];
+
+// ── Math helpers ──────────────────────────────────────────────────────────
+function gcd(a, b) {
+  a = Math.abs(a); b = Math.abs(b);
+  while (b) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+// Extended Euclidean — returns modular inverse of a mod m (a and m coprime)
+function modInverse(a, m) {
+  let [old_r, r] = [((a % m) + m) % m, m];
+  let [old_s, s] = [1, 0];
+  while (r !== 0) {
+    const q = Math.floor(old_r / r);
+    [old_r, r] = [r, old_r - q * r];
+    [old_s, s] = [s, old_s - q * s];
+  }
+  return ((old_s % m) + m) % m;
+}
+
+function modMul(a, b, m) {
+  // Safe for JS numbers up to ~2^53
+  return (((a % m) * (b % m)) % m + m) % m;
+}
+
+// ── Input UI ──────────────────────────────────────────────────────────────
+function buildInputs(n) {
+  const container = document.getElementById('congInputs');
+  container.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const row = document.createElement('div');
+    row.className = 'cong-row';
+    const rVal = (currentCongruences[i] || {r: i+1, m: [3,5,7,11][i]}).r;
+    const mVal = (currentCongruences[i] || {r: i+1, m: [3,5,7,11][i]}).m;
+    row.innerHTML = `
+      <span class="label">x ≡</span>
+      <input type="number" id="r${i}" value="${rVal}" min="0" max="9999" style="width:52px">
+      <span class="label">(mod</span>
+      <input type="number" id="m${i}" value="${mVal}" min="2" max="9999" style="width:52px">
+      <span class="label">)</span>
+    `;
+    container.appendChild(row);
+  }
+}
+
+function readInputs() {
+  const n = currentN;
+  const congruences = [];
+  for (let i = 0; i < n; i++) {
+    const m = Math.max(2, parseInt(document.getElementById('m'+i).value) || 2);
+    const r = Math.max(0, parseInt(document.getElementById('r'+i).value) || 0) % m;
+    congruences.push({ r, m });
+  }
+  return congruences;
+}
+
+// ── Algorithm + Step Pre-computation ──────────────────────────────────────
+function computeSteps(congruences) {
+  const n = congruences.length;
+  const r = congruences.map(c => c.r);
+  const m = congruences.map(c => c.m);
+  const M = m.reduce((a, b) => a * b, 1);
+
+  // Pairwise coprimality
+  const pairs = [];
+  for (let i = 0; i < n; i++)
+    for (let j = i+1; j < n; j++)
+      pairs.push({ i, j, g: gcd(m[i], m[j]) });
+  const allCoprime = pairs.every(p => p.g === 1);
+
+  const steps = [];
+
+  // Helper to snapshot
+  function snap(overrides) {
+    return Object.assign({
+      phase: 'intro',
+      activeCoeff: -1,
+      innerJ: -1,
+      coeffs: coeffs.slice(),
+      assembleIdx: -1,
+      assemblyTerms: [],
+      finalX: null,
+      pairs,
+      allCoprime,
+      n, r, m, M,
+      invVal: null,
+      before: null,
+      after: null,
+      verifications: null,
+      desc: '',
+      badgeText: 'Setup',
+      badgeClass: 'setup',
+    }, overrides);
+  }
+
+  // Working coefficient array (starts as r, updated in-place by Garner)
+  const coeffs = r.slice();
+
+  // ── Step 0: Intro ──────────────────────────────────────────────────────
+  steps.push(snap({
+    phase: 'intro',
+    desc: `Solving a system of <strong>${n}</strong> congruences: ${r.map((ri, i) => `<code>x ≡ ${ri} (mod ${m[i]})</code>`).join(', ')}.<br>The unique solution lies in <code>[0, ${M})</code>. M = ${m.join(' × ')} = ${M}.`,
+    badgeText: 'Setup', badgeClass: 'setup'
+  }));
+
+  // ── Step 1: Coprimality check ──────────────────────────────────────────
+  steps.push(snap({
+    phase: 'coprime',
+    desc: allCoprime
+      ? `✓ All moduli are pairwise coprime — gcd = 1 for every pair. The unique solution is guaranteed.`
+      : `⚠ Some moduli share factors. Garner's algorithm requires pairwise coprime moduli!`,
+    badgeText: 'Check', badgeClass: 'setup'
+  }));
+
+  // ── Garner's algorithm ─────────────────────────────────────────────────
+  for (let i = 0; i < n; i++) {
+    // Show start of coeff[i] computation
+    steps.push(snap({
+      phase: 'garner-start',
+      activeCoeff: i,
+      desc: i === 0
+        ? `Coefficient 0: <code>coeff[0] = r[0] = ${r[0]}</code>. The first coefficient is simply the first remainder — no inner loop needed.`
+        : `Coefficient ${i}: Initialize <code>coeff[${i}] = r[${i}] = ${r[i]}</code>. Will apply ${i} inner-loop correction${i > 1 ? 's' : ''} using modular inverses.`,
+      badgeText: 'Garner', badgeClass: 'garner'
+    }));
+
+    if (i > 0) {
+      for (let j = 0; j < i; j++) {
+        const inv = modInverse(m[j], m[i]);
+        const before = coeffs[i];
+        const diff = ((before - coeffs[j]) % m[i] + m[i]) % m[i];
+        const after = modMul(diff, inv, m[i]);
+
+        steps.push(snap({
+          phase: 'garner-inner',
+          activeCoeff: i,
+          innerJ: j,
+          invVal: inv,
+          before,
+          after,
+          desc: `j=${j}: <code>coeff[${i}] = (coeff[${i}] − coeff[${j}]) × inv(m[${j}], m[${i}]) mod m[${i}]</code><br>= <code>(${before} − ${coeffs[j]}) × inv(${m[j]}, ${m[i]}) mod ${m[i]}</code><br>= <code>${((before - coeffs[j]) % m[i] + m[i]) % m[i]} × ${inv} mod ${m[i]}</code> = <code class="num-c">${after}</code>`,
+          badgeText: 'Garner', badgeClass: 'garner'
+        }));
+
+        coeffs[i] = after;
+      }
+    }
+  }
+
+  // ── Assembly ───────────────────────────────────────────────────────────
+  let x = coeffs[0];
+  let prefix = 1;
+  const assemblyTerms = [{ coeff: coeffs[0], prefix: 1, running: x, prefixStr: '' }];
+
+  for (let i = 1; i < n; i++) {
+    prefix *= m[i-1];
+    x += coeffs[i] * prefix;
+    assemblyTerms.push({ coeff: coeffs[i], prefix, running: x, prefixStr: m.slice(0, i).join('×') });
+  }
+
+  for (let i = 0; i < n; i++) {
+    const isFinal = i === n - 1;
+    steps.push(snap({
+      phase: isFinal ? 'assemble-done' : 'assemble',
+      activeCoeff: -1,
+      assembleIdx: i,
+      assemblyTerms: assemblyTerms.slice(0, i+1),
+      finalX: x,
+      desc: i === 0
+        ? `Assembly begin: <code>x = coeff[0] = ${coeffs[0]}</code>.`
+        : `Add term <code>coeff[${i}] × (${assemblyTerms[i].prefixStr}) = ${coeffs[i]} × ${assemblyTerms[i].prefix} = ${coeffs[i] * assemblyTerms[i].prefix}</code>. Running total: <code>x = ${assemblyTerms[i].running}</code>.`,
+      badgeText: 'Assemble', badgeClass: 'assemble'
+    }));
+  }
+
+  // ── Verification ───────────────────────────────────────────────────────
+  const verifications = r.map((ri, i) => ({ r: ri, m: m[i], rem: x % m[i], ok: x % m[i] === ri }));
+  steps.push(snap({
+    phase: 'verify',
+    assembleIdx: n - 1,
+    assemblyTerms,
+    finalX: x,
+    verifications,
+    desc: `✅ Solution: <code class="num-x">x = ${x}</code>. All ${n} congruences verified. Unique solution in [0, ${M}).`,
+    badgeText: 'Done', badgeClass: 'done'
+  }));
+
+  return { steps, finalX: x, coeffs };
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────────
+function renderStep(idx) {
+  if (steps.length === 0 || idx < 0) return;
+  const s = steps[idx];
+
+  // Phase badge
+  document.getElementById('phaseBadge').textContent = s.badgeText;
+  document.getElementById('phaseBadge').className = 'phase-badge ' + s.badgeClass;
+
+  // Step counter
+  document.getElementById('stepNum').textContent = idx + 1;
+
+  // Description
+  document.getElementById('descText').innerHTML = s.desc;
+
+  // ── Congruence / coefficient table ──────────────────────────────────
+  const tbody = document.getElementById('congBody');
+  tbody.innerHTML = '';
+  for (let i = 0; i < s.n; i++) {
+    const tr = document.createElement('tr');
+
+    let rowClass = '';
+    const isDone = (s.phase === 'verify' || s.phase === 'assemble' || s.phase === 'assemble-done');
+    if (s.activeCoeff === i) {
+      rowClass = s.innerJ >= 0 ? 'ct-active' : 'ct-active';
+    } else if (s.innerJ === i) {
+      rowClass = 'ct-inner';
+    } else if (isDone || (s.activeCoeff > i && s.phase.startsWith('garner'))) {
+      rowClass = 'ct-done';
+    }
+    if (s.phase === 'verify') rowClass = 'ct-result';
+    tr.className = rowClass;
+
+    // Display coeff value: show current if computed, else '?'
+    let coeffDisplay;
+    if (s.phase === 'intro' || s.phase === 'coprime') {
+      coeffDisplay = `<span style="color:var(--muted)">?</span>`;
+    } else if (i === 0) {
+      coeffDisplay = `<span class="num-c">${s.coeffs[0]}</span>`;
+    } else if (i < s.activeCoeff || (i === s.activeCoeff && s.phase === 'garner-start' && s.innerJ < 0)) {
+      // Already finalized or just starting — show current value
+      const val = s.coeffs[i];
+      const finalized = i < s.activeCoeff || (s.activeCoeff === -1 && !s.phase.startsWith('garner'));
+      coeffDisplay = finalized
+        ? `<span class="num-c">${val}</span>`
+        : `<span style="color:var(--gold)">${val}</span>`;
+    } else if (i === s.activeCoeff) {
+      const val = s.phase === 'garner-inner' ? s.after : s.coeffs[i];
+      coeffDisplay = `<span style="color:var(--gold);font-weight:700">${val}</span>`;
+    } else {
+      coeffDisplay = `<span style="color:var(--muted)">—</span>`;
+    }
+
+    tr.innerHTML = `
+      <td>${i}</td>
+      <td style="color:var(--text)">x ≡ <span class="num-r">${s.r[i]}</span> (mod <span class="num-m">${s.m[i]}</span>)</td>
+      <td class="num-m">${s.m[i]}</td>
+      <td class="num-r">${s.r[i]}</td>
+      <td>${coeffDisplay}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // ── Inner loop operation box ──────────────────────────────────────────
+  const opBox = document.getElementById('opBox');
+  if (s.phase === 'garner-inner') {
+    opBox.className = 'op-box active';
+    const i = s.activeCoeff;
+    const j = s.innerJ;
+    opBox.innerHTML = `
+      <div class="op-label">Inner Loop: i=${i}, j=${j}</div>
+      <div>
+        coeff[${i}] = (coeff[${i}] − coeff[${j}]) × <span class="num-inv">inv(m[${j}], m[${i}])</span> mod m[${i}]<br>
+        = (<span class="num-r">${s.before}</span> − <span class="num-c">${s.coeffs[j]}</span>) × <span class="num-inv">${s.invVal}</span> mod <span class="num-m">${s.m[i]}</span><br>
+        = <span class="num-r">${((s.before - s.coeffs[j]) % s.m[i] + s.m[i]) % s.m[i]}</span> × <span class="num-inv">${s.invVal}</span> mod <span class="num-m">${s.m[i]}</span>
+        = <span class="num-c" style="font-size:1.05em">${s.after}</span>
+      </div>
+      <div style="margin-top:6px;color:var(--muted);font-size:.75rem">
+        inv(${s.m[j]}, ${s.m[i]}) = ${s.invVal} &nbsp;because ${s.m[j]} × ${s.invVal} ≡ 1 (mod ${s.m[i]})
+        &nbsp;[${s.m[j] * s.invVal} = ${Math.floor(s.m[j] * s.invVal / s.m[i])}×${s.m[i]}+1]
+      </div>
+    `;
+  } else if (s.phase.startsWith('garner') && s.activeCoeff >= 0) {
+    opBox.className = 'op-box';
+    opBox.innerHTML = `
+      <div class="op-label">Processing coeff[${s.activeCoeff}]</div>
+      <span style="color:var(--muted)">Initialize <span class="num-r">coeff[${s.activeCoeff}] = r[${s.activeCoeff}] = ${s.r[s.activeCoeff]}</span></span>
+    `;
+  } else {
+    opBox.className = 'op-box';
+    opBox.innerHTML = `
+      <div class="op-label">Pending</div>
+      <span style="color:var(--muted)">Inner loop updates will appear here during Garner's computation.</span>
+    `;
+  }
+
+  // ── Coprime matrix ────────────────────────────────────────────────────
+  renderCoprimeGrid(s);
+
+  // ── Assembly box ──────────────────────────────────────────────────────
+  const assemblyBox = document.getElementById('assemblyBox');
+  const isAssembling = s.phase === 'assemble' || s.phase === 'assemble-done' || s.phase === 'verify';
+  if (!isAssembling) {
+    assemblyBox.className = 'assembly-box';
+    if (s.phase.startsWith('garner') || s.phase === 'coprime') {
+      // Show final formula skeleton
+      const parts = s.r.map((_, i) => {
+        const prefix = i === 0 ? '' : (s.m.slice(0,i).join('·'));
+        return i === 0 ? 'a₀' : `a${i}·${prefix}`;
+      }).join(' + ');
+      assemblyBox.innerHTML = `<div style="color:var(--muted)">x = ${parts}<br><br>Waiting for Garner coefficients…</div>`;
+    } else {
+      assemblyBox.innerHTML = `<div style="color:var(--muted)">Assembly will appear after Garner's computation…</div>`;
+    }
+  } else {
+    const isDone = s.phase === 'assemble-done' || s.phase === 'verify';
+    assemblyBox.className = isDone ? 'assembly-box done' : 'assembly-box';
+
+    // Build the equation display
+    let eqParts = '';
+    for (let i = 0; i < s.n; i++) {
+      const term = s.assemblyTerms[i];
+      const active = s.assembleIdx === i;
+      const done = i < s.assembleIdx || isDone;
+
+      let termStr;
+      if (i === 0) {
+        termStr = `${s.coeffs[0]}`;
+      } else {
+        const pfx = s.m.slice(0, i).join('·');
+        termStr = `${s.coeffs[i]}·${pfx}`;
+      }
+
+      if (term) {
+        const cls = active ? 'asm-term active' : 'asm-term done-t';
+        eqParts += (i > 0 ? ' + ' : '') + `<span class="${cls}">${termStr}</span>`;
+      } else {
+        eqParts += (i > 0 ? ' + ' : '') + `<span class="asm-term" style="color:var(--border)">${termStr}</span>`;
+      }
+    }
+
+    const runningX = s.assemblyTerms.length > 0 ? s.assemblyTerms[s.assemblyTerms.length - 1].running : '?';
+    assemblyBox.innerHTML = `
+      <div style="font-size:.83rem;color:var(--muted);margin-bottom:4px">x = ${eqParts}</div>
+      <div class="asm-total">= <span>${runningX}</span></div>
+    `;
+  }
+
+  // ── Verification ──────────────────────────────────────────────────────
+  const verifySection = document.getElementById('verifySection');
+  const verifyBody = document.getElementById('verifyBody');
+  if (s.phase === 'verify' && s.verifications) {
+    verifySection.style.display = '';
+    verifyBody.innerHTML = '';
+    for (const v of s.verifications) {
+      const tr = document.createElement('tr');
+      tr.className = v.ok ? 'vt-ok' : 'vt-bad';
+      tr.innerHTML = `
+        <td>x ≡ ${v.r} (mod ${v.m})</td>
+        <td>${s.finalX} mod ${v.m} = <strong>${v.rem}</strong></td>
+        <td>${v.r}</td>
+        <td>${v.ok ? '✅' : '❌'}</td>
+      `;
+      verifyBody.appendChild(tr);
+    }
+  } else {
+    verifySection.style.display = 'none';
+  }
+
+  // Buttons
+  document.getElementById('btnPrev').disabled = idx <= 0;
+  document.getElementById('btnNext').disabled = idx >= steps.length - 1;
+}
+
+function renderCoprimeGrid(s) {
+  const container = document.getElementById('coprimeGrid');
+  const n = s.n;
+  const m = s.m;
+
+  // Build a matrix-style grid: n×n with header row/col
+  // We only show lower triangle pairs (i > j)
+  // Layout: use CSS grid (n+1) × (n+1)
+
+  const size = n + 1;
+  container.innerHTML = '';
+  container.style.display = 'grid';
+  container.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+  container.style.gap = '3px';
+
+  // Header row
+  container.appendChild(makeCell('', 'hdr'));
+  for (let j = 0; j < n; j++) container.appendChild(makeCell(`m[${j}]=${m[j]}`, 'hdr'));
+
+  // Data rows
+  for (let i = 0; i < n; i++) {
+    container.appendChild(makeCell(`m[${i}]=${m[i]}`, 'hdr'));
+    for (let j = 0; j < n; j++) {
+      if (j < i) {
+        const g = gcd(m[i], m[j]);
+        const cls = g === 1 ? 'ok' : 'bad';
+        container.appendChild(makeCell(`gcd=${g}`, cls));
+      } else if (j === i) {
+        container.appendChild(makeCell('—', 'hdr'));
+      } else {
+        container.appendChild(makeCell('', 'hdr'));
+      }
+    }
+  }
+
+  function makeCell(text, cls) {
+    const div = document.createElement('div');
+    div.className = 'coprime-cell ' + cls;
+    div.textContent = text;
+    return div;
+  }
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function goTo(idx) {
+  stepIdx = Math.max(0, Math.min(steps.length - 1, idx));
+  renderStep(stepIdx);
+}
+function goNext() {
+  if (stepIdx < steps.length - 1) goTo(stepIdx + 1);
+  else stopPlay();
+}
+function goPrev() {
+  if (stepIdx > 0) goTo(stepIdx - 1);
+}
+
+// ── Auto-play ──────────────────────────────────────────────────────────────
+function startPlay() {
+  if (stepIdx >= steps.length - 1) goTo(0);
+  isPlaying = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  document.getElementById('btnPrev').disabled = true;
+  scheduleNext();
+}
+function stopPlay() {
+  isPlaying = false;
+  document.getElementById('btnPlay').textContent = '▶ Auto';
+  document.getElementById('btnPrev').disabled = stepIdx <= 0;
+  clearTimeout(playTimer);
+}
+function scheduleNext() {
+  if (!isPlaying) return;
+  const ms = 1100 - document.getElementById('speed').value * 100;
+  playTimer = setTimeout(() => {
+    if (stepIdx >= steps.length - 1) { stopPlay(); return; }
+    goNext();
+    scheduleNext();
+  }, ms);
+}
+
+// ── Run ────────────────────────────────────────────────────────────────────
+function run() {
+  stopPlay();
+  currentCongruences = readInputs();
+  const result = computeSteps(currentCongruences);
+  steps = result.steps;
+  stepIdx = 0;
+  document.getElementById('stepTotal').textContent = steps.length;
+  document.getElementById('btnPrev').disabled = false;
+  document.getElementById('btnNext').disabled = false;
+  document.getElementById('verifySection').style.display = 'none';
+  renderStep(0);
+}
+
+// ── Controls ───────────────────────────────────────────────────────────────
+document.getElementById('selN').addEventListener('change', function() {
+  currentN = parseInt(this.value);
+  buildInputs(currentN);
+});
+
+document.getElementById('btnRun').addEventListener('click', run);
+document.getElementById('btnPrev').addEventListener('click', () => { stopPlay(); goPrev(); });
+document.getElementById('btnNext').addEventListener('click', () => { stopPlay(); goNext(); });
+document.getElementById('btnPlay').addEventListener('click', () => {
+  if (isPlaying) stopPlay();
+  else { if (steps.length === 0) run(); startPlay(); }
+});
+
+document.querySelectorAll('.pb').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const preset = PRESETS[parseInt(btn.dataset.preset)];
+    currentN = preset.length;
+    currentCongruences = preset;
+    document.getElementById('selN').value = currentN;
+    buildInputs(currentN);
+    run();
+  });
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+buildInputs(currentN);
+run();
+</script>
+</body>
+</html>

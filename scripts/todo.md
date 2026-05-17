@@ -33,7 +33,7 @@
 - [x] strassen — Strassen Matrix Multiplication (7-multiply recursion tree) ✅ 2026-05-11
 - [x] quickselect — QuickSelect / BFPRT (linear-time k-th element) ✅ 2026-05-13
 - [x] extended-gcd — Extended Euclidean Algorithm (Bézout coefficients) ✅ 2026-05-15
-- [ ] chinese-remainder — Chinese Remainder Theorem (Garner's algorithm)
+- [x] chinese-remainder — Chinese Remainder Theorem (Garner's algorithm) ✅ 2026-05-17
 
 ### Geometry
 - [ ] line-sweep — Sweep Line (segment intersection, event queue)
