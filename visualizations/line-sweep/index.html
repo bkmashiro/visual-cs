@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sweep Line — Segment Intersection | visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --s2: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --accent0: rgba(88,166,255,.15);
+  --good: #3fb950;
+  --good0: rgba(63,185,80,.15);
+  --warn: #f78166;
+  --warn0: rgba(247,129,102,.15);
+  --gold: #e3b341;
+  --gold0: rgba(227,179,65,.15);
+  --violet: #a371f7;
+  --violet0: rgba(163,113,247,.15);
+  --cyan: #67e8f9;
+  --cyan0: rgba(103,232,249,.12);
+  --pink: #f778ba;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header h1 { font-size: 1.05rem; font-weight: 700; }
+header h1 span { color: var(--accent); }
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all .2s;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+
+.step-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: .82rem;
+}
+.step-counter { color: var(--muted); }
+.step-counter strong { color: var(--accent); font-size: .95rem; }
+.phase-badge {
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.phase-badge.init    { background: var(--accent0);  color: var(--accent);  border: 1px solid var(--accent); }
+.phase-badge.left    { background: var(--good0);    color: var(--good);    border: 1px solid var(--good); }
+.phase-badge.right   { background: var(--warn0);    color: var(--warn);    border: 1px solid var(--warn); }
+.phase-badge.intersect { background: var(--violet0); color: var(--violet); border: 1px solid var(--violet); }
+.phase-badge.done    { background: var(--cyan0);    color: var(--cyan);    border: 1px solid var(--cyan); }
+
+.controls {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+button {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; }
+button.primary:hover { opacity: .85; }
+button:disabled { opacity: .35; cursor: default; pointer-events: none; }
+
+.speed-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: .8rem;
+  margin-left: auto;
+}
+.speed-group input { width: 80px; accent-color: var(--accent); }
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-wrap {
+  position: relative;
+  background: #0a0d12;
+  overflow: hidden;
+}
+#mainCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.side-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.desc-box {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  min-height: 110px;
+}
+.desc-box h3 {
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.desc-text {
+  font-size: .88rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+.desc-text .hl  { color: var(--accent); font-weight: 600; }
+.desc-text .hl2 { color: var(--good);   font-weight: 600; }
+.desc-text .hl3 { color: var(--warn);   font-weight: 600; }
+.desc-text .hl4 { color: var(--violet); font-weight: 600; }
+
+.struct-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.struct-title {
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: .78rem;
+  border: 1px solid transparent;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+.event-item.current {
+  background: var(--accent0);
+  border-color: var(--accent);
+}
+.event-item.past {
+  opacity: .4;
+}
+.event-badge {
+  font-size: .65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.ev-L  { background: var(--good0);    color: var(--good);    border: 1px solid var(--good); }
+.ev-R  { background: var(--warn0);    color: var(--warn);    border: 1px solid var(--warn); }
+.ev-X  { background: var(--violet0);  color: var(--violet);  border: 1px solid var(--violet); }
+.ev-coords { color: var(--muted); font-size: .72rem; }
+
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  font-size: .8rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+.status-item.swapped {
+  background: var(--violet0);
+  border-color: var(--violet);
+}
+.status-swatch {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.status-name { font-size: .8rem; color: var(--text); }
+.status-y { margin-left: auto; color: var(--muted); font-size: .72rem; }
+
+.intersections-found {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ix-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  background: var(--violet0);
+  border: 1px solid var(--violet);
+  font-size: .75rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+.ix-item .ix-dot { color: var(--violet); font-weight: 700; }
+.ix-item .ix-coords { color: var(--muted); }
+
+.algo-box {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.algo-box h3 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+.algo-box p { font-size: .78rem; color: var(--muted); line-height: 1.6; margin-bottom: 6px; }
+.algo-box code {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  background: var(--s2);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: .73rem;
+  color: var(--cyan);
+}
+
+footer {
+  text-align: center;
+  padding: 10px;
+  color: var(--muted);
+  font-size: .75rem;
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--accent); text-decoration: none; }
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  .side-panel { border-left: none; border-top: 1px solid var(--border); max-height: 400px; }
+  .canvas-wrap { min-height: 300px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sweep <span>Line</span> — Segment Intersection</h1>
+  <a href="../../index.html">← Gallery</a>
+</header>
+
+<div class="step-bar">
+  <div class="step-counter">Step <strong id="stepNum">0</strong> / <strong id="stepTotal">0</strong></div>
+  <div id="phaseBadge" class="phase-badge init">Init</div>
+</div>
+
+<div class="controls">
+  <button id="btnPrev" disabled>⟵ Prev</button>
+  <button id="btnPlay" class="primary">▶ Play</button>
+  <button id="btnNext">Next ⟶</button>
+  <button id="btnReset">↺ Reset</button>
+  <button id="btnRandom">⚄ Random</button>
+  <div class="speed-group">
+    <span>Speed</span>
+    <input type="range" id="speedSlider" min="1" max="10" value="5">
+  </div>
+</div>
+
+<main>
+  <div class="canvas-wrap">
+    <canvas id="mainCanvas"></canvas>
+  </div>
+
+  <div class="side-panel">
+    <div class="desc-box">
+      <h3>Step Description</h3>
+      <div class="desc-text" id="descText">Press <strong>Play</strong> or <strong>Next</strong> to start.</div>
+    </div>
+
+    <div class="struct-section">
+      <div>
+        <div class="struct-title">Event Queue (upcoming)</div>
+        <div class="event-list" id="eventList"></div>
+      </div>
+      <div>
+        <div class="struct-title">Status Structure (active segments)</div>
+        <div class="status-list" id="statusList"></div>
+      </div>
+      <div>
+        <div class="struct-title">Intersections Found</div>
+        <div class="intersections-found" id="ixList"></div>
+      </div>
+    </div>
+
+    <div class="algo-box">
+      <h3>Algorithm</h3>
+      <p>The sweep line moves <strong style="color:var(--accent)">left → right</strong>.
+         Three event types drive updates to the <strong style="color:var(--good)">status structure</strong>:</p>
+      <p>
+        <code>L</code> Left endpoint → <em>insert</em> segment, check neighbors.<br>
+        <code>R</code> Right endpoint → <em>remove</em> segment, check new neighbors.<br>
+        <code>X</code> Intersection → <em>swap</em> two segments, check outer neighbors.
+      </p>
+      <p>Complexity: <code>O((n+k) log n)</code> — n segments, k intersections found.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS
+</footer>
+
+<script>
+// ─────────────────────────────────────────────
+// Geometry helpers
+// ─────────────────────────────────────────────
+function cross2d(o, a, b) {
+  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+
+function segIntersect(s1, s2) {
+  const dx1 = s1.x2 - s1.x1, dy1 = s1.y2 - s1.y1;
+  const dx2 = s2.x2 - s2.x1, dy2 = s2.y2 - s2.y1;
+  const denom = dx1 * dy2 - dy1 * dx2;
+  if (Math.abs(denom) < 1e-9) return null;
+  const t = ((s2.x1 - s1.x1) * dy2 - (s2.y1 - s1.y1) * dx2) / denom;
+  const u = ((s2.x1 - s1.x1) * dy1 - (s2.y1 - s1.y1) * dx1) / denom;
+  if (t > 1e-9 && t < 1-1e-9 && u > 1e-9 && u < 1-1e-9) {
+    return { x: s1.x1 + t * dx1, y: s1.y1 + t * dy1 };
+  }
+  return null;
+}
+
+function yAtX(seg, x) {
+  if (Math.abs(seg.x2 - seg.x1) < 1e-9) return (seg.y1 + seg.y2) / 2;
+  const t = (x - seg.x1) / (seg.x2 - seg.x1);
+  return seg.y1 + t * (seg.y2 - seg.y1);
+}
+
+// ─────────────────────────────────────────────
+// Color palette for segments
+// ─────────────────────────────────────────────
+const SEG_COLORS = [
+  '#58a6ff', '#3fb950', '#f78166', '#e3b341',
+  '#a371f7', '#67e8f9', '#f778ba', '#79c0ff',
+];
+
+// ─────────────────────────────────────────────
+// Default segments (canvas logical coords 0..1 normalized)
+// ─────────────────────────────────────────────
+const DEFAULT_SEGS_NORM = [
+  { x1: 0.08, y1: 0.62, x2: 0.82, y2: 0.20 },  // A – crossing several
+  { x1: 0.12, y1: 0.25, x2: 0.76, y2: 0.73 },  // B
+  { x1: 0.20, y1: 0.80, x2: 0.90, y2: 0.30 },  // C
+  { x1: 0.28, y1: 0.15, x2: 0.65, y2: 0.85 },  // D
+  { x1: 0.10, y1: 0.48, x2: 0.88, y2: 0.52 },  // E – nearly horizontal
+  { x1: 0.38, y1: 0.10, x2: 0.42, y2: 0.90 },  // F – nearly vertical
+];
+
+// ─────────────────────────────────────────────
+// Algorithm: build steps
+// ─────────────────────────────────────────────
+function buildSteps(segs) {
+  const steps = [];
+  const n = segs.length;
+
+  // ---- initial step ----
+  steps.push({
+    sweepX: -Infinity,
+    phase: 'init',
+    description: `<span class="hl">${n} segments</span> loaded. The sweep line will move from <span class="hl">left → right</span>. We build an <em>event queue</em> with all ${n*2} endpoints, sorted by x-coordinate.`,
+    status: [],       // segment indices in y-order
+    processed: [],    // event indices that are done
+    currentEvent: -1,
+    foundIX: [],
+    swappedPair: null,
+    activeSegs: [],
+  });
+
+  // Build events from endpoints
+  const events = [];
+  for (let i = 0; i < n; i++) {
+    const s = segs[i];
+    // left endpoint
+    events.push({ type: 'L', x: s.x1, y: s.y1, segIdx: i });
+    // right endpoint
+    events.push({ type: 'R', x: s.x2, y: s.y2, segIdx: i });
+  }
+
+  // Sort: by x, then L before R, then by y
+  events.sort((a, b) => {
+    if (Math.abs(a.x - b.x) > 1e-9) return a.x - b.x;
+    if (a.type !== b.type) return a.type === 'L' ? -1 : 1;
+    return a.y - b.y;
+  });
+
+  // We'll simulate the sweep, inserting intersection events on the fly
+  // Status: array of seg indices ordered by y at sweepX
+  let status = [];
+  const foundIX = [];
+  const processedEvtIdx = new Set();
+
+  // Add intersection events eagerly when neighbors become adjacent
+  const pendingIX = []; // {x, y, segA, segB} intersection events
+
+  function statusYOrder(sweepX) {
+    status.sort((a, b) => yAtX(segs[a], sweepX) - yAtX(segs[b], sweepX));
+  }
+
+  function checkAndAddIX(ia, ib, sweepX) {
+    if (ia < 0 || ib < 0 || ia >= n || ib >= n) return;
+    const pt = segIntersect(segs[ia], segs[ib]);
+    if (!pt) return;
+    if (pt.x < sweepX - 1e-9) return; // already passed
+    // Check not already in pending
+    for (const p of pendingIX) {
+      if (p.segA === ia && p.segB === ib) return;
+      if (p.segA === ib && p.segB === ia) return;
+    }
+    pendingIX.push({ type: 'X', x: pt.x, y: pt.y, segA: ia, segB: ib });
+  }
+
+  function nextEvent(sweepX) {
+    // Merge events array + pendingIX, pick the earliest not yet processed
+    let best = null;
+    let bestSrc = null;
+    for (let i = 0; i < events.length; i++) {
+      if (processedEvtIdx.has(i)) continue;
+      const e = events[i];
+      if (best === null || e.x < best.x || (Math.abs(e.x - best.x) < 1e-9 && e.y < best.y)) {
+        best = e;
+        bestSrc = { kind: 'ep', idx: i };
+      }
+    }
+    for (const p of pendingIX) {
+      if (p.done) continue;
+      if (best === null || p.x < best.x || (Math.abs(p.x - best.x) < 1e-9 && p.y < best.y)) {
+        best = p;
+        bestSrc = { kind: 'ix', ref: p };
+      }
+    }
+    return { evt: best, src: bestSrc };
+  }
+
+  // Simulate step by step
+  let sweepX = 0;
+  const totalEvents = n * 2 + 100; // upper bound
+
+  for (let iter = 0; iter < totalEvents; iter++) {
+    const { evt, src } = nextEvent(sweepX);
+    if (!evt) break;
+
+    sweepX = evt.x;
+
+    let phase, desc, activeSegs = [], swappedPair = null;
+    const foundIXCopy = foundIX.map(x => ({ ...x }));
+
+    if (evt.type === 'L') {
+      // Insert segment into status
+      status.push(evt.segIdx);
+      statusYOrder(sweepX);
+
+      const pos = status.indexOf(evt.segIdx);
+      const above = status[pos - 1] ?? -1;
+      const below = status[pos + 1] ?? -1;
+
+      if (above >= 0) checkAndAddIX(evt.segIdx, above, sweepX);
+      if (below >= 0) checkAndAddIX(evt.segIdx, below, sweepX);
+
+      activeSegs = [evt.segIdx];
+      phase = 'left';
+      const sName = segLabel(evt.segIdx);
+      const aboveName = above >= 0 ? segLabel(above) : null;
+      const belowName = below >= 0 ? segLabel(below) : null;
+      desc = `<span class="hl2">Left endpoint</span> of segment <span class="hl">${sName}</span> encountered. Insert into status structure at position ${pos + 1}.`;
+      if (aboveName || belowName) {
+        desc += ` Check neighbors for intersection: `;
+        const neighbors = [aboveName, belowName].filter(Boolean);
+        desc += neighbors.map(nm => `<span class="hl4">${nm}</span>`).join(', ') + '.';
+        const ix1 = above >= 0 ? segIntersect(segs[evt.segIdx], segs[above]) : null;
+        const ix2 = below >= 0 ? segIntersect(segs[evt.segIdx], segs[below]) : null;
+        if (ix1 || ix2) desc += ` <span class="hl4">Future intersection(s) queued!</span>`;
+        else desc += ` No intersection found with neighbors.`;
+      } else {
+        desc += ` No neighbors yet — nothing to check.`;
+      }
+
+      processedEvtIdx.add(src.idx);
+    } else if (evt.type === 'R') {
+      const pos = status.indexOf(evt.segIdx);
+      const above = pos > 0 ? status[pos - 1] : -1;
+      const below = pos < status.length - 1 ? status[pos + 1] : -1;
+
+      if (above >= 0 && below >= 0) checkAndAddIX(above, below, sweepX);
+
+      status.splice(pos, 1);
+
+      activeSegs = [evt.segIdx];
+      phase = 'right';
+      const sName = segLabel(evt.segIdx);
+      desc = `<span class="hl3">Right endpoint</span> of segment <span class="hl">${sName}</span> reached. Remove from status structure.`;
+      if (above >= 0 && below >= 0) {
+        desc += ` Former neighbors <span class="hl4">${segLabel(above)}</span> and <span class="hl4">${segLabel(below)}</span> are now adjacent — check for intersection between them.`;
+        const ix = segIntersect(segs[above], segs[below]);
+        if (ix) desc += ` <span class="hl4">Queued!</span>`;
+        else desc += ` No intersection.`;
+      } else {
+        desc += ` No new neighbor adjacency to check.`;
+      }
+
+      processedEvtIdx.add(src.idx);
+    } else if (evt.type === 'X') {
+      // Intersection event
+      const ia = evt.segA, ib = evt.segB;
+      evt.done = true;
+
+      // Check not already reported
+      const alreadyFound = foundIX.some(ix =>
+        (ix.segA === ia && ix.segB === ib) || (ix.segA === ib && ix.segB === ia));
+
+      if (!alreadyFound) {
+        foundIX.push({ x: evt.x, y: evt.y, segA: ia, segB: ib });
+      }
+
+      // Swap in status
+      const posA = status.indexOf(ia);
+      const posB = status.indexOf(ib);
+      if (posA >= 0 && posB >= 0) {
+        status[posA] = ib;
+        status[posB] = ia;
+
+        // Check new outer neighbors
+        const minPos = Math.min(posA, posB);
+        const maxPos = Math.max(posA, posB);
+        const newTop = status[minPos];
+        const newBot = status[maxPos];
+        const outerAbove = minPos > 0 ? status[minPos - 1] : -1;
+        const outerBelow = maxPos < status.length - 1 ? status[maxPos + 1] : -1;
+        if (outerAbove >= 0) checkAndAddIX(newTop, outerAbove, sweepX);
+        if (outerBelow >= 0) checkAndAddIX(newBot, outerBelow, sweepX);
+      }
+
+      swappedPair = [ia, ib];
+      activeSegs = [ia, ib];
+      phase = 'intersect';
+      const naA = segLabel(ia), naB = segLabel(ib);
+      desc = `<span class="hl4">Intersection!</span> Segments <span class="hl">${naA}</span> and <span class="hl">${naB}</span> cross at <span style="color:var(--muted)">(${Math.round(evt.x)}, ${Math.round(evt.y)})</span>. Swap their order in the status structure and check new outer neighbors.`;
+    }
+
+    steps.push({
+      sweepX,
+      phase,
+      description: desc,
+      status: status.slice(),
+      currentEventType: evt.type,
+      currentEventSeg: evt.segIdx ?? -1,
+      currentEventIX: evt.type === 'X' ? { segA: evt.segA, segB: evt.segB, x: evt.x, y: evt.y } : null,
+      foundIX: foundIX.map(x => ({ ...x })),
+      swappedPair,
+      activeSegs,
+      events: events.map((e, i) => ({ ...e, processed: processedEvtIdx.has(i) })),
+      pendingIX: pendingIX.filter(p => !p.done).map(p => ({ ...p })),
+    });
+  }
+
+  // Done step
+  steps.push({
+    sweepX: Infinity,
+    phase: 'done',
+    description: `Sweep complete! Found <span class="hl4">${foundIX.length}</span> intersection${foundIX.length !== 1 ? 's' : ''} among ${n} segments. Total events processed: ${steps.length - 1}.`,
+    status: [],
+    currentEventType: null,
+    foundIX: foundIX.map(x => ({ ...x })),
+    swappedPair: null,
+    activeSegs: [],
+    events: events.map((e, i) => ({ ...e, processed: true })),
+    pendingIX: [],
+  });
+
+  return steps;
+}
+
+function segLabel(idx) {
+  return String.fromCharCode(65 + idx);
+}
+
+// ─────────────────────────────────────────────
+// Canvas rendering
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  W = rect.width;
+  H = rect.height;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+}
+
+window.addEventListener('resize', () => { resizeCanvas(); render(); });
+
+// Convert normalized [0,1] coords to canvas pixels
+const PAD = 50;
+function cx(x) { return PAD + x * (W - 2 * PAD); }
+function cy(y) { return PAD + y * (H - 2 * PAD); }
+
+function render() {
+  if (!W) return;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(48,54,61,0.4)';
+  ctx.lineWidth = 1;
+  const gridStep = 60;
+  for (let x = PAD; x <= W - PAD; x += gridStep) {
+    ctx.beginPath(); ctx.moveTo(x, PAD); ctx.lineTo(x, H - PAD); ctx.stroke();
+  }
+  for (let y = PAD; y <= H - PAD; y += gridStep) {
+    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+  }
+
+  const step = steps[currentStep];
+  if (!step) return;
+
+  const segs = currentSegs;
+  const swX = step.sweepX === -Infinity ? -1 : step.sweepX === Infinity ? 1 + 1/W : step.sweepX;
+  const swXpx = cx(swX);
+
+  // Shaded area to the left of sweep line
+  if (step.sweepX !== -Infinity && step.sweepX !== Infinity) {
+    ctx.fillStyle = 'rgba(88,166,255,0.04)';
+    ctx.fillRect(PAD, PAD, swXpx - PAD, H - 2 * PAD);
+  }
+
+  // Draw segments
+  for (let i = 0; i < segs.length; i++) {
+    const s = segs[i];
+    const isActive = step.activeSegs && step.activeSegs.includes(i);
+    const inStatus = step.status && step.status.includes(i);
+    const isSwapped = step.swappedPair && step.swappedPair.includes(i);
+
+    let color = SEG_COLORS[i % SEG_COLORS.length];
+    let alpha = 0.45;
+    let lw = 2;
+
+    if (isSwapped) { alpha = 1; lw = 3.5; }
+    else if (isActive) { alpha = 1; lw = 3; }
+    else if (inStatus) { alpha = 0.85; lw = 2.5; }
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+
+    if (isSwapped) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 12;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(cx(s.x1), cy(s.y1));
+    ctx.lineTo(cx(s.x2), cy(s.y2));
+    ctx.stroke();
+    ctx.restore();
+
+    // Endpoint dots
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+
+    // Left endpoint
+    ctx.beginPath();
+    ctx.arc(cx(s.x1), cy(s.y1), isActive ? 6 : 4, 0, Math.PI * 2);
+    ctx.fill();
+    // Right endpoint
+    ctx.beginPath();
+    ctx.arc(cx(s.x2), cy(s.y2), isActive ? 6 : 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Segment label at midpoint
+    ctx.save();
+    ctx.globalAlpha = Math.max(alpha, 0.7);
+    ctx.fillStyle = color;
+    ctx.font = `bold ${isActive ? 15 : 12}px 'Inter', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const mx = cx((s.x1 + s.x2) / 2);
+    const my = cy((s.y1 + s.y2) / 2);
+    // Offset label slightly perpendicular to segment
+    const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const nx = -dy / len * 14, ny = dx / len * 14;
+    ctx.fillText(segLabel(i), mx + nx, my + ny);
+    ctx.restore();
+  }
+
+  // Y-intercept marks on sweep line for active segments
+  if (step.status && step.status.length > 0 && step.sweepX !== -Infinity && step.sweepX !== Infinity) {
+    for (const si of step.status) {
+      const s = segs[si];
+      const ySweep = yAtX(s, step.sweepX);
+      const px = swXpx;
+      const py = cy(ySweep);
+      ctx.save();
+      ctx.fillStyle = SEG_COLORS[si % SEG_COLORS.length];
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Intersection points found so far
+  if (step.foundIX) {
+    for (const ix of step.foundIX) {
+      const px = cx(ix.x), py = cy(ix.y);
+      ctx.save();
+      ctx.strokeStyle = '#a371f7';
+      ctx.fillStyle = '#1c1428';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#a371f7';
+      ctx.shadowBlur = 10;
+      // Draw a small diamond
+      ctx.beginPath();
+      ctx.moveTo(px, py - 8);
+      ctx.lineTo(px + 8, py);
+      ctx.lineTo(px, py + 8);
+      ctx.lineTo(px - 8, py);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // Current intersection event point (pulsing ring)
+  if (step.currentEventIX) {
+    const ix = step.currentEventIX;
+    const px = cx(ix.x), py = cy(ix.y);
+    ctx.save();
+    ctx.strokeStyle = '#a371f7';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.arc(px, py, 16, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Sweep line
+  if (step.sweepX !== -Infinity && step.sweepX !== Infinity) {
+    ctx.save();
+    ctx.strokeStyle = '#58a6ff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.shadowColor = '#58a6ff';
+    ctx.shadowBlur = 8;
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(swXpx, PAD);
+    ctx.lineTo(swXpx, H - PAD);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Triangle indicator at top
+    ctx.fillStyle = '#58a6ff';
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.moveTo(swXpx - 7, PAD - 2);
+    ctx.lineTo(swXpx + 7, PAD - 2);
+    ctx.lineTo(swXpx, PAD + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ─────────────────────────────────────────────
+// UI update
+// ─────────────────────────────────────────────
+const descEl    = document.getElementById('descText');
+const phaseBadgeEl = document.getElementById('phaseBadge');
+const stepNumEl = document.getElementById('stepNum');
+const stepTotalEl = document.getElementById('stepTotal');
+const eventListEl = document.getElementById('eventList');
+const statusListEl = document.getElementById('statusList');
+const ixListEl  = document.getElementById('ixList');
+const btnPrev   = document.getElementById('btnPrev');
+const btnNext   = document.getElementById('btnNext');
+const btnPlay   = document.getElementById('btnPlay');
+const btnReset  = document.getElementById('btnReset');
+const btnRandom = document.getElementById('btnRandom');
+const speedSlider = document.getElementById('speedSlider');
+
+function updateUI() {
+  const step = steps[currentStep];
+  if (!step) return;
+
+  stepNumEl.textContent = currentStep;
+  stepTotalEl.textContent = steps.length - 1;
+
+  descEl.innerHTML = step.description || '';
+
+  const phaseMap = {
+    init:      ['init',      'Init'],
+    left:      ['left',      'Left Endpoint'],
+    right:     ['right',     'Right Endpoint'],
+    intersect: ['intersect', 'Intersection'],
+    done:      ['done',      'Done'],
+  };
+  const [cls, label] = phaseMap[step.phase] || ['init', 'Init'];
+  phaseBadgeEl.className = `phase-badge ${cls}`;
+  phaseBadgeEl.textContent = label;
+
+  btnPrev.disabled = currentStep === 0;
+  btnNext.disabled = currentStep === steps.length - 1;
+
+  // Event queue (show upcoming events, limit to 8)
+  eventListEl.innerHTML = '';
+  if (step.events) {
+    const upcoming = step.events.filter(e => !e.processed).slice(0, 8);
+    const isCurrent = (e) =>
+      step.currentEventType === e.type && (e.segIdx === step.currentEventSeg || e.type === 'X');
+    for (const e of upcoming) {
+      const div = document.createElement('div');
+      div.className = 'event-item';
+      const isC = isCurrent(e);
+      if (isC) div.classList.add('current');
+      const badgeCls = e.type === 'L' ? 'ev-L' : 'ev-R';
+      div.innerHTML = `<span class="event-badge ${badgeCls}">${e.type}</span>
+        <span style="color:${SEG_COLORS[(e.segIdx ?? 0) % SEG_COLORS.length]}">${segLabel(e.segIdx ?? 0)}</span>
+        <span class="ev-coords">x=${Math.round(e.x * 1000)/10}%</span>`;
+      eventListEl.appendChild(div);
+    }
+    // Pending intersections
+    if (step.pendingIX && step.pendingIX.length > 0) {
+      for (const p of step.pendingIX.slice(0, 4)) {
+        const div = document.createElement('div');
+        div.className = 'event-item';
+        div.innerHTML = `<span class="event-badge ev-X">X</span>
+          <span style="color:var(--violet)">${segLabel(p.segA)}∩${segLabel(p.segB)}</span>
+          <span class="ev-coords">x=${Math.round(p.x * 1000)/10}%</span>`;
+        eventListEl.appendChild(div);
+      }
+    }
+    if (upcoming.length === 0 && (!step.pendingIX || step.pendingIX.length === 0)) {
+      eventListEl.innerHTML = '<div style="color:var(--muted);font-size:.78rem">Queue empty</div>';
+    }
+  }
+
+  // Status structure
+  statusListEl.innerHTML = '';
+  if (step.status && step.status.length > 0) {
+    for (const si of step.status) {
+      const div = document.createElement('div');
+      div.className = 'status-item';
+      const isSwapped = step.swappedPair && step.swappedPair.includes(si);
+      if (isSwapped) div.classList.add('swapped');
+      const color = SEG_COLORS[si % SEG_COLORS.length];
+      const ySweep = step.sweepX !== -Infinity && step.sweepX !== Infinity
+        ? yAtX(currentSegs[si], step.sweepX)
+        : 0;
+      div.innerHTML = `<span class="status-swatch" style="background:${color}"></span>
+        <span class="status-name" style="color:${color}">${segLabel(si)}</span>
+        <span class="status-y">y=${Math.round(ySweep * 100)}%</span>`;
+      statusListEl.appendChild(div);
+    }
+  } else if (step.phase !== 'init') {
+    statusListEl.innerHTML = '<div style="color:var(--muted);font-size:.78rem">Empty</div>';
+  }
+
+  // Intersections found
+  ixListEl.innerHTML = '';
+  if (step.foundIX && step.foundIX.length > 0) {
+    for (const ix of step.foundIX) {
+      const div = document.createElement('div');
+      div.className = 'ix-item';
+      div.innerHTML = `<span class="ix-dot">✕</span>
+        <span style="color:${SEG_COLORS[ix.segA % SEG_COLORS.length]}">${segLabel(ix.segA)}</span>
+        <span style="color:var(--muted)">∩</span>
+        <span style="color:${SEG_COLORS[ix.segB % SEG_COLORS.length]}">${segLabel(ix.segB)}</span>
+        <span class="ix-coords">(${Math.round(ix.x * 1000)/10}%, ${Math.round(ix.y * 1000)/10}%)</span>`;
+      ixListEl.appendChild(div);
+    }
+  } else {
+    ixListEl.innerHTML = '<div style="color:var(--muted);font-size:.78rem">None yet</div>';
+  }
+
+  render();
+}
+
+// ─────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────
+let currentSegs = [];
+let steps = [];
+let currentStep = 0;
+let playing = false;
+let playTimer = null;
+
+function initFromSegs(segsNorm) {
+  currentSegs = segsNorm.map(s => ({ ...s }));
+  steps = buildSteps(currentSegs);
+  currentStep = 0;
+  stepTotalEl.textContent = steps.length - 1;
+  stopPlay();
+  updateUI();
+}
+
+function stopPlay() {
+  playing = false;
+  btnPlay.textContent = '▶ Play';
+  btnPlay.classList.remove('primary');
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+}
+
+function startPlay() {
+  playing = true;
+  btnPlay.textContent = '⏸ Pause';
+  btnPlay.classList.add('primary');
+  scheduleNext();
+}
+
+function scheduleNext() {
+  if (!playing) return;
+  const speed = parseInt(speedSlider.value); // 1-10
+  const delay = Math.round(1200 / speed);
+  playTimer = setTimeout(() => {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      updateUI();
+      scheduleNext();
+    } else {
+      stopPlay();
+    }
+  }, delay);
+}
+
+btnPrev.addEventListener('click', () => {
+  stopPlay();
+  if (currentStep > 0) { currentStep--; updateUI(); }
+});
+btnNext.addEventListener('click', () => {
+  stopPlay();
+  if (currentStep < steps.length - 1) { currentStep++; updateUI(); }
+});
+btnPlay.addEventListener('click', () => {
+  if (playing) stopPlay();
+  else {
+    if (currentStep === steps.length - 1) currentStep = 0;
+    startPlay();
+  }
+});
+btnReset.addEventListener('click', () => {
+  stopPlay();
+  currentStep = 0;
+  updateUI();
+});
+btnRandom.addEventListener('click', () => {
+  stopPlay();
+  const n = 5 + Math.floor(Math.random() * 4); // 5-8 segments
+  const segs = [];
+  for (let i = 0; i < n; i++) {
+    let x1 = 0.05 + Math.random() * 0.55;
+    let x2 = x1 + 0.1 + Math.random() * 0.45;
+    if (x2 > 0.95) x2 = 0.95;
+    const y1 = 0.08 + Math.random() * 0.84;
+    const y2 = 0.08 + Math.random() * 0.84;
+    segs.push({ x1, y1, x2, y2 });
+  }
+  initFromSegs(segs);
+});
+
+// ─────────────────────────────────────────────
+// Keyboard navigation
+// ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    stopPlay(); if (currentStep < steps.length - 1) { currentStep++; updateUI(); }
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    stopPlay(); if (currentStep > 0) { currentStep--; updateUI(); }
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    if (playing) stopPlay(); else { if (currentStep === steps.length - 1) currentStep = 0; startPlay(); }
+  }
+});
+
+// ─────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────
+setTimeout(() => {
+  resizeCanvas();
+  initFromSegs(DEFAULT_SEGS_NORM);
+}, 80);
+</script>
+</body>
+</html>

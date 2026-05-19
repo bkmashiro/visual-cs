@@ -36,7 +36,7 @@
 - [x] chinese-remainder — Chinese Remainder Theorem (Garner's algorithm) ✅ 2026-05-17
 
 ### Geometry
-- [ ] line-sweep — Sweep Line (segment intersection, event queue)
+- [x] line-sweep — Sweep Line (segment intersection, event queue) ✅ 2026-05-19
 - [ ] voronoi — Voronoi Diagram (Fortune's sweep line, beach line)
 - [ ] closest-pair — Closest Pair of Points (divide & conquer, strip merge)
 
