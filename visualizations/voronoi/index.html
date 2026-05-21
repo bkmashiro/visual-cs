@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voronoi Diagram — Fortune's Algorithm | visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --s2: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --accent0: rgba(88,166,255,.15);
+  --good: #3fb950;
+  --good0: rgba(63,185,80,.15);
+  --warn: #f78166;
+  --warn0: rgba(247,129,102,.15);
+  --gold: #e3b341;
+  --gold0: rgba(227,179,65,.15);
+  --violet: #a371f7;
+  --violet0: rgba(163,113,247,.15);
+  --cyan: #67e8f9;
+  --cyan0: rgba(103,232,249,.12);
+  --pink: #f778ba;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header h1 { font-size: 1.05rem; font-weight: 700; }
+header h1 span { color: var(--accent); }
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all .2s;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+
+.step-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: .82rem;
+}
+.step-counter { color: var(--muted); }
+.step-counter strong { color: var(--accent); font-size: .95rem; }
+.phase-badge {
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.phase-badge.init     { background: var(--accent0);  color: var(--accent);  border: 1px solid var(--accent); }
+.phase-badge.site     { background: var(--good0);    color: var(--good);    border: 1px solid var(--good); }
+.phase-badge.circle   { background: var(--violet0);  color: var(--violet);  border: 1px solid var(--violet); }
+.phase-badge.done     { background: var(--cyan0);    color: var(--cyan);    border: 1px solid var(--cyan); }
+
+.controls {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+button {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; }
+button.primary:hover { opacity: .85; }
+button:disabled { opacity: .35; cursor: default; pointer-events: none; }
+
+.speed-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: .8rem;
+  margin-left: auto;
+}
+.speed-group input { width: 80px; accent-color: var(--accent); }
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-wrap {
+  position: relative;
+  background: #0a0d12;
+  overflow: hidden;
+}
+#mainCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.side-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.side-section {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+}
+.side-section h3 {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.desc-box {
+  font-size: .83rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+.desc-box .hl  { color: var(--accent); font-weight: 600; }
+.desc-box .hl2 { color: var(--good);   font-weight: 600; }
+.desc-box .hl3 { color: var(--warn);   font-weight: 600; }
+.desc-box .hl4 { color: var(--violet); font-weight: 600; }
+.desc-box .hl5 { color: var(--gold);   font-weight: 600; }
+.desc-box .hl6 { color: var(--cyan);   font-weight: 600; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.stat-card {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 11px;
+}
+.stat-card .label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+.stat-card .val   { font-size: 1.15rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+.legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: .78rem;
+  color: var(--muted);
+}
+.legend-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-line {
+  width: 22px; height: 3px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.site-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.site-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .76rem;
+  padding: 4px 7px;
+  border-radius: 5px;
+  transition: background .1s;
+}
+.site-item.active { background: var(--accent0); }
+.site-item .site-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.site-item .site-name { font-weight: 600; color: var(--text); }
+.site-item .site-coords { color: var(--muted); margin-left: auto; }
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .74rem;
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+.event-item.site-ev    { color: var(--good); }
+.event-item.circle-ev  { color: var(--violet); }
+.event-item.done-ev    { color: var(--muted); text-decoration: line-through; opacity: .5; }
+.event-badge {
+  font-size: .62rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.event-badge.S { background: var(--good0);   color: var(--good); }
+.event-badge.C { background: var(--violet0); color: var(--violet); }
+
+@media (max-width: 800px) {
+  main { grid-template-columns: 1fr; grid-template-rows: 55vh auto; }
+  .side-panel { border-left: none; border-top: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Voronoi Diagram — <span>Fortune's Sweep Line</span></h1>
+  <a href="../../index.html">← Gallery</a>
+</header>
+
+<div class="step-bar">
+  <span class="step-counter">Step <strong id="stepNum">0</strong> / <strong id="stepTotal">0</strong></span>
+  <span class="phase-badge init" id="phaseBadge">Init</span>
+</div>
+
+<div class="controls">
+  <button id="btnPrev" disabled>◀ Prev</button>
+  <button id="btnPlay" class="primary">▶ Play</button>
+  <button id="btnNext">Next ▶</button>
+  <button id="btnReset">↺ New Points</button>
+  <div class="speed-group">
+    <span>Speed</span>
+    <input type="range" id="speedSlider" min="100" max="2000" value="700" step="100">
+    <span id="speedLabel">700ms</span>
+  </div>
+</div>
+
+<main>
+  <div class="canvas-wrap">
+    <canvas id="mainCanvas"></canvas>
+  </div>
+  <div class="side-panel">
+    <div class="side-section">
+      <h3>Current Step</h3>
+      <div class="desc-box" id="descBox">Initializing…</div>
+    </div>
+    <div class="side-section">
+      <h3>Statistics</h3>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="label">Sites</div><div class="val" id="statSites">0</div></div>
+        <div class="stat-card"><div class="label">Voronoi Vertices</div><div class="val" id="statVerts">0</div></div>
+        <div class="stat-card"><div class="label">Edges Drawn</div><div class="val" id="statEdges">0</div></div>
+        <div class="stat-card"><div class="label">Sweep X</div><div class="val" id="statSweep">—</div></div>
+      </div>
+    </div>
+    <div class="side-section">
+      <h3>Legend</h3>
+      <div class="legend-list">
+        <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Site (input point)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f78166"></div> Active site event</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a371f7"></div> Circle event (Voronoi vertex)</div>
+        <div class="legend-item"><div class="legend-line" style="background:#3fb950"></div> Voronoi edge (complete)</div>
+        <div class="legend-item"><div class="legend-line" style="background:#3fb950;opacity:.4;"></div> Voronoi edge (in progress)</div>
+        <div class="legend-item"><div class="legend-line" style="background:#e3b341;opacity:.7;"></div> Beach line parabola</div>
+        <div class="legend-item"><div class="legend-line" style="background:#58a6ff;opacity:.6;border-top:2px dashed #58a6ff;height:0"></div> Sweep line</div>
+      </div>
+    </div>
+    <div class="side-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+      <h3>Sites</h3>
+      <div class="site-list" id="siteList"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ─────────────────────────────────────────────
+// Fortune's Algorithm — Voronoi Diagram
+// ─────────────────────────────────────────────
+
+const SITE_COLORS = [
+  '#58a6ff','#3fb950','#f78166','#e3b341','#a371f7',
+  '#67e8f9','#f778ba','#ffa657','#79c0ff','#56d364'
+];
+
+// ── Geometry helpers ──────────────────────────
+function parabola_y(focus, directrix_x, x) {
+  // y = ((x - fx)^2 / (2*(fx - dx))) + fy
+  const dx = focus.x - directrix_x;
+  if (Math.abs(dx) < 1e-9) return focus.y;
+  return ((x - focus.x) ** 2) / (2 * dx) + focus.y;
+}
+
+function parabola_intersect(f1, f2, directrix_x) {
+  // Returns x-coordinates of intersection of two parabolas (with same directrix)
+  const dx1 = f1.x - directrix_x, dx2 = f2.x - directrix_x;
+  if (Math.abs(dx1) < 1e-9 && Math.abs(dx2) < 1e-9) return [f1.y];
+  if (Math.abs(dx1) < 1e-9) return [parabola_y(f2, directrix_x, f1.x)];
+  if (Math.abs(dx2) < 1e-9) return [parabola_y(f1, directrix_x, f2.x)];
+  // Quadratic
+  const a = 1/(2*dx1) - 1/(2*dx2);
+  const b = -f1.x/dx1 + f2.x/dx2;
+  const c = (f1.x**2 + f1.y**2 - directrix_x**2)/(2*dx1)
+            - (f2.x**2 + f2.y**2 - directrix_x**2)/(2*dx2);
+  if (Math.abs(a) < 1e-12) {
+    if (Math.abs(b) < 1e-12) return [];
+    return [-c / b];
+  }
+  const disc = b*b - 4*a*c;
+  if (disc < 0) return [];
+  const sq = Math.sqrt(Math.max(0, disc));
+  return [(-b - sq)/(2*a), (-b + sq)/(2*a)];
+}
+
+function circumcenter(a, b, c) {
+  const ax = a.x, ay = a.y, bx = b.x, by = b.y, cx = c.x, cy = c.y;
+  const D = 2*(ax*(by - cy) + bx*(cy - ay) + cx*(ay - by));
+  if (Math.abs(D) < 1e-10) return null;
+  const ux = ((ax*ax+ay*ay)*(by-cy) + (bx*bx+by*by)*(cy-ay) + (cx*cx+cy*cy)*(ay-by)) / D;
+  const uy = ((ax*ax+ay*ay)*(cx-bx) + (bx*bx+by*by)*(ax-cx) + (cx*cx+cy*cy)*(bx-ax)) / D;
+  return { x: ux, y: uy };
+}
+
+// ── Fortune's Algorithm (pre-computed) ────────
+function fortuneVoronoi(sites, W, H) {
+  // Returns array of steps
+  // Each step: { sweepX, phase, desc, beachArcs, edges, vertices, activeEvent, events }
+
+  const steps = [];
+  const n = sites.length;
+  if (n === 0) return steps;
+
+  // We simulate Fortune's algorithm and record snapshots at each event
+
+  // Data structures
+  // Beach line: ordered array of arcs { site, left_x, right_x } (approximate, recomputed at render)
+  // Half-edges: { x1,y1,x2,y2,siteA,siteB,complete }
+  // Event queue: priority queue by x (sweep direction: left to right)
+
+  // We use a simplified but correct step-simulation
+  // Beach line represented as ordered list of site indices (by y breakpoint order)
+
+  class Arc {
+    constructor(site) {
+      this.site = site;
+      this.leftHalfEdge = null;
+      this.rightHalfEdge = null;
+      this.circleEvent = null;
+    }
+  }
+
+  class HalfEdge {
+    constructor(siteA, siteB) {
+      this.siteA = siteA;
+      this.siteB = siteB;
+      this.start = null;
+      this.end = null;
+    }
+  }
+
+  class Event {
+    constructor(x, type, data) {
+      this.x = x;
+      this.type = type; // 'site' or 'circle'
+      this.data = data;
+      this.valid = true;
+    }
+  }
+
+  // Priority queue (min-heap by x)
+  class PQ {
+    constructor() { this.heap = []; }
+    push(e) {
+      this.heap.push(e);
+      this._up(this.heap.length - 1);
+    }
+    pop() {
+      const top = this.heap[0];
+      const last = this.heap.pop();
+      if (this.heap.length > 0) { this.heap[0] = last; this._down(0); }
+      return top;
+    }
+    peek() { return this.heap[0]; }
+    get size() { return this.heap.length; }
+    _up(i) {
+      while (i > 0) {
+        const p = (i-1)>>1;
+        if (this.heap[p].x <= this.heap[i].x) break;
+        [this.heap[p], this.heap[i]] = [this.heap[i], this.heap[p]]; i = p;
+      }
+    }
+    _down(i) {
+      const n = this.heap.length;
+      while (true) {
+        let s = i, l = 2*i+1, r = 2*i+2;
+        if (l < n && this.heap[l].x < this.heap[s].x) s = l;
+        if (r < n && this.heap[r].x < this.heap[s].x) s = r;
+        if (s === i) break;
+        [this.heap[s], this.heap[i]] = [this.heap[i], this.heap[s]]; i = s;
+      }
+    }
+  }
+
+  const pq = new PQ();
+  const edges = [];
+  const vertices = [];
+  let beachLine = []; // ordered list of Arc objects
+
+  // Add site events
+  for (const s of sites) pq.push(new Event(s.x, 'site', { site: s }));
+
+  function getArcAt(x, y) {
+    // Find arc in beach line whose parabola is topmost at y given sweep at x
+    // Returns index in beachLine
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < beachLine.length; i++) {
+      const arc = beachLine[i];
+      const py = parabola_y(arc.site, x, y);
+      // Find intersection range
+      // (simplified: just find closest parabola y to input y)
+      // Actually: find arc whose parabola is "above" (max y) at query x
+      // We want the arc visible at y-coordinate y with sweep at x
+    }
+    // Better: find the arc by checking breakpoints
+    if (beachLine.length === 0) return -1;
+    if (beachLine.length === 1) return 0;
+    for (let i = 0; i < beachLine.length - 1; i++) {
+      const pts = parabola_intersect(beachLine[i].site, beachLine[i+1].site, x);
+      if (pts.length === 0) continue;
+      // The breakpoint y at this sweep
+      // For arcs ordered by y, breakpoints go in some order
+      const bpY = pts.reduce((a,b) => Math.abs(a - 0) < Math.abs(b - 0) ? a : b); // pick reasonable
+      // Actually need to find which arc covers coordinate y
+    }
+    return 0;
+  }
+
+  function findArcAbove(site_y, sweepX) {
+    // Returns index of arc in beachLine that is directly above site_y
+    if (beachLine.length === 0) return -1;
+    // Binary search through breakpoints
+    let lo = 0, hi = beachLine.length - 1;
+    for (let i = 0; i < beachLine.length - 1; i++) {
+      const pts = parabola_intersect(beachLine[i].site, beachLine[i+1].site, sweepX);
+      if (pts.length === 0) continue;
+      // The relevant breakpoint is the one between these two arcs
+      // For Fortune's, the breakpoint y separates the two arcs
+      const bpY = pts.length === 2 ?
+        (beachLine[i].site.x < beachLine[i+1].site.x ? pts[1] : pts[0]) : pts[0];
+      if (site_y < bpY) return i;
+    }
+    return beachLine.length - 1;
+  }
+
+  function addCircleEvent(arcIdx) {
+    if (arcIdx <= 0 || arcIdx >= beachLine.length - 1) return;
+    const a = beachLine[arcIdx-1].site;
+    const b = beachLine[arcIdx].site;
+    const c = beachLine[arcIdx+1].site;
+    const cc = circumcenter(a, b, c);
+    if (!cc) return;
+    // Circle event fires when sweep reaches rightmost point of circumcircle
+    const r = Math.sqrt((cc.x-a.x)**2 + (cc.y-a.y)**2);
+    const eventX = cc.x + r;
+    if (eventX <= beachLine[arcIdx].site.x + 1e-9) return;
+    // Check that arc still exists
+    const ev = new Event(eventX, 'circle', { arcIdx, center: cc, radius: r, arcSite: b });
+    beachLine[arcIdx].circleEvent = ev;
+    pq.push(ev);
+  }
+
+  function snapshot(sweepX, phase, desc, activeEvt, highlightArcIdx) {
+    steps.push({
+      sweepX,
+      phase,
+      desc,
+      beachLine: beachLine.map(a => ({ site: a.site })),
+      edges: edges.map(e => ({ ...e })),
+      vertices: vertices.map(v => ({ ...v })),
+      activeEvent: activeEvt,
+      highlightArcIdx,
+      sitesProcessed: sites.filter(s => s.x <= sweepX).length,
+    });
+  }
+
+  // Initial step
+  snapshot(-Infinity, 'init',
+    `<span class="hl">${n} sites</span> placed. Fortune's sweep line will move from left to right. Each site event adds a parabolic arc to the beach line; each circle event collapses an arc and emits a <span class="hl4">Voronoi vertex</span>.`,
+    null, -1);
+
+  let iter = 0;
+  while (pq.size > 0 && iter++ < 2000) {
+    const ev = pq.pop();
+    if (!ev.valid) continue;
+
+    if (ev.type === 'site') {
+      const site = ev.data.site;
+      const sweepX = site.x;
+
+      if (beachLine.length === 0) {
+        beachLine.push(new Arc(site));
+        snapshot(sweepX, 'site',
+          `<span class="hl2">Site event</span> — first site <span class="hl">${site.name}</span> at (${Math.round(site.x)}, ${Math.round(site.y)}). Starts the beach line with a single parabolic arc.`,
+          { type: 'site', site }, 0);
+        continue;
+      }
+
+      // Find arc above this site
+      const idx = findArcAbove(site.y, sweepX);
+      if (idx < 0) continue;
+      const oldArc = beachLine[idx];
+
+      // Invalidate old circle event
+      if (oldArc.circleEvent) oldArc.circleEvent.valid = false;
+
+      // Split arc: [oldArc, newArc, oldArcClone]
+      const newArc = new Arc(site);
+      const cloneArc = new Arc(oldArc.site);
+
+      // Create a new half-edge between old and new site
+      const he = new HalfEdge(oldArc.site, site);
+      // Start point: the y-coordinate on oldArc's parabola at sweepX
+      const startY = parabola_y(oldArc.site, sweepX, sweepX);
+      he.start = { x: sweepX, y: site.y };
+      edges.push(he);
+
+      const he2 = new HalfEdge(site, oldArc.site);
+      he2.start = { x: sweepX, y: site.y };
+      edges.push(he2);
+
+      newArc.leftHalfEdge = he;
+      newArc.rightHalfEdge = he2;
+      cloneArc.leftHalfEdge = he2;
+      cloneArc.rightHalfEdge = oldArc.rightHalfEdge;
+      oldArc.rightHalfEdge = he;
+
+      // Replace arc[idx] with three arcs
+      beachLine.splice(idx, 1, oldArc, newArc, cloneArc);
+
+      // Check circle events for neighbors
+      addCircleEvent(idx);         // left neighbor, oldArc, newArc
+      addCircleEvent(idx + 2);     // newArc, cloneArc, right neighbor
+
+      snapshot(sweepX, 'site',
+        `<span class="hl2">Site event</span> — site <span class="hl">${site.name}</span> at (${Math.round(site.x)}, ${Math.round(site.y)}) hits the beach line. Arc of <span class="hl">${oldArc.site.name}</span> splits into three: <span class="hl">${oldArc.site.name} | ${site.name} | ${oldArc.site.name}</span>. A new Voronoi edge begins at this split point.`,
+        { type: 'site', site }, idx + 1);
+
+    } else {
+      // Circle event
+      const { center, radius, arcSite } = ev.data;
+      let arcIdx = -1;
+      // Find the arc (must still be valid and have this circle event)
+      for (let i = 0; i < beachLine.length; i++) {
+        if (beachLine[i].circleEvent === ev && beachLine[i].site === arcSite) {
+          arcIdx = i; break;
+        }
+      }
+      if (arcIdx < 0) continue;
+
+      const sweepX = ev.x;
+      const arc = beachLine[arcIdx];
+
+      // Record Voronoi vertex
+      vertices.push({ x: center.x, y: center.y, sites: [
+        arcIdx > 0 ? beachLine[arcIdx-1].site : null,
+        arc.site,
+        arcIdx < beachLine.length-1 ? beachLine[arcIdx+1].site : null,
+      ].filter(Boolean) });
+
+      // Complete half-edges
+      if (arc.leftHalfEdge) arc.leftHalfEdge.end = { ...center };
+      if (arc.rightHalfEdge) arc.rightHalfEdge.end = { ...center };
+
+      // Invalidate circle events for neighbors
+      if (arcIdx > 0 && beachLine[arcIdx-1].circleEvent)
+        beachLine[arcIdx-1].circleEvent.valid = false;
+      if (arcIdx < beachLine.length-1 && beachLine[arcIdx+1].circleEvent)
+        beachLine[arcIdx+1].circleEvent.valid = false;
+
+      // Create new half-edge between neighbors
+      if (arcIdx > 0 && arcIdx < beachLine.length - 1) {
+        const leftSite = beachLine[arcIdx-1].site;
+        const rightSite = beachLine[arcIdx+1].site;
+        const newHe = new HalfEdge(leftSite, rightSite);
+        newHe.start = { ...center };
+        edges.push(newHe);
+        beachLine[arcIdx-1].rightHalfEdge = newHe;
+        beachLine[arcIdx+1].leftHalfEdge = newHe;
+      }
+
+      const leftName = arcIdx > 0 ? beachLine[arcIdx-1].site.name : '?';
+      const rightName = arcIdx < beachLine.length-1 ? beachLine[arcIdx+1].site.name : '?';
+
+      // Remove arc
+      beachLine.splice(arcIdx, 1);
+
+      // Check new circle events
+      if (arcIdx > 0 && arcIdx < beachLine.length) {
+        addCircleEvent(arcIdx - 1);
+        addCircleEvent(arcIdx);
+      }
+
+      snapshot(sweepX, 'circle',
+        `<span class="hl4">Circle event!</span> Arc of <span class="hl">${arc.site.name}</span> collapses as its neighbors <span class="hl">${leftName}</span> and <span class="hl">${rightName}</span> converge. The circumcenter at (${Math.round(center.x)}, ${Math.round(center.y)}) becomes a <span class="hl4">Voronoi vertex</span>. Two edges terminate here; a new edge starts between <span class="hl">${leftName}</span> and <span class="hl">${rightName}</span>.`,
+        { type: 'circle', center, radius }, arcIdx);
+    }
+  }
+
+  // Final snapshot
+  snapshot(Infinity, 'done',
+    `Sweep complete! <span class="hl4">${vertices.length} Voronoi vertices</span> found, <span class="hl2">${edges.filter(e=>e.end).length} complete edges</span> drawn. Every point in the plane is assigned to its nearest site — that's the Voronoi diagram of <span class="hl">${n} sites</span>.`,
+    null, -1);
+
+  return steps;
+}
+
+// ─────────────────────────────────────────────
+// Generate random sites
+// ─────────────────────────────────────────────
+function generateSites(n, W, H, margin) {
+  const names = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    pts.push({
+      x: margin + Math.random() * (W - 2*margin),
+      y: margin + Math.random() * (H - 2*margin),
+      name: names[i % names.length],
+      color: SITE_COLORS[i % SITE_COLORS.length],
+    });
+  }
+  // Sort by x (Fortune's requires left-to-right site events)
+  pts.sort((a,b) => a.x - b.x);
+  return pts;
+}
+
+// ─────────────────────────────────────────────
+// Canvas + rendering
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  W = rect.width; H = rect.height;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+}
+window.addEventListener('resize', () => { resizeCanvas(); render(); });
+
+let steps = [], sites = [], stepIdx = 0;
+
+function buildSteps() {
+  resizeCanvas();
+  const margin = Math.min(W, H) * 0.1;
+  const n = Math.min(8 + Math.floor(Math.random() * 4), 12);
+  sites = generateSites(n, W, H, margin);
+  steps = fortuneVoronoi(sites, W, H);
+  stepIdx = 0;
+  updateSidePanel();
+  render();
+}
+
+// ── Draw parabola arc ─────────────────────────
+function drawParabolaArc(site, sweepX, yMin, yMax) {
+  if (sweepX <= site.x + 1e-6) return;
+  ctx.beginPath();
+  let first = true;
+  const step = 2;
+  for (let y = yMin; y <= yMax; y += step) {
+    const x = parabola_y(site, sweepX, y);
+    if (first) { ctx.moveTo(x, y); first = false; }
+    else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = 'rgba(227,179,65,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+// ── Compute beach line breakpoints ────────────
+function getBeachBreakpoints(arcs, sweepX) {
+  const bps = [];
+  for (let i = 0; i < arcs.length - 1; i++) {
+    const pts = parabola_intersect(arcs[i].site, arcs[i+1].site, sweepX);
+    if (pts.length === 0) { bps.push(H/2); continue; }
+    if (pts.length === 1) { bps.push(pts[0]); continue; }
+    // Pick the breakpoint in the right order
+    const y1 = pts[0], y2 = pts[1];
+    // Convention: arcs ordered by y at breakpoint (upper arc has lower y)
+    // Use the one that separates left/right arcs correctly
+    bps.push(arcs[i].site.y < arcs[i+1].site.y ? Math.min(y1,y2) : Math.max(y1,y2));
+  }
+  return bps;
+}
+
+function render() {
+  if (!W || !H) return;
+  const step = steps[stepIdx];
+  if (!step) return;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0a0d12';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Draw complete Voronoi edges ───────────────
+  const completedEdges = step.edges.filter(e => e.end);
+  for (const e of completedEdges) {
+    if (!e.start || !e.end) continue;
+    ctx.beginPath();
+    ctx.moveTo(e.start.x, e.start.y);
+    ctx.lineTo(e.end.x, e.end.y);
+    ctx.strokeStyle = 'rgba(63,185,80,0.85)';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
+
+  // ── Draw in-progress edges (faint) ────────────
+  const inProgressEdges = step.edges.filter(e => !e.end && e.start);
+  for (const e of inProgressEdges) {
+    ctx.beginPath();
+    ctx.moveTo(e.start.x, e.start.y);
+    // Extend toward sweep line
+    const endX = Math.min(step.sweepX + 200, W + 200);
+    // Rough direction: perpendicular bisector direction
+    const mx = (e.siteA.x + e.siteB.x)/2, my = (e.siteA.y + e.siteB.y)/2;
+    const dx = e.siteB.x - e.siteA.x, dy = e.siteB.y - e.siteA.y;
+    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    // Perpendicular direction: (-dy, dx)
+    const px = -dy/len, py = dx/len;
+    const t = 400;
+    ctx.lineTo(e.start.x + px*t, e.start.y + py*t);
+    ctx.strokeStyle = 'rgba(63,185,80,0.25)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── Draw beach line parabolas ─────────────────
+  if (step.sweepX > 0 && step.sweepX !== Infinity && step.beachLine.length > 0) {
+    const arcs = step.beachLine;
+    const bps = getBeachBreakpoints(arcs, step.sweepX);
+    const ys = [-50, ...bps, H+50];
+
+    for (let i = 0; i < arcs.length; i++) {
+      const yLo = ys[i], yHi = ys[i+1];
+      if (yLo >= yHi && arcs.length > 1) continue;
+      const site = arcs[i].site;
+      if (step.sweepX <= site.x + 1e-6) continue;
+
+      ctx.beginPath();
+      let first = true;
+      const step2 = 1.5;
+      for (let y = Math.max(-50, yLo); y <= Math.min(H+50, yHi); y += step2) {
+        const x = parabola_y(site, step.sweepX, y);
+        if (first) { ctx.moveTo(x, y); first = false; }
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = i === step.highlightArcIdx
+        ? 'rgba(227,179,65,1)' : 'rgba(227,179,65,0.5)';
+      ctx.lineWidth = i === step.highlightArcIdx ? 2.5 : 1.5;
+      ctx.stroke();
+    }
+  }
+
+  // ── Sweep line ────────────────────────────────
+  if (step.sweepX > 0 && step.sweepX !== Infinity) {
+    ctx.beginPath();
+    ctx.moveTo(step.sweepX, 0);
+    ctx.lineTo(step.sweepX, H);
+    ctx.strokeStyle = 'rgba(88,166,255,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Label
+    ctx.fillStyle = 'rgba(88,166,255,0.8)';
+    ctx.font = '11px monospace';
+    ctx.fillText(`x=${Math.round(step.sweepX)}`, step.sweepX + 5, 16);
+  }
+
+  // ── Voronoi vertices ──────────────────────────
+  for (const v of step.vertices) {
+    ctx.beginPath();
+    ctx.arc(v.x, v.y, 5, 0, Math.PI*2);
+    ctx.fillStyle = '#a371f7';
+    ctx.fill();
+    ctx.strokeStyle = '#0a0d12';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // ── Sites ─────────────────────────────────────
+  for (const s of sites) {
+    const isPast = s.x <= step.sweepX;
+    const isActive = step.activeEvent && step.activeEvent.type === 'site' && step.activeEvent.site === s;
+    const r = isActive ? 9 : 6;
+
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r, 0, Math.PI*2);
+    ctx.fillStyle = isActive ? '#f78166' : s.color;
+    ctx.fill();
+    ctx.strokeStyle = '#0a0d12';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = isPast ? s.color : 'rgba(230,237,243,0.4)';
+    ctx.font = `bold 11px sans-serif`;
+    ctx.fillText(s.name, s.x + 9, s.y - 5);
+  }
+
+  // ── Active circle event ───────────────────────
+  if (step.activeEvent && step.activeEvent.type === 'circle') {
+    const { center, radius } = step.activeEvent;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, radius, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(163,113,247,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#a371f7';
+    ctx.fill();
+  }
+
+  updateUI(step);
+}
+
+function updateUI(step) {
+  document.getElementById('stepNum').textContent = stepIdx + 1;
+  document.getElementById('stepTotal').textContent = steps.length;
+  document.getElementById('descBox').innerHTML = step.desc;
+
+  const badge = document.getElementById('phaseBadge');
+  badge.className = 'phase-badge ' + step.phase;
+  badge.textContent = step.phase === 'site' ? 'Site Event' :
+    step.phase === 'circle' ? 'Circle Event' :
+    step.phase === 'done' ? 'Done' : 'Init';
+
+  const completedEdges = step.edges.filter(e => e.end).length;
+  document.getElementById('statSites').textContent = sites.length;
+  document.getElementById('statVerts').textContent = step.vertices.length;
+  document.getElementById('statEdges').textContent = completedEdges;
+  document.getElementById('statSweep').textContent =
+    step.sweepX === Infinity || step.sweepX <= 0 ? '—' : Math.round(step.sweepX);
+
+  // Site list
+  const list = document.getElementById('siteList');
+  list.innerHTML = '';
+  for (const s of sites) {
+    const isActive = step.activeEvent && step.activeEvent.type === 'site' && step.activeEvent.site === s;
+    const div = document.createElement('div');
+    div.className = 'site-item' + (isActive ? ' active' : '');
+    div.innerHTML = `
+      <div class="site-dot" style="background:${s.color}"></div>
+      <span class="site-name">${s.name}</span>
+      <span class="site-coords">(${Math.round(s.x)}, ${Math.round(s.y)})</span>
+    `;
+    list.appendChild(div);
+  }
+
+  document.getElementById('btnPrev').disabled = stepIdx === 0;
+  document.getElementById('btnNext').disabled = stepIdx === steps.length - 1;
+}
+
+function updateSidePanel() {
+  document.getElementById('statSites').textContent = sites.length;
+}
+
+// ─────────────────────────────────────────────
+// Controls
+// ─────────────────────────────────────────────
+let playing = false, timer = null;
+
+function setPlaying(v) {
+  playing = v;
+  document.getElementById('btnPlay').textContent = v ? '⏸ Pause' : '▶ Play';
+  if (v) {
+    const ms = 2100 - parseInt(document.getElementById('speedSlider').value);
+    timer = setInterval(() => {
+      if (stepIdx < steps.length - 1) { stepIdx++; render(); }
+      else { clearInterval(timer); playing = false; document.getElementById('btnPlay').textContent = '▶ Play'; }
+    }, ms);
+  } else {
+    clearInterval(timer);
+  }
+}
+
+document.getElementById('btnPrev').addEventListener('click', () => {
+  setPlaying(false); if (stepIdx > 0) { stepIdx--; render(); }
+});
+document.getElementById('btnNext').addEventListener('click', () => {
+  setPlaying(false); if (stepIdx < steps.length-1) { stepIdx++; render(); }
+});
+document.getElementById('btnPlay').addEventListener('click', () => setPlaying(!playing));
+document.getElementById('btnReset').addEventListener('click', () => { setPlaying(false); buildSteps(); });
+
+const speedSlider = document.getElementById('speedSlider');
+speedSlider.addEventListener('input', () => {
+  document.getElementById('speedLabel').textContent = speedSlider.value + 'ms';
+  if (playing) { setPlaying(false); setPlaying(true); }
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') { setPlaying(false); if(stepIdx<steps.length-1){stepIdx++;render();} }
+  if (e.key === 'ArrowLeft')  { setPlaying(false); if(stepIdx>0){stepIdx--;render();} }
+  if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); }
+});
+
+// ─────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────
+window.addEventListener('load', () => { buildSteps(); });
+</script>
+</body>
+</html>
