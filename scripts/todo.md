@@ -38,7 +38,7 @@
 ### Geometry
 - [x] line-sweep — Sweep Line (segment intersection, event queue) ✅ 2026-05-19
 - [x] voronoi — Voronoi Diagram (Fortune's sweep line, beach line) ✅ 2026-05-21
-- [ ] closest-pair — Closest Pair of Points (divide & conquer, strip merge)
+- [x] closest-pair — Closest Pair of Points (divide & conquer, strip merge) ✅ 2026-05-23
 
 ### Misc
 - [ ] wavelet-tree — Wavelet Tree (range frequency queries, O(log σ) per op)

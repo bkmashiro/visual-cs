@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Closest Pair of Points — Divide &amp; Conquer | visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --s2: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --accent0: rgba(88,166,255,.15);
+  --good: #3fb950;
+  --good0: rgba(63,185,80,.15);
+  --warn: #f78166;
+  --warn0: rgba(247,129,102,.15);
+  --gold: #e3b341;
+  --gold0: rgba(227,179,65,.15);
+  --violet: #a371f7;
+  --violet0: rgba(163,113,247,.15);
+  --cyan: #67e8f9;
+  --cyan0: rgba(103,232,249,.12);
+  --pink: #f778ba;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header h1 { font-size: 1.05rem; font-weight: 700; }
+header h1 span { color: var(--accent); }
+header a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .78rem;
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  border-radius: 6px;
+  transition: all .2s;
+}
+header a:hover { color: var(--text); border-color: var(--accent); }
+
+.step-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: .82rem;
+}
+.step-counter { color: var(--muted); }
+.step-counter strong { color: var(--accent); font-size: .95rem; }
+.phase-badge {
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.phase-badge.init    { background: var(--accent0);  color: var(--accent);  border: 1px solid var(--accent); }
+.phase-badge.sort    { background: var(--gold0);     color: var(--gold);    border: 1px solid var(--gold); }
+.phase-badge.divide  { background: var(--accent0);  color: var(--accent);  border: 1px solid var(--accent); }
+.phase-badge.left    { background: var(--good0);    color: var(--good);    border: 1px solid var(--good); }
+.phase-badge.right   { background: var(--warn0);    color: var(--warn);    border: 1px solid var(--warn); }
+.phase-badge.strip   { background: var(--violet0);  color: var(--violet);  border: 1px solid var(--violet); }
+.phase-badge.result  { background: var(--cyan0);    color: var(--cyan);    border: 1px solid var(--cyan); }
+
+.controls {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+button {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; }
+button.primary:hover { opacity: .85; }
+button:disabled { opacity: .35; cursor: default; pointer-events: none; }
+
+.speed-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: .8rem;
+  margin-left: auto;
+}
+.speed-group input { width: 80px; accent-color: var(--accent); }
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-wrap {
+  position: relative;
+  background: #0a0d12;
+  overflow: hidden;
+}
+#mainCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.side-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.desc-box {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  min-height: 120px;
+}
+.desc-box h3 {
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.desc-text {
+  font-size: .88rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+.desc-text .hl  { color: var(--accent); font-weight: 600; }
+.desc-text .hl2 { color: var(--good);   font-weight: 600; }
+.desc-text .hl3 { color: var(--warn);   font-weight: 600; }
+.desc-text .hl4 { color: var(--violet); font-weight: 600; }
+.desc-text .hl5 { color: var(--gold);   font-weight: 600; }
+.desc-text .hl6 { color: var(--cyan);   font-weight: 600; }
+
+.struct-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.struct-title {
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.stat-card {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 11px;
+}
+.stat-card .label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+.stat-card .val   { font-size: 1.1rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+.point-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.point-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  font-size: .76rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  border: 1px solid transparent;
+  transition: background .1s;
+}
+.point-item.active { background: var(--accent0); border-color: var(--accent); }
+.point-item.left-half  { background: var(--good0);  border-color: var(--good); }
+.point-item.right-half { background: var(--warn0);  border-color: var(--warn); }
+.point-item.strip-pt   { background: var(--violet0); border-color: var(--violet); }
+.point-item.closest    { background: var(--cyan0);  border-color: var(--cyan); }
+.point-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.algo-box {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+.algo-box h3 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+.algo-box p  { font-size: .78rem; color: var(--muted); line-height: 1.6; margin-bottom: 6px; }
+.algo-box code {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  background: var(--s2);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: .73rem;
+  color: var(--cyan);
+}
+
+footer {
+  text-align: center;
+  padding: 10px;
+  color: var(--muted);
+  font-size: .75rem;
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--accent); text-decoration: none; }
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  .side-panel { border-left: none; border-top: 1px solid var(--border); max-height: 420px; }
+  .canvas-wrap { min-height: 300px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Closest Pair of <span>Points</span> — Divide &amp; Conquer</h1>
+  <a href="../../index.html">← Gallery</a>
+</header>
+
+<div class="step-bar">
+  <div class="step-counter">Step <strong id="stepNum">0</strong> / <strong id="stepTotal">0</strong></div>
+  <div id="phaseBadge" class="phase-badge init">Init</div>
+</div>
+
+<div class="controls">
+  <button id="btnPrev" disabled>⟵ Prev</button>
+  <button id="btnPlay" class="primary">▶ Play</button>
+  <button id="btnNext">Next ⟶</button>
+  <button id="btnReset">↺ Reset</button>
+  <button id="btnRandom">⚄ Random</button>
+  <div class="speed-group">
+    <span>Speed</span>
+    <input type="range" id="speedSlider" min="1" max="10" value="4">
+  </div>
+</div>
+
+<main>
+  <div class="canvas-wrap">
+    <canvas id="mainCanvas"></canvas>
+  </div>
+
+  <div class="side-panel">
+    <div class="desc-box">
+      <h3>Step Description</h3>
+      <div class="desc-text" id="descText">Press <strong>Play</strong> or <strong>Next</strong> to start.</div>
+    </div>
+
+    <div class="struct-section">
+      <div>
+        <div class="struct-title">Algorithm State</div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="label">Points</div><div class="val" id="statN">0</div></div>
+          <div class="stat-card"><div class="label">Best dist</div><div class="val" id="statDist">—</div></div>
+          <div class="stat-card"><div class="label">Comparisons</div><div class="val" id="statComps">0</div></div>
+          <div class="stat-card"><div class="label">Strip size</div><div class="val" id="statStrip">—</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="struct-title">Points (sorted by x)</div>
+        <div class="point-list" id="pointList"></div>
+      </div>
+    </div>
+
+    <div class="algo-box">
+      <h3>Algorithm</h3>
+      <p><strong style="color:var(--accent)">Divide:</strong> Split at median x into left/right halves.</p>
+      <p><strong style="color:var(--good)">Conquer:</strong> Recursively find closest pair in each half.</p>
+      <p><strong style="color:var(--violet)">Combine:</strong> Check <em>strip</em> — points within δ of divide line — for cross-boundary pairs.</p>
+      <p>Strip only needs <code>≤ 7</code> comparisons per point → <code>O(n log n)</code> total.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <a href="https://github.com/bkmashiro/visual-cs">bkmashiro/visual-cs</a> · Pure HTML/CSS/JS
+</footer>
+
+<script>
+// ─────────────────────────────────────────────
+// Fixed default point set (normalized 0..1)
+// ─────────────────────────────────────────────
+const DEFAULT_POINTS_NORM = [
+  { x: 0.12, y: 0.55 },
+  { x: 0.20, y: 0.28 },
+  { x: 0.28, y: 0.72 },
+  { x: 0.38, y: 0.42 },
+  { x: 0.45, y: 0.18 },
+  { x: 0.50, y: 0.65 },
+  { x: 0.58, y: 0.35 },
+  { x: 0.65, y: 0.80 },
+  { x: 0.72, y: 0.50 },
+  { x: 0.80, y: 0.22 },
+  { x: 0.87, y: 0.68 },
+];
+
+// ─────────────────────────────────────────────
+// Geometry
+// ─────────────────────────────────────────────
+function dist(a, b) {
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+}
+
+// ─────────────────────────────────────────────
+// Build algorithm steps (pre-compute all)
+// ─────────────────────────────────────────────
+function buildSteps(pts) {
+  const steps = [];
+  const n = pts.length;
+
+  // Sort by x
+  const sortedX = pts.slice().sort((a, b) => a.x - b.x);
+  // Assign labels A, B, C, ... in original order
+  for (let i = 0; i < pts.length; i++) pts[i].label = String.fromCharCode(65 + i);
+  // Re-assign labels after sorting by x
+  for (let i = 0; i < sortedX.length; i++) sortedX[i].xRank = i;
+
+  let totalComps = 0;
+  let globalBest = { d: Infinity, p1: null, p2: null };
+
+  // ── Step 0: Init ──
+  steps.push({
+    phase: 'init',
+    description: `<span class="hl">${n} points</span> placed on the canvas. We will find the closest pair using <em>divide &amp; conquer</em> in <span class="hl">O(n log n)</span> time.`,
+    highlight: [],
+    leftSet: [],
+    rightSet: [],
+    stripSet: [],
+    closestPair: null,
+    divideX: null,
+    stripWidth: null,
+    comparingPair: null,
+    bestDist: Infinity,
+    comparisons: 0,
+    stripSize: null,
+    rectLeft: null,
+    rectRight: null,
+  });
+
+  // ── Step 1: Sort ──
+  steps.push({
+    phase: 'sort',
+    description: `<span class="hl5">Sort</span> all ${n} points by x-coordinate. This takes <span class="hl5">O(n log n)</span> and is done once. Points are now ordered: <span class="hl">${sortedX.map(p => p.label).join(' → ')}</span>.`,
+    highlight: sortedX.map(p => p.label),
+    leftSet: [],
+    rightSet: [],
+    stripSet: [],
+    closestPair: null,
+    divideX: null,
+    stripWidth: null,
+    comparingPair: null,
+    bestDist: Infinity,
+    comparisons: 0,
+    stripSize: null,
+    rectLeft: null,
+    rectRight: null,
+  });
+
+  // ── Recursive divide & conquer ──
+  // We'll record steps during simulation
+  function solve(indices, depth) {
+    // indices: array of indices into sortedX, already sorted by x
+    const m = indices.length;
+    if (m <= 1) return { d: Infinity, p1: null, p2: null };
+    if (m === 2) {
+      const p = sortedX[indices[0]], q = sortedX[indices[1]];
+      const d = dist(p, q);
+      totalComps++;
+      if (d < globalBest.d) { globalBest = { d, p1: p, p2: q }; }
+
+      steps.push({
+        phase: depth === 0 ? 'left' : depth === 1 ? 'right' : 'left',
+        description: `<span class="hl2">Base case</span> — 2 points: <span class="hl">${p.label}</span> and <span class="hl">${q.label}</span>. Distance = <span class="hl5">${d.toFixed(4)}</span>.${d < globalBest.d + 1e-9 ? ' <span class="hl6">New best!</span>' : ''}`,
+        highlight: [p.label, q.label],
+        leftSet: [],
+        rightSet: [],
+        stripSet: [],
+        closestPair: { p1: p, p2: q },
+        divideX: null,
+        stripWidth: null,
+        comparingPair: [p, q],
+        bestDist: globalBest.d,
+        comparisons: totalComps,
+        stripSize: null,
+        rectLeft: null,
+        rectRight: null,
+        subsetIndices: indices,
+      });
+      return { d, p1: p, p2: q };
+    }
+    if (m === 3) {
+      // Check all 3 pairs
+      let best = { d: Infinity, p1: null, p2: null };
+      const pairs = [[0,1],[1,2],[0,2]];
+      for (const [ai, bi] of pairs) {
+        const p = sortedX[indices[ai]], q = sortedX[indices[bi]];
+        const d = dist(p, q);
+        totalComps++;
+        if (d < globalBest.d) { globalBest = { d, p1: p, p2: q }; }
+        if (d < best.d) best = { d, p1: p, p2: q };
+
+        steps.push({
+          phase: 'left',
+          description: `<span class="hl2">Base case</span> — checking pair <span class="hl">${p.label}</span> &amp; <span class="hl">${q.label}</span>. Distance = <span class="hl5">${d.toFixed(4)}</span>. Best so far: <span class="hl5">${globalBest.d.toFixed(4)}</span>.`,
+          highlight: [p.label, q.label],
+          leftSet: [],
+          rightSet: [],
+          stripSet: [],
+          closestPair: globalBest.p1 ? { p1: globalBest.p1, p2: globalBest.p2 } : null,
+          divideX: null,
+          stripWidth: null,
+          comparingPair: [p, q],
+          bestDist: globalBest.d,
+          comparisons: totalComps,
+          stripSize: null,
+          rectLeft: null,
+          rectRight: null,
+          subsetIndices: indices,
+        });
+      }
+      return best;
+    }
+
+    // Divide
+    const mid = Math.floor(m / 2);
+    const midPoint = sortedX[indices[mid]];
+    const divX = midPoint.x;
+
+    const leftIndices  = indices.slice(0, mid);
+    const rightIndices = indices.slice(mid);
+
+    const leftLabels  = leftIndices.map(i => sortedX[i].label);
+    const rightLabels = rightIndices.map(i => sortedX[i].label);
+
+    steps.push({
+      phase: 'divide',
+      description: `<span class="hl">Divide</span> — split <span class="hl">${m} points</span> at median x = <span class="hl5">${divX.toFixed(3)}</span> (point <span class="hl">${midPoint.label}</span>). <span class="hl2">Left half</span>: [${leftLabels.join(', ')}] &nbsp; <span class="hl3">Right half</span>: [${rightLabels.join(', ')}].`,
+      highlight: indices.map(i => sortedX[i].label),
+      leftSet: leftLabels,
+      rightSet: rightLabels,
+      stripSet: [],
+      closestPair: globalBest.p1 ? { p1: globalBest.p1, p2: globalBest.p2 } : null,
+      divideX: divX,
+      stripWidth: null,
+      comparingPair: null,
+      bestDist: globalBest.d,
+      comparisons: totalComps,
+      stripSize: null,
+      rectLeft: { x1: sortedX[indices[0]].x, x2: divX },
+      rectRight: { x1: divX, x2: sortedX[indices[m-1]].x },
+      subsetIndices: indices,
+    });
+
+    // Recurse left
+    steps.push({
+      phase: 'left',
+      description: `<span class="hl2">Recurse left</span> — solving <span class="hl2">left half</span> [${leftLabels.join(', ')}] recursively.`,
+      highlight: leftLabels,
+      leftSet: leftLabels,
+      rightSet: rightLabels,
+      stripSet: [],
+      closestPair: globalBest.p1 ? { p1: globalBest.p1, p2: globalBest.p2 } : null,
+      divideX: divX,
+      stripWidth: null,
+      comparingPair: null,
+      bestDist: globalBest.d,
+      comparisons: totalComps,
+      stripSize: null,
+      rectLeft: { x1: sortedX[indices[0]].x, x2: divX },
+      rectRight: { x1: divX, x2: sortedX[indices[m-1]].x },
+      subsetIndices: leftIndices,
+    });
+    const leftResult  = solve(leftIndices,  depth + 1);
+
+    // Recurse right
+    steps.push({
+      phase: 'right',
+      description: `<span class="hl3">Recurse right</span> — solving <span class="hl3">right half</span> [${rightLabels.join(', ')}] recursively.`,
+      highlight: rightLabels,
+      leftSet: leftLabels,
+      rightSet: rightLabels,
+      stripSet: [],
+      closestPair: globalBest.p1 ? { p1: globalBest.p1, p2: globalBest.p2 } : null,
+      divideX: divX,
+      stripWidth: null,
+      comparingPair: null,
+      bestDist: globalBest.d,
+      comparisons: totalComps,
+      stripSize: null,
+      rectLeft: { x1: sortedX[indices[0]].x, x2: divX },
+      rectRight: { x1: divX, x2: sortedX[indices[m-1]].x },
+      subsetIndices: rightIndices,
+    });
+    const rightResult = solve(rightIndices, depth + 1);
+
+    // Best from both halves
+    let delta = Math.min(leftResult.d, rightResult.d);
+    let bestHalf = delta === leftResult.d ? leftResult : rightResult;
+
+    // Build strip: points within delta of divX
+    const stripPts = indices
+      .map(i => sortedX[i])
+      .filter(p => Math.abs(p.x - divX) < delta);
+    // Sort strip by y
+    stripPts.sort((a, b) => a.y - b.y);
+    const stripLabels = stripPts.map(p => p.label);
+
+    steps.push({
+      phase: 'strip',
+      description: `<span class="hl4">Strip merge</span> — δ = <span class="hl5">${delta.toFixed(4)}</span> (min of left/right results). Check <span class="hl4">${stripPts.length} points</span> within strip [divX ± δ]. Each point compares against at most <span class="hl">7</span> others above it in y.`,
+      highlight: indices.map(i => sortedX[i].label),
+      leftSet: leftLabels,
+      rightSet: rightLabels,
+      stripSet: stripLabels,
+      closestPair: globalBest.p1 ? { p1: globalBest.p1, p2: globalBest.p2 } : null,
+      divideX: divX,
+      stripWidth: delta,
+      comparingPair: null,
+      bestDist: globalBest.d,
+      comparisons: totalComps,
+      stripSize: stripPts.length,
+      rectLeft: { x1: sortedX[indices[0]].x, x2: divX },
+      rectRight: { x1: divX, x2: sortedX[indices[m-1]].x },
+      subsetIndices: indices,
+    });
+
+    // Check strip pairs
+    for (let i = 0; i < stripPts.length; i++) {
+      for (let j = i + 1; j < stripPts.length && (stripPts[j].y - stripPts[i].y) < delta; j++) {
+        const p = stripPts[i], q = stripPts[j];
+        const d = dist(p, q);
+        totalComps++;
+        if (d < globalBest.d) {
+          globalBest = { d, p1: p, p2: q };
+          delta = d; // tighten strip bound
+        }
+        if (d < bestHalf.d) bestHalf = { d, p1: p, p2: q };
+
+        steps.push({
+          phase: 'strip',
+          description: `<span class="hl4">Strip check</span> — comparing <span class="hl">${p.label}</span> &amp; <span class="hl">${q.label}</span> (Δy = ${Math.abs(p.y - q.y).toFixed(4)} &lt; δ = ${delta.toFixed(4)}). Distance = <span class="hl5">${d.toFixed(4)}</span>.${d <= globalBest.d + 1e-9 ? ' <span class="hl6">New best!</span>' : ''}`,
+          highlight: [p.label, q.label],
+          leftSet: leftLabels,
+          rightSet: rightLabels,
+          stripSet: stripLabels,
+          closestPair: globalBest.p1 ? { p1: globalBest.p1, p2: globalBest.p2 } : null,
+          divideX: divX,
+          stripWidth: delta,
+          comparingPair: [p, q],
+          bestDist: globalBest.d,
+          comparisons: totalComps,
+          stripSize: stripPts.length,
+          rectLeft: { x1: sortedX[indices[0]].x, x2: divX },
+          rectRight: { x1: divX, x2: sortedX[indices[m-1]].x },
+          subsetIndices: indices,
+        });
+      }
+    }
+
+    return bestHalf.d < leftResult.d && bestHalf.d < rightResult.d ? bestHalf
+      : (leftResult.d <= rightResult.d ? leftResult : rightResult);
+  }
+
+  // Kick off
+  const allIndices = sortedX.map((_, i) => i);
+  solve(allIndices, 0);
+
+  // Final step
+  steps.push({
+    phase: 'result',
+    description: `<span class="hl6">Done!</span> Closest pair: <span class="hl">${globalBest.p1 ? globalBest.p1.label : '?'}</span> &amp; <span class="hl">${globalBest.p2 ? globalBest.p2.label : '?'}</span> with distance <span class="hl6">${globalBest.d.toFixed(4)}</span>. Total comparisons: <span class="hl5">${totalComps}</span> (vs. <span class="hl3">${(n*(n-1)/2)}</span> brute force).`,
+    highlight: globalBest.p1 ? [globalBest.p1.label, globalBest.p2.label] : [],
+    leftSet: [],
+    rightSet: [],
+    stripSet: [],
+    closestPair: globalBest.p1 ? { p1: globalBest.p1, p2: globalBest.p2 } : null,
+    divideX: null,
+    stripWidth: null,
+    comparingPair: null,
+    bestDist: globalBest.d,
+    comparisons: totalComps,
+    stripSize: null,
+    rectLeft: null,
+    rectRight: null,
+  });
+
+  return { steps, sortedX };
+}
+
+// ─────────────────────────────────────────────
+// Canvas
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  W = rect.width; H = rect.height;
+  canvas.width  = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+}
+window.addEventListener('resize', () => { resizeCanvas(); render(); });
+
+const PAD = 55;
+function cx(x) { return PAD + x * (W - 2 * PAD); }
+function cy(y) { return PAD + y * (H - 2 * PAD); }
+function ncx(px) { return (px - PAD) / (W - 2 * PAD); }
+function ncy(py) { return (py - PAD) / (H - 2 * PAD); }
+
+// ─────────────────────────────────────────────
+// Rendering
+// ─────────────────────────────────────────────
+function render() {
+  if (!W || !H) return;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(48,54,61,0.35)';
+  ctx.lineWidth = 1;
+  const gridStep = 60;
+  for (let x = PAD; x <= W - PAD; x += gridStep) {
+    ctx.beginPath(); ctx.moveTo(x, PAD); ctx.lineTo(x, H - PAD); ctx.stroke();
+  }
+  for (let y = PAD; y <= H - PAD; y += gridStep) {
+    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+  }
+
+  const step = steps[currentStep];
+  if (!step) return;
+
+  const pts = currentPts;
+
+  // ── Left/right half shading ──────────────────
+  if (step.divideX !== null) {
+    const dxPx = cx(step.divideX);
+    if (step.rectLeft) {
+      const x1 = cx(step.rectLeft.x1) - 6;
+      const x2 = cx(step.rectLeft.x2);
+      ctx.fillStyle = 'rgba(63,185,80,0.06)';
+      ctx.fillRect(x1, PAD, x2 - x1, H - 2*PAD);
+    }
+    if (step.rectRight) {
+      const x1 = cx(step.rectRight.x1);
+      const x2 = cx(step.rectRight.x2) + 6;
+      ctx.fillStyle = 'rgba(247,129,102,0.06)';
+      ctx.fillRect(x1, PAD, x2 - x1, H - 2*PAD);
+    }
+  }
+
+  // ── Strip shading ─────────────────────────────
+  if (step.divideX !== null && step.stripWidth !== null) {
+    const sx1 = cx(step.divideX - step.stripWidth);
+    const sx2 = cx(step.divideX + step.stripWidth);
+    ctx.fillStyle = 'rgba(163,113,247,0.1)';
+    ctx.fillRect(sx1, PAD, sx2 - sx1, H - 2*PAD);
+    // Strip borders
+    ctx.save();
+    ctx.strokeStyle = 'rgba(163,113,247,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(sx1, PAD); ctx.lineTo(sx1, H - PAD); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx2, PAD); ctx.lineTo(sx2, H - PAD); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    // Labels δ
+    ctx.fillStyle = 'rgba(163,113,247,0.7)';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('−δ', sx1, PAD - 10);
+    ctx.fillText('+δ', sx2, PAD - 10);
+  }
+
+  // ── Divide line ───────────────────────────────
+  if (step.divideX !== null) {
+    const dxPx = cx(step.divideX);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(88,166,255,0.75)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([7, 4]);
+    ctx.shadowColor = '#58a6ff';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.moveTo(dxPx, PAD);
+    ctx.lineTo(dxPx, H - PAD);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    // Triangle top indicator
+    ctx.save();
+    ctx.fillStyle = '#58a6ff';
+    ctx.shadowColor = '#58a6ff';
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.moveTo(dxPx - 7, PAD - 2);
+    ctx.lineTo(dxPx + 7, PAD - 2);
+    ctx.lineTo(dxPx, PAD + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Line connecting comparing pair ────────────
+  if (step.comparingPair) {
+    const [p, q] = step.comparingPair;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(227,179,65,0.9)';
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#e3b341';
+    ctx.shadowBlur = 10;
+    ctx.setLineDash([5, 3]);
+    ctx.beginPath();
+    ctx.moveTo(cx(p.x), cy(p.y));
+    ctx.lineTo(cx(q.x), cy(q.y));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    // Distance label at midpoint
+    const mx = (cx(p.x) + cx(q.x)) / 2;
+    const my = (cy(p.y) + cy(q.y)) / 2;
+    const d = dist(p, q);
+    ctx.save();
+    ctx.fillStyle = '#e3b341';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#e3b341';
+    ctx.shadowBlur = 6;
+    ctx.fillText(d.toFixed(3), mx, my - 12);
+    ctx.restore();
+  }
+
+  // ── Best pair line ────────────────────────────
+  if (step.closestPair && step.closestPair.p1 && step.phase !== 'comparingPair') {
+    const p = step.closestPair.p1, q = step.closestPair.p2;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(103,232,249,0.85)';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#67e8f9';
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.moveTo(cx(p.x), cy(p.y));
+    ctx.lineTo(cx(q.x), cy(q.y));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Points ────────────────────────────────────
+  for (const pt of pts) {
+    const px = cx(pt.x), py = cy(pt.y);
+    const inHighlight = step.highlight && step.highlight.includes(pt.label);
+    const inLeft  = step.leftSet  && step.leftSet.includes(pt.label);
+    const inRight = step.rightSet && step.rightSet.includes(pt.label);
+    const inStrip = step.stripSet && step.stripSet.includes(pt.label);
+    const isComparing = step.comparingPair && step.comparingPair.some(p => p.label === pt.label);
+    const isClosest = step.closestPair &&
+      (step.closestPair.p1 === pt || step.closestPair.p2 === pt);
+
+    let color = '#8b949e';
+    if (inLeft)  color = '#3fb950';
+    if (inRight) color = '#f78166';
+    if (inStrip) color = '#a371f7';
+    if (isComparing) color = '#e3b341';
+    if (isClosest && step.phase === 'result') color = '#67e8f9';
+
+    const r = isComparing ? 9 : isClosest && step.phase === 'result' ? 9 : inHighlight ? 7 : 6;
+    const alpha = inHighlight || isComparing ? 1 : 0.65;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    if (isComparing || (isClosest && step.phase === 'result')) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 16;
+    }
+
+    // Point circle
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // Ring for highlighted
+    if (isComparing || (isClosest && step.phase === 'result')) {
+      ctx.beginPath();
+      ctx.arc(px, py, r + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Label
+    ctx.save();
+    ctx.globalAlpha = inHighlight || isComparing ? 1 : 0.55;
+    ctx.fillStyle = color;
+    ctx.font = `bold ${isComparing ? 14 : 12}px 'Inter', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(pt.label, px, py - r - 9);
+    ctx.restore();
+  }
+
+  // ── Phase label on canvas ─────────────────────
+  if (step.phase === 'result') {
+    ctx.save();
+    ctx.fillStyle = 'rgba(103,232,249,0.9)';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#67e8f9';
+    ctx.shadowBlur = 20;
+    ctx.fillText(`Closest Pair Found! d = ${step.bestDist.toFixed(4)}`, W / 2, H - PAD + 20);
+    ctx.restore();
+  }
+}
+
+// ─────────────────────────────────────────────
+// UI update
+// ─────────────────────────────────────────────
+const descEl     = document.getElementById('descText');
+const phaseBadgeEl = document.getElementById('phaseBadge');
+const stepNumEl  = document.getElementById('stepNum');
+const stepTotalEl = document.getElementById('stepTotal');
+const pointListEl = document.getElementById('pointList');
+const statNEl    = document.getElementById('statN');
+const statDistEl = document.getElementById('statDist');
+const statCompsEl = document.getElementById('statComps');
+const statStripEl = document.getElementById('statStrip');
+const btnPrev    = document.getElementById('btnPrev');
+const btnNext    = document.getElementById('btnNext');
+const btnPlay    = document.getElementById('btnPlay');
+const btnReset   = document.getElementById('btnReset');
+const btnRandom  = document.getElementById('btnRandom');
+const speedSlider = document.getElementById('speedSlider');
+
+const PHASE_MAP = {
+  init:   ['init',   'Init'],
+  sort:   ['sort',   'Sort by X'],
+  divide: ['divide', 'Divide'],
+  left:   ['left',   'Left Half'],
+  right:  ['right',  'Right Half'],
+  strip:  ['strip',  'Strip Merge'],
+  result: ['result', 'Result'],
+};
+
+function updateUI() {
+  const step = steps[currentStep];
+  if (!step) return;
+
+  stepNumEl.textContent  = currentStep;
+  stepTotalEl.textContent = steps.length - 1;
+  descEl.innerHTML = step.description || '';
+
+  const [cls, label] = PHASE_MAP[step.phase] || ['init', 'Init'];
+  phaseBadgeEl.className = `phase-badge ${cls}`;
+  phaseBadgeEl.textContent = label;
+
+  btnPrev.disabled = currentStep === 0;
+  btnNext.disabled = currentStep === steps.length - 1;
+
+  // Stats
+  statNEl.textContent    = currentPts.length;
+  statDistEl.textContent = step.bestDist === Infinity ? '—' : step.bestDist.toFixed(3);
+  statCompsEl.textContent = step.comparisons;
+  statStripEl.textContent = step.stripSize !== null ? step.stripSize : '—';
+
+  // Point list
+  pointListEl.innerHTML = '';
+  for (const pt of currentSortedX) {
+    const div = document.createElement('div');
+    const inLeft  = step.leftSet  && step.leftSet.includes(pt.label);
+    const inRight = step.rightSet && step.rightSet.includes(pt.label);
+    const inStrip = step.stripSet && step.stripSet.includes(pt.label);
+    const isClose = step.closestPair &&
+      (step.closestPair.p1 === pt || step.closestPair.p2 === pt);
+
+    let cls2 = '';
+    if (isClose && step.phase === 'result') cls2 = 'closest';
+    else if (inStrip) cls2 = 'strip-pt';
+    else if (inLeft)  cls2 = 'left-half';
+    else if (inRight) cls2 = 'right-half';
+
+    let color = '#8b949e';
+    if (inLeft)  color = '#3fb950';
+    if (inRight) color = '#f78166';
+    if (inStrip) color = '#a371f7';
+    if (isClose && step.phase === 'result') color = '#67e8f9';
+
+    div.className = `point-item ${cls2}`;
+    div.innerHTML = `
+      <div class="point-dot" style="background:${color}"></div>
+      <span style="color:${color};font-weight:700">${pt.label}</span>
+      <span style="color:var(--muted)">(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})</span>
+    `;
+    pointListEl.appendChild(div);
+  }
+
+  render();
+}
+
+// ─────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────
+let currentPts      = [];
+let currentSortedX  = [];
+let steps           = [];
+let currentStep     = 0;
+let playing         = false;
+let playTimer       = null;
+
+function initFromPts(pts) {
+  // Deep copy
+  currentPts = pts.map((p, i) => ({ ...p, label: String.fromCharCode(65 + i) }));
+  const result = buildSteps(currentPts);
+  steps         = result.steps;
+  currentSortedX = result.sortedX;
+  currentStep    = 0;
+  stopPlay();
+  updateUI();
+}
+
+function stopPlay() {
+  playing = false;
+  btnPlay.textContent = '▶ Play';
+  btnPlay.classList.remove('primary');
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+}
+
+function startPlay() {
+  playing = true;
+  btnPlay.textContent = '⏸ Pause';
+  btnPlay.classList.add('primary');
+  scheduleNext();
+}
+
+function scheduleNext() {
+  if (!playing) return;
+  const speed = parseInt(speedSlider.value);
+  const delay = Math.round(1400 / speed);
+  playTimer = setTimeout(() => {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      updateUI();
+      scheduleNext();
+    } else {
+      stopPlay();
+    }
+  }, delay);
+}
+
+btnPrev.addEventListener('click', () => {
+  stopPlay();
+  if (currentStep > 0) { currentStep--; updateUI(); }
+});
+btnNext.addEventListener('click', () => {
+  stopPlay();
+  if (currentStep < steps.length - 1) { currentStep++; updateUI(); }
+});
+btnPlay.addEventListener('click', () => {
+  if (playing) stopPlay();
+  else {
+    if (currentStep === steps.length - 1) currentStep = 0;
+    startPlay();
+  }
+});
+btnReset.addEventListener('click', () => {
+  stopPlay();
+  currentStep = 0;
+  updateUI();
+});
+btnRandom.addEventListener('click', () => {
+  stopPlay();
+  const n = 8 + Math.floor(Math.random() * 5); // 8-12
+  const pts = [];
+  // Use Poisson-ish distribution for nicer visual
+  for (let i = 0; i < n; i++) {
+    pts.push({
+      x: 0.07 + Math.random() * 0.86,
+      y: 0.07 + Math.random() * 0.86,
+    });
+  }
+  initFromPts(pts);
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    stopPlay(); if (currentStep < steps.length - 1) { currentStep++; updateUI(); }
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    stopPlay(); if (currentStep > 0) { currentStep--; updateUI(); }
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    if (playing) stopPlay();
+    else { if (currentStep === steps.length - 1) currentStep = 0; startPlay(); }
+  }
+});
+
+// ─────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────
+setTimeout(() => {
+  resizeCanvas();
+  initFromPts(DEFAULT_POINTS_NORM);
+}, 80);
+</script>
+</body>
+</html>
