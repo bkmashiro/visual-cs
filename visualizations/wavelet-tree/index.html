@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wavelet Tree — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --panel: #101720;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --good: #3fb950;
+  --warn: #f78166;
+  --gold: #e3b341;
+  --violet: #a371f7;
+  --cyan: #67e8f9;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 28px;
+}
+header a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.88rem;
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  border-radius: 6px;
+  transition: border-color 0.2s;
+}
+header a:hover { border-color: var(--accent); }
+.main { max-width: 1440px; margin: 0 auto; padding: 24px 22px 40px; }
+
+.controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.sep { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; }
+label { color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
+input[type=number] {
+  width: 58px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 8px;
+  font-size: 0.9rem;
+}
+button {
+  background: var(--accent);
+  color: #08111b;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+button.secondary {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+button.kth-style {
+  background: var(--gold);
+  color: #08111b;
+}
+button:disabled { opacity: 0.4; cursor: default; }
+.slider { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
+input[type=range] { accent-color: var(--accent); width: 90px; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+.stat-value { font-size: 1.18rem; font-weight: 800; color: var(--text); }
+.stat-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 16px; }
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+#tree-svg {
+  width: 100%;
+  height: 580px;
+  display: block;
+  background: radial-gradient(circle at top, rgba(163,113,247,0.07), transparent 30%), #091119;
+  border-radius: 12px;
+}
+
+.arr-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.arr-cell {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  text-align: center;
+  min-width: 46px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.arr-cell.hl { border-color: var(--gold); background: rgba(227,179,65,0.12); }
+.arr-cell strong { display: block; font-size: 0.65rem; color: var(--muted); margin-bottom: 2px; }
+.arr-cell span { font-size: 1rem; font-weight: 700; }
+
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+.step-item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.83rem;
+  line-height: 1.55;
+  transition: border-color 0.2s;
+}
+.step-item.active {
+  border-color: var(--accent);
+  background: rgba(88,166,255,0.07);
+}
+.step-phase {
+  font-size: 0.69rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.step-detail { color: var(--muted); margin-top: 4px; font-size: 0.77rem; }
+
+.legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 0.79rem;
+  color: var(--muted);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; }
+
+.explain {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-top: 20px;
+  padding: 24px 28px;
+}
+.explain h2 { color: var(--accent); margin-bottom: 12px; font-size: 1.05rem; }
+.explain p, .explain li { color: var(--muted); line-height: 1.75; font-size: 0.91rem; }
+.explain ul { padding-left: 20px; margin-top: 8px; }
+.explain li { margin-bottom: 4px; }
+strong.hl { color: var(--text); }
+
+@media (max-width: 1100px) {
+  .layout, .stats { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🌊 Wavelet Tree</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Range Frequency · Kth Smallest · O(log σ) per operation</span>
+</header>
+
+<div class="main">
+  <div class="controls">
+    <button id="new-btn" class="secondary">🔀 New Array</button>
+    <div class="sep"></div>
+    <label>Count freq of</label>
+    <input id="fv" type="number" min="1" max="8" value="3">
+    <label>in arr[</label>
+    <input id="fl" type="number" min="0" max="7" value="1">
+    <label>…</label>
+    <input id="fr" type="number" min="0" max="7" value="6">
+    <label>]</label>
+    <button id="freq-btn">Range Freq</button>
+    <div class="sep"></div>
+    <label>k-th smallest in arr[</label>
+    <input id="kl" type="number" min="0" max="7" value="0">
+    <label>…</label>
+    <input id="kr" type="number" min="0" max="7" value="7">
+    <label>] k=</label>
+    <input id="kk" type="number" min="1" max="8" value="3">
+    <button id="kth-btn" class="kth-style">Kth Smallest</button>
+    <div class="sep"></div>
+    <button id="prev-btn" class="secondary">◀ Prev</button>
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="next-btn" class="secondary">Next ▶</button>
+    <button id="reset-btn" class="secondary">↺ Reset</button>
+    <div class="slider">
+      <label>Speed <span id="speed-label">700</span>ms</label>
+      <input id="speed-slider" type="range" min="200" max="1800" step="100" value="700">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value" id="stat-op" style="font-size:0.95rem;color:var(--muted)">Build</div>
+      <div class="stat-label">Operation</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-step">— / —</div>
+      <div class="stat-label">Step</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-node" style="color:var(--accent)">—</div>
+      <div class="stat-label">Active Value Range</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-result" style="color:var(--good)">—</div>
+      <div class="stat-label">Result</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <div class="arr-row" id="arr-row"></div>
+      <svg id="tree-svg" viewBox="0 0 960 580"></svg>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:#58a6ff"></div>Active node</div>
+        <div class="legend-item"><div class="swatch" style="background:#a371f7"></div>Visited</div>
+        <div class="legend-item"><div class="swatch" style="background:#3fb950"></div>Bitmap 0 (→ left)</div>
+        <div class="legend-item"><div class="swatch" style="background:#f78166"></div>Bitmap 1 (→ right)</div>
+        <div class="legend-item"><div class="swatch" style="background:#e3b341"></div>Query range [l, r]</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:12px;font-size:0.95rem">Step Log</h3>
+      <div class="step-list" id="step-list"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How Wavelet Tree Works</h2>
+    <p>A <strong class="hl">Wavelet Tree</strong> is built over an array A[0..n−1] with values drawn from alphabet [1..σ]. Each internal node covers a value range [lo, hi] with midpoint mid = ⌊(lo+hi)/2⌋. It stores a <strong class="hl">bitmap</strong>: for each element in its sub-array, 0 if the value ≤ mid (goes left), 1 if value > mid (goes right). A prefix-sum array on the bitmap enables O(1) rank queries within any node.</p>
+    <ul>
+      <li><strong class="hl" style="color:var(--accent)">Range Frequency</strong> — count occurrences of value v in A[l..r]: navigate down the tree, at each level transforming l and r using the bitmap prefix sums, until reaching the leaf for v.</li>
+      <li><strong class="hl" style="color:var(--gold)">Kth Smallest</strong> — find the k-th smallest value in A[l..r]: at each level count how many elements go left; if k ≤ that count descend left (k unchanged), else descend right (k decremented by left count).</li>
+      <li>Both queries take <strong class="hl">O(log σ)</strong> time. Construction is <strong class="hl">O(n log σ)</strong>. Space is <strong class="hl">O(n log σ)</strong> bits.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+const N = 8;
+const SIGMA = 8;
+const SVG_W = 960;
+const VALUE_COLORS = ['#58a6ff','#3fb950','#e3b341','#f78166','#a371f7','#67e8f9','#f778ba','#ffb347'];
+
+// ── Array ─────────────────────────────────────────────────────────────────────
+let arr = [];
+function rand(lo, hi) { return Math.floor(Math.random() * (hi - lo + 1)) + lo; }
+
+// ── Wavelet Tree ──────────────────────────────────────────────────────────────
+// Each node stores the sub-array of values at that level, a bitmap, and prefix sums.
+class WNode {
+  constructor(lo, hi, data) {
+    this.lo = lo;
+    this.hi = hi;
+    this.data = data;           // values at this node (in original order)
+    this.bitmap = [];           // 0 = goes left, 1 = goes right
+    this.prefix = [0];          // prefix[i] = # of 1s in bitmap[0..i-1]
+    this.left = null;
+    this.right = null;
+    if (lo === hi) return;      // leaf
+    this.mid = Math.floor((lo + hi) / 2);
+    const ldata = [], rdata = [];
+    for (const v of data) {
+      if (v <= this.mid) { this.bitmap.push(0); ldata.push(v); }
+      else               { this.bitmap.push(1); rdata.push(v); }
+      this.prefix.push(this.prefix[this.prefix.length - 1] + (v > this.mid ? 1 : 0));
+    }
+    if (ldata.length) this.left  = new WNode(lo, this.mid, ldata);
+    if (rdata.length) this.right = new WNode(this.mid + 1, hi, rdata);
+  }
+}
+
+let root = null;
+function buildTree() { root = new WNode(1, SIGMA, arr); }
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+// coords keyed by "lo-hi"
+let coords = {};
+function computeLayout(node, depth, x1, x2) {
+  if (!node) return;
+  const isLeaf = node.lo === node.hi;
+  const nodeH = isLeaf ? 58 : 78;
+  const nodeW = Math.min(isLeaf ? 88 : 200, x2 - x1 - 6);
+  const cx = (x1 + x2) / 2;
+  const y = 12 + depth * 140;
+  coords[`${node.lo}-${node.hi}`] = { x: cx - nodeW / 2, y, w: nodeW, h: nodeH, cx, cy: y + nodeH / 2 };
+  const mid2 = (x1 + x2) / 2;
+  computeLayout(node.left,  depth + 1, x1,   mid2);
+  computeLayout(node.right, depth + 1, mid2, x2);
+}
+
+// ── Steps ─────────────────────────────────────────────────────────────────────
+let steps = [];
+let stepIdx = 0;
+
+// step shape: { msg, detail, phase, nodeKey, l, r, queryRange, result }
+// phase: 'init' | 'visit' | 'bitmap' | 'descend' | 'found'
+
+function addStep(s) { steps.push(s); }
+
+function buildStepsFreq(node, l, r, v, queryRange) {
+  const key = `${node.lo}-${node.hi}`;
+  addStep({
+    msg: `Visit [${node.lo}, ${node.hi}] — positions [${l}, ${r}]`,
+    detail: `Searching for value ${v} within bitmap positions ${l}…${r}.`,
+    phase: 'visit', nodeKey: key, l, r, queryRange, result: null
+  });
+  if (node.lo === node.hi) {
+    const ans = r - l + 1;
+    addStep({
+      msg: `Leaf [${node.lo},${node.lo}]: found ${ans} occurrence${ans !== 1 ? 's' : ''}!`,
+      detail: `All elements in positions [${l},${r}] equal ${node.lo}. Answer = ${ans}.`,
+      phase: 'found', nodeKey: key, l, r, queryRange, result: ans
+    });
+    return ans;
+  }
+  const zbl = l - node.prefix[l];       // zeros before l
+  const obl = node.prefix[l];           // ones before l
+  const zir = (r + 1 - node.prefix[r + 1]) - zbl;  // zeros in [l,r]
+  const oir = node.prefix[r + 1] - node.prefix[l]; // ones in [l,r]
+  addStep({
+    msg: `Bitmap: ${zir} go left (≤${node.mid}), ${oir} go right (>${node.mid})`,
+    detail: `Prefix sums: zeros-before-l=${zbl}, ones-before-l=${obl}. In [${l},${r}]: ${zir} zeros, ${oir} ones.`,
+    phase: 'bitmap', nodeKey: key, l, r, queryRange, result: null
+  });
+  if (v <= node.mid) {
+    const nl = zbl, nr = zbl + zir - 1;
+    addStep({
+      msg: `v=${v} ≤ mid=${node.mid} → descend left to [${node.lo}, ${node.mid}]`,
+      detail: `New positions in left child: [${nl}, ${nr}].`,
+      phase: 'descend', nodeKey: key, l, r, queryRange, result: null
+    });
+    if (!node.left) return 0;
+    return buildStepsFreq(node.left, nl, nr, v, queryRange);
+  } else {
+    const nl = obl, nr = obl + oir - 1;
+    addStep({
+      msg: `v=${v} > mid=${node.mid} → descend right to [${node.mid + 1}, ${node.hi}]`,
+      detail: `New positions in right child: [${nl}, ${nr}].`,
+      phase: 'descend', nodeKey: key, l, r, queryRange, result: null
+    });
+    if (!node.right) return 0;
+    return buildStepsFreq(node.right, nl, nr, v, queryRange);
+  }
+}
+
+function buildStepsKth(node, l, r, k, queryRange) {
+  const key = `${node.lo}-${node.hi}`;
+  addStep({
+    msg: `Visit [${node.lo}, ${node.hi}] — positions [${l}, ${r}], k=${k}`,
+    detail: `Finding k-th smallest (k=${k}) among bitmap positions ${l}…${r}.`,
+    phase: 'visit', nodeKey: key, l, r, queryRange, result: null
+  });
+  if (node.lo === node.hi) {
+    addStep({
+      msg: `Leaf [${node.lo},${node.lo}]: the ${k}-th smallest is ${node.lo}!`,
+      detail: `All elements here equal ${node.lo}. Answer = ${node.lo}.`,
+      phase: 'found', nodeKey: key, l, r, queryRange, result: node.lo
+    });
+    return node.lo;
+  }
+  const zbl = l - node.prefix[l];
+  const obl = node.prefix[l];
+  const zir = (r + 1 - node.prefix[r + 1]) - zbl;
+  const oir = node.prefix[r + 1] - node.prefix[l];
+  addStep({
+    msg: `${zir} go left (≤${node.mid}), ${oir} go right (>${node.mid})`,
+    detail: `k=${k} vs left-count=${zir}: ${k <= zir ? '→ descend left (k unchanged)' : '→ descend right, k becomes ' + (k - zir)}.`,
+    phase: 'bitmap', nodeKey: key, l, r, queryRange, result: null
+  });
+  if (k <= zir) {
+    const nl = zbl, nr = zbl + zir - 1;
+    addStep({
+      msg: `k=${k} ≤ ${zir} going left → descend left to [${node.lo}, ${node.mid}]`,
+      detail: `New positions in left child: [${nl}, ${nr}]. k unchanged.`,
+      phase: 'descend', nodeKey: key, l, r, queryRange, result: null
+    });
+    if (!node.left) return node.lo;
+    return buildStepsKth(node.left, nl, nr, k, queryRange);
+  } else {
+    const newK = k - zir;
+    const nl = obl, nr = obl + oir - 1;
+    addStep({
+      msg: `k=${k} > ${zir} going left → descend right to [${node.mid + 1}, ${node.hi}]`,
+      detail: `New positions in right child: [${nl}, ${nr}]. k becomes ${newK}.`,
+      phase: 'descend', nodeKey: key, l, r, queryRange, result: null
+    });
+    if (!node.right) return node.hi;
+    return buildStepsKth(node.right, nl, nr, newK, queryRange);
+  }
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
+const svg = document.getElementById('tree-svg');
+
+function phaseColor(phase) {
+  if (phase === 'found')   return '#3fb950';
+  if (phase === 'bitmap')  return '#e3b341';
+  if (phase === 'descend') return '#a371f7';
+  if (phase === 'visit')   return '#58a6ff';
+  return '#8b949e';
+}
+
+function renderTree() {
+  const step = steps.length ? steps[stepIdx] : null;
+  const activeKey = step ? step.nodeKey : null;
+
+  // Collect visited keys up to current step
+  const visitedKeys = new Set(steps.slice(0, stepIdx + 1).map(s => s.nodeKey));
+
+  let html = '';
+
+  // Draw edges first
+  function drawEdges(node) {
+    if (!node || node.lo === node.hi) return;
+    const pc = coords[`${node.lo}-${node.hi}`];
+    const drawEdge = (child) => {
+      if (!child) return;
+      const cc = coords[`${child.lo}-${child.hi}`];
+      const visited = visitedKeys.has(`${child.lo}-${child.hi}`);
+      const active  = activeKey === `${child.lo}-${child.hi}`;
+      const stroke = active ? '#58a6ff' : visited ? '#a371f7' : '#2f3d4d';
+      const sw = active ? 2.5 : visited ? 2 : 1.5;
+      html += `<line x1="${pc.cx}" y1="${pc.y + pc.h}" x2="${cc.cx}" y2="${cc.y}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    };
+    drawEdge(node.left);
+    drawEdge(node.right);
+    drawEdges(node.left);
+    drawEdges(node.right);
+  }
+  drawEdges(root);
+
+  // Draw nodes
+  function drawNode(node) {
+    if (!node) return;
+    const key = `${node.lo}-${node.hi}`;
+    const c = coords[key];
+    const isActive  = activeKey === key;
+    const wasVisited = visitedKeys.has(key);
+    const isLeaf    = node.lo === node.hi;
+    const activeStep = isActive ? step : null;
+
+    const borderColor = isActive ? '#58a6ff' : wasVisited ? '#a371f7' : '#30363d';
+    const fillColor   = isActive ? 'rgba(88,166,255,0.15)' : wasVisited ? 'rgba(163,113,247,0.08)' : '#0e1924';
+    const glow = isActive ? 'filter:drop-shadow(0 0 9px rgba(88,166,255,0.45))' : '';
+
+    html += `<g style="${glow}">`;
+    html += `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="10" fill="${fillColor}" stroke="${borderColor}" stroke-width="${isActive ? 2 : 1}"/>`;
+
+    // Value range label
+    const labelColor = isActive ? '#58a6ff' : wasVisited ? '#a371f7' : '#5a6777';
+    html += `<text x="${c.cx}" y="${c.y + 16}" fill="${labelColor}" font-size="11" text-anchor="middle" font-weight="700">[${node.lo}, ${node.hi}]</text>`;
+
+    if (isLeaf) {
+      const vColor = VALUE_COLORS[(node.lo - 1) % VALUE_COLORS.length];
+      html += `<text x="${c.cx}" y="${c.y + 36}" fill="${vColor}" font-size="16" text-anchor="middle" font-weight="800">${node.lo}</text>`;
+      html += `<text x="${c.cx}" y="${c.y + 52}" fill="#5a6777" font-size="9" text-anchor="middle">×${node.data.length}</text>`;
+    } else {
+      // Bitmap row
+      const bitmapY = c.y + 24;
+      const n = node.bitmap.length;
+      const sqSize = Math.min(15, Math.floor((c.w - 14) / n));
+      const totalBW = sqSize * n;
+      const bx0 = c.cx - totalBW / 2;
+
+      node.bitmap.forEach((bit, i) => {
+        const sx = bx0 + i * sqSize;
+        const inRange = activeStep && activeStep.l !== undefined && i >= activeStep.l && i <= activeStep.r;
+        let fill;
+        if (inRange) {
+          fill = bit === 0 ? '#3fb950' : '#f78166';
+        } else {
+          fill = bit === 0 ? 'rgba(63,185,80,0.32)' : 'rgba(247,129,102,0.32)';
+        }
+        html += `<rect x="${sx}" y="${bitmapY}" width="${sqSize - 1}" height="13" rx="2" fill="${fill}"/>`;
+        if (sqSize >= 11) {
+          html += `<text x="${sx + sqSize / 2 - 0.5}" y="${bitmapY + 10}" fill="#0d1117" font-size="8" text-anchor="middle" font-weight="700">${bit}</text>`;
+        }
+      });
+
+      // l/r markers if active
+      if (activeStep && activeStep.l !== undefined) {
+        const lx = bx0 + activeStep.l * sqSize + sqSize / 2;
+        const rx2 = bx0 + activeStep.r * sqSize + sqSize / 2;
+        html += `<text x="${lx}" y="${bitmapY + 26}" fill="#e3b341" font-size="9" text-anchor="middle">l</text>`;
+        html += `<text x="${rx2}" y="${bitmapY + 26}" fill="#e3b341" font-size="9" text-anchor="middle">r</text>`;
+      }
+
+      // mid label
+      html += `<text x="${c.cx}" y="${c.y + c.h - 7}" fill="${isActive ? '#e3b341' : '#42505e'}" font-size="10" text-anchor="middle">mid=${node.mid}</text>`;
+    }
+
+    html += `</g>`;
+    drawNode(node.left);
+    drawNode(node.right);
+  }
+  drawNode(root);
+
+  svg.innerHTML = html;
+}
+
+function renderArr() {
+  const step = steps.length ? steps[stepIdx] : null;
+  const qL = step && step.queryRange ? step.queryRange[0] : -1;
+  const qR = step && step.queryRange ? step.queryRange[1] : -1;
+  document.getElementById('arr-row').innerHTML = arr.map((v, i) => {
+    const hl = i >= qL && i <= qR;
+    const vColor = VALUE_COLORS[(v - 1) % VALUE_COLORS.length];
+    return `<div class="arr-cell${hl ? ' hl' : ''}" style="border-top:3px solid ${vColor}">
+      <strong>[${i}]</strong><span style="color:${vColor}">${v}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderStepList() {
+  const el = document.getElementById('step-list');
+  el.innerHTML = steps.map((s, i) => {
+    const pc = phaseColor(s.phase);
+    return `<div class="step-item${i === stepIdx ? ' active' : ''}">
+      <div class="step-phase" style="color:${pc}">${s.phase} — [${s.nodeKey ? s.nodeKey.replace('-', ', ') : '—'}]</div>
+      <div>${s.msg}</div>
+      ${s.detail ? `<div class="step-detail">${s.detail}</div>` : ''}
+    </div>`;
+  }).join('');
+  const activeEl = el.querySelector('.active');
+  if (activeEl) activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function renderStats() {
+  const step = steps.length ? steps[stepIdx] : null;
+  document.getElementById('stat-step').textContent =
+    steps.length ? `${stepIdx + 1} / ${steps.length}` : '— / —';
+  document.getElementById('stat-node').textContent =
+    step ? `[${step.nodeKey.replace('-', ', ')}]` : '—';
+  // Find latest result
+  const found = steps.slice(0, stepIdx + 1).reverse().find(s => s.result !== null && s.result !== undefined);
+  document.getElementById('stat-result').textContent = found ? found.result : '—';
+}
+
+function render() {
+  renderArr();
+  renderTree();
+  renderStepList();
+  renderStats();
+}
+
+// ── Playback ──────────────────────────────────────────────────────────────────
+let timer = null;
+let speed = 700;
+
+function setPlaying(on) {
+  clearInterval(timer);
+  timer = null;
+  document.getElementById('play-btn').disabled = on;
+  document.getElementById('pause-btn').disabled = !on;
+  if (!on) return;
+  timer = setInterval(() => {
+    if (stepIdx >= steps.length - 1) { setPlaying(false); return; }
+    stepIdx++;
+    render();
+  }, speed);
+}
+
+function resetSteps() {
+  setPlaying(false);
+  steps = [];
+  stepIdx = 0;
+}
+
+// ── Event Handlers ────────────────────────────────────────────────────────────
+document.getElementById('new-btn').addEventListener('click', () => {
+  resetSteps();
+  arr = Array.from({ length: N }, () => rand(1, SIGMA));
+  buildTree();
+  computeLayout(root, 0, 0, SVG_W);
+  document.getElementById('stat-op').textContent = 'Build';
+  document.getElementById('stat-result').textContent = '—';
+  render();
+});
+
+document.getElementById('freq-btn').addEventListener('click', () => {
+  resetSteps();
+  let v = Math.max(1, Math.min(SIGMA, Number(document.getElementById('fv').value)));
+  let l = Number(document.getElementById('fl').value);
+  let r = Number(document.getElementById('fr').value);
+  l = Math.max(0, Math.min(N - 1, Math.min(l, r)));
+  r = Math.max(0, Math.min(N - 1, Math.max(
+    Number(document.getElementById('fl').value),
+    Number(document.getElementById('fr').value)
+  )));
+  const qr = [l, r];
+  document.getElementById('stat-op').textContent = `freq(${v}, [${l},${r}])`;
+  addStep({
+    msg: `Start: count occurrences of ${v} in arr[${l}..${r}]`,
+    detail: `Array: [${arr.join(', ')}]`,
+    phase: 'init', nodeKey: `${root.lo}-${root.hi}`,
+    l, r, queryRange: qr, result: null
+  });
+  const ans = buildStepsFreq(root, l, r, v, qr);
+  steps.forEach(s => s.queryRange = qr);
+  if (steps.length) steps[steps.length - 1].result = ans;
+  stepIdx = 0;
+  render();
+});
+
+document.getElementById('kth-btn').addEventListener('click', () => {
+  resetSteps();
+  let l = Number(document.getElementById('kl').value);
+  let r = Number(document.getElementById('kr').value);
+  l = Math.max(0, Math.min(N - 1, Math.min(l, r)));
+  r = Math.max(0, Math.min(N - 1, Math.max(
+    Number(document.getElementById('kl').value),
+    Number(document.getElementById('kr').value)
+  )));
+  let k = Math.max(1, Math.min(r - l + 1, Number(document.getElementById('kk').value)));
+  const qr = [l, r];
+  document.getElementById('stat-op').textContent = `kth(${k}, [${l},${r}])`;
+  addStep({
+    msg: `Start: find ${k}-th smallest in arr[${l}..${r}]`,
+    detail: `Array: [${arr.join(', ')}]. Subarray: [${arr.slice(l, r + 1).join(', ')}].`,
+    phase: 'init', nodeKey: `${root.lo}-${root.hi}`,
+    l, r, queryRange: qr, result: null
+  });
+  const ans = buildStepsKth(root, l, r, k, qr);
+  steps.forEach(s => s.queryRange = qr);
+  if (steps.length) steps[steps.length - 1].result = ans;
+  stepIdx = 0;
+  render();
+});
+
+document.getElementById('prev-btn').addEventListener('click', () => {
+  if (stepIdx > 0) { stepIdx--; render(); }
+});
+document.getElementById('next-btn').addEventListener('click', () => {
+  if (stepIdx < steps.length - 1) { stepIdx++; render(); }
+});
+document.getElementById('play-btn').addEventListener('click',  () => setPlaying(true));
+document.getElementById('pause-btn').addEventListener('click', () => setPlaying(false));
+document.getElementById('reset-btn').addEventListener('click', () => { setPlaying(false); stepIdx = 0; render(); });
+document.getElementById('speed-slider').addEventListener('input', e => {
+  speed = Number(e.target.value);
+  document.getElementById('speed-label').textContent = speed;
+  if (timer) setPlaying(true);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+arr = [3, 1, 4, 1, 5, 8, 2, 6];
+buildTree();
+computeLayout(root, 0, 0, SVG_W);
+document.getElementById('stat-op').textContent = 'Build';
+render();
+</script>
+</body>
+</html>

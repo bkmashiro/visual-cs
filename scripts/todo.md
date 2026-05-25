@@ -41,7 +41,7 @@
 - [x] closest-pair — Closest Pair of Points (divide & conquer, strip merge) ✅ 2026-05-23
 
 ### Misc
-- [ ] wavelet-tree — Wavelet Tree (range frequency queries, O(log σ) per op)
+- [x] wavelet-tree — Wavelet Tree (range frequency queries, O(log σ) per op) ✅ 2026-05-25
 - [ ] disjoint-set-weighted — Weighted Union-Find (union by rank + path compression)
 - [ ] van-emde-boas-ops — vEB Interactive Demo (predecessor/successor with universe size slider)
 
