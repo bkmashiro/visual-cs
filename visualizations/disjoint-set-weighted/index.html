@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weighted Union-Find — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --panel: #101720;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --good: #3fb950;
+  --warn: #f78166;
+  --gold: #e3b341;
+  --violet: #a371f7;
+  --cyan: #67e8f9;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: radial-gradient(circle at top, rgba(88,166,255,0.08), transparent 28%), var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 28px;
+}
+header a { color: var(--accent); text-decoration: none; font-size: 0.88rem; }
+.main { max-width: 1400px; margin: 0 auto; padding: 24px 22px 40px; }
+
+.controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.sep { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; }
+label { color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
+input[type=number], input[type=text] {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+input[type=number] { width: 64px; }
+input[type=text] { width: 70px; }
+button {
+  background: var(--accent);
+  color: #08111b;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  font-family: inherit;
+}
+button.secondary {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+button.query-btn {
+  background: var(--violet);
+  color: #fff;
+}
+button:disabled { opacity: 0.4; cursor: default; }
+.slider { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
+input[type=range] { accent-color: var(--accent); width: 90px; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.stat-value { font-size: 1.18rem; font-weight: 800; }
+.stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+svg#tree-svg {
+  width: 100%;
+  height: 520px;
+  display: block;
+  background: radial-gradient(circle at top, rgba(163,113,247,0.08), transparent 30%), #091119;
+  border-radius: 12px;
+}
+.sets-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.set-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 10px 14px;
+  font-size: 0.84rem;
+}
+.set-card strong { display: block; margin-bottom: 4px; color: var(--accent); }
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.legend-item { display: flex; gap: 8px; align-items: center; }
+.swatch { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+.log-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.log-item.active { border-color: var(--accent); color: var(--text); }
+.log-item.query { border-color: var(--violet); }
+.explain {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-top: 20px;
+  padding: 24px 28px;
+}
+.explain h2 { color: var(--accent); margin-bottom: 12px; font-size: 1.05rem; }
+.explain p, .explain li { color: var(--muted); line-height: 1.7; font-size: 0.9rem; }
+.explain ul { padding-left: 20px; }
+.explain code {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.85em;
+}
+.result-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+@media (max-width: 1080px) {
+  .layout, .stats { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>⚖️ Weighted Union-Find</h1>
+  <span style="color:var(--muted);font-size:0.84rem">Union by Rank · Path Compression · Edge Weights</span>
+</header>
+
+<div class="main">
+  <!-- Controls -->
+  <div class="controls">
+    <label>A</label>
+    <input id="a-input" type="number" min="0" max="8" value="0">
+    <label>B</label>
+    <input id="b-input" type="number" min="0" max="8" value="1">
+    <label>A/B ratio</label>
+    <input id="w-input" type="text" value="2">
+    <button id="union-btn">Union(A,B,w)</button>
+
+    <div class="sep"></div>
+
+    <label>Query A</label>
+    <input id="qa-input" type="number" min="0" max="8" value="0">
+    <label>Query B</label>
+    <input id="qb-input" type="number" min="0" max="8" value="2">
+    <button id="query-btn" class="query-btn">Ratio(A,B)</button>
+
+    <div class="sep"></div>
+
+    <button id="sample-btn" class="secondary">Load Demo</button>
+    <button id="play-btn">▶ Play</button>
+    <button id="pause-btn" class="secondary" disabled>⏸ Pause</button>
+    <button id="step-btn" class="secondary">⏭ Step</button>
+    <button id="reset-btn" class="secondary">↺ Replay</button>
+    <button id="clear-btn" class="secondary">Clear</button>
+
+    <div class="sep"></div>
+
+    <div class="slider">
+      <label>Speed <span id="speed-label">600</span>ms</label>
+      <input id="speed-slider" type="range" min="150" max="1500" step="50" value="600">
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value" id="stat-components">9</div>
+      <div class="stat-label">Components</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-focus">—</div>
+      <div class="stat-label">Focus Node</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-weight" style="font-size:1rem">—</div>
+      <div class="stat-label">Weight to Root</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-compress">0</div>
+      <div class="stat-label">Path Compress</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-status" style="font-size:0.88rem;color:var(--muted)">Ready</div>
+      <div class="stat-label">Status</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <svg id="tree-svg" viewBox="0 0 960 520"></svg>
+      <div class="sets-row" id="sets-row"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="swatch" style="background:var(--accent)"></div>Active traversal path</div>
+        <div class="legend-item"><div class="swatch" style="background:var(--good)"></div>Root / merged root</div>
+        <div class="legend-item"><div class="swatch" style="background:var(--gold)"></div>Rank comparison</div>
+        <div class="legend-item"><div class="swatch" style="background:var(--warn)"></div>Path-compressed node</div>
+        <div class="legend-item"><div class="swatch" style="background:var(--violet)"></div>Query highlight</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:12px;font-size:0.96rem">Operation Log</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="explain">
+    <h2>How Weighted Union-Find Works</h2>
+    <p>
+      The <strong>Weighted Union-Find</strong> (Weighted Quick Union) augments each parent pointer with a
+      multiplicative <em>edge weight</em>. If <code>weight[x] = w</code>, then
+      <code>value(x) = w × value(parent[x])</code>.
+      This lets us answer <em>ratio queries</em> — "what is value(a) / value(b)?" — in nearly O(1) amortised time.
+    </p>
+    <ul style="margin-top:10px">
+      <li><strong>Union(a, b, w)</strong> — declare that <code>value(a) / value(b) = w</code>. Internally: find the roots of both, decide attachment order by rank, then set the new edge weight so all existing weight invariants stay consistent.</li>
+      <li><strong>Find(x)</strong> — walk to the root accumulating the product of edge weights. Path compression rewires each visited node directly to the root and multiplies its weight to the accumulated product.</li>
+      <li><strong>Ratio(a, b)</strong> — run Find on both; if they share a root, the answer is <code>wt(a) / wt(b)</code>. Otherwise "unrelated".</li>
+      <li><strong>Union by rank</strong> keeps the tree height O(log n), and path compression flattens paths after traversal so future queries are faster.</li>
+    </ul>
+    <p style="margin-top:10px">
+      Classic application: the <em>weighted liquid containers</em> problem — "container A holds 2× as much as B, B holds 3× as much as C; how much more than C does A hold?"
+    </p>
+  </div>
+</div>
+
+<script>
+// ─── Constants & DOM ────────────────────────────────────────────────────────
+const N = 9;  // nodes 0..8
+
+const aInput   = document.getElementById('a-input');
+const bInput   = document.getElementById('b-input');
+const wInput   = document.getElementById('w-input');
+const qaInput  = document.getElementById('qa-input');
+const qbInput  = document.getElementById('qb-input');
+const unionBtn  = document.getElementById('union-btn');
+const queryBtn  = document.getElementById('query-btn');
+const sampleBtn = document.getElementById('sample-btn');
+const playBtn   = document.getElementById('play-btn');
+const pauseBtn  = document.getElementById('pause-btn');
+const stepBtn   = document.getElementById('step-btn');
+const resetBtn  = document.getElementById('reset-btn');
+const clearBtn  = document.getElementById('clear-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel  = document.getElementById('speed-label');
+const treeSvg   = document.getElementById('tree-svg');
+const setsRow   = document.getElementById('sets-row');
+const logEl     = document.getElementById('log');
+const statComponents = document.getElementById('stat-components');
+const statFocus      = document.getElementById('stat-focus');
+const statWeight     = document.getElementById('stat-weight');
+const statCompress   = document.getElementById('stat-compress');
+const statStatus     = document.getElementById('stat-status');
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let parent = [];   // parent[i] = parent node (i if root)
+let rank   = [];   // union by rank
+let wt     = [];   // wt[i] = multiplicative weight from i to parent[i]
+                   // value(i) = wt[i] * value(parent[i])
+let frames = [];
+let frameIndex = 0;
+let timer = null;
+let speed = 600;
+let ops = [];      // list of {type:'union'|'query', a, b, w?}
+let logItems = []; // human-readable labels for log panel
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function fmt(v) {
+  if (v === null || v === undefined) return '—';
+  if (Number.isInteger(v)) return String(v);
+  // show at most 4 significant digits
+  if (Math.abs(v) >= 1000 || (Math.abs(v) < 0.01 && v !== 0)) {
+    return v.toPrecision(3);
+  }
+  const s = v.toFixed(4).replace(/\.?0+$/, '');
+  return s === '' ? '0' : s;
+}
+
+function cloneState(extra) {
+  return {
+    parent: parent.slice(),
+    rank:   rank.slice(),
+    wt:     wt.slice(),
+    extra
+  };
+}
+
+function capture(status, extra) {
+  frames.push({ status, ...cloneState(extra) });
+}
+
+// Returns {root, w2root}  (w2root = product of weights from x to root)
+// Also performs path compression and captures frames.
+function findWithFrames(x) {
+  // Phase 1: walk to root, collect path
+  const path = [];
+  let cur = x;
+  let accW = 1;
+  while (parent[cur] !== cur) {
+    path.push({ node: cur, w: wt[cur] });
+    capture(`find(${x}): traverse ${cur} → ${parent[cur]}  [edge weight ${fmt(wt[cur])}]`,
+      { mode: 'path', active: [cur, parent[cur]], focus: x, root: null, compressed: [], queryPair: [] });
+    accW *= wt[cur];
+    cur = parent[cur];
+  }
+  const root = cur;
+  path.push({ node: root, w: 1 });
+  capture(`find(${x}): reached root ${root}  [total weight ${fmt(accW)}]`,
+    { mode: 'root', active: [root], focus: x, root, compressed: [], w2root: accW, queryPair: [] });
+
+  // Phase 2: path compression — recompute weights for each node
+  // Accumulated weight from path[i].node to root:
+  let cumW = accW; // weight from x to root
+  const compressed = [];
+  // We need weight from each path node to root
+  // path[0]=x, ..., path[k-1]=node just before root, path[k]=root
+  // weight from path[i].node to root = product of wt[path[i]] * wt[path[i+1]] * ... * wt[path[k-1]]
+  // Let's recompute by walking back
+  let products = new Array(path.length);
+  products[path.length - 1] = 1; // root to root = 1
+  for (let i = path.length - 2; i >= 0; i--) {
+    products[i] = path[i].w * products[i + 1];
+  }
+
+  for (let i = 0; i < path.length - 1; i++) {
+    const node = path[i].node;
+    if (parent[node] !== root) {
+      const newW = products[i]; // weight from node to root
+      parent[node] = root;
+      wt[node] = newW;
+      compressed.push(node);
+      capture(`Path compress: ${node} → root ${root}  [new weight ${fmt(newW)}]`,
+        { mode: 'compress', active: [node, root], focus: x, root, compressed: compressed.slice(), w2root: accW, queryPair: [] });
+    }
+  }
+
+  return { root, w2root: products[0] };
+}
+
+function unionWithFrames(a, b, w) {
+  // w = value(a) / value(b)
+  capture(`Union(${a}, ${b}, w=${fmt(w)}): start`,
+    { mode: 'start', active: [a, b], focus: a, root: null, compressed: [], queryPair: [] });
+
+  const { root: ra, w2root: wa } = findWithFrames(a);
+  const { root: rb, w2root: wb } = findWithFrames(b);
+
+  if (ra === rb) {
+    const actual = wa / wb;
+    capture(`Skip: ${a} and ${b} already in same set  (actual ratio = ${fmt(actual)})`,
+      { mode: 'same', active: [ra], focus: a, root: ra, compressed: [], queryPair: [] });
+    return;
+  }
+
+  capture(`Compare ranks: rank[${ra}]=${rank[ra]} vs rank[${rb}]=${rank[rb]}`,
+    { mode: 'rank', active: [ra, rb], focus: a, root: null, compressed: [], queryPair: [] });
+
+  // Attach by rank; set edge weight so invariant holds
+  // value(ra) / value(rb) = ?
+  // value(a) = wa * value(ra)  =>  value(ra) = value(a) / wa
+  // value(b) = wb * value(rb)  =>  value(rb) = value(b) / wb
+  // value(a) / value(b) = w  =>  value(a) = w * value(b)
+  // value(ra) / value(rb) = (value(a)/wa) / (value(b)/wb) = (w * wb) / wa
+
+  const ratioRoots = (w * wb) / wa; // value(ra)/value(rb)
+
+  if (rank[ra] <= rank[rb]) {
+    // attach ra under rb; wt[ra] = value(ra)/value(rb) = ratioRoots
+    parent[ra] = rb;
+    wt[ra] = ratioRoots;
+    if (rank[ra] === rank[rb]) {
+      rank[rb] += 1;
+      capture(`Attach ${ra} under ${rb} (equal rank → rank[${rb}]++ = ${rank[rb]})  [edge weight ${fmt(ratioRoots)}]`,
+        { mode: 'link', active: [ra, rb], focus: a, root: rb, compressed: [ra], queryPair: [] });
+    } else {
+      capture(`Attach ${ra} under ${rb}  [edge weight ${fmt(ratioRoots)}]`,
+        { mode: 'link', active: [ra, rb], focus: a, root: rb, compressed: [ra], queryPair: [] });
+    }
+  } else {
+    // attach rb under ra; wt[rb] = value(rb)/value(ra) = 1/ratioRoots
+    parent[rb] = ra;
+    wt[rb] = 1 / ratioRoots;
+    capture(`Attach ${rb} under ${ra}  [edge weight ${fmt(1 / ratioRoots)}]`,
+      { mode: 'link', active: [rb, ra], focus: a, root: ra, compressed: [rb], queryPair: [] });
+  }
+}
+
+function queryWithFrames(a, b) {
+  capture(`Ratio(${a}, ${b}): start`,
+    { mode: 'start', active: [a, b], focus: a, root: null, compressed: [], queryPair: [a, b] });
+  const { root: ra, w2root: wa } = findWithFrames(a);
+  const { root: rb, w2root: wb } = findWithFrames(b);
+
+  if (ra !== rb) {
+    capture(`Ratio(${a}, ${b}) = unrelated  (different components)`,
+      { mode: 'unrelated', active: [a, b], focus: a, root: null, compressed: [], queryPair: [a, b] });
+    return;
+  }
+  const ratio = wa / wb;
+  capture(`Ratio(${a}, ${b}) = ${fmt(wa)} / ${fmt(wb)} = ${fmt(ratio)}`,
+    { mode: 'query-result', active: [a, b], focus: a, root: ra, compressed: [], w2root: ratio, queryPair: [a, b] });
+}
+
+function init() {
+  parent = Array.from({ length: N }, (_, i) => i);
+  rank   = Array(N).fill(0);
+  wt     = Array(N).fill(1);
+  frames = [];
+  frameIndex = 0;
+  ops = [];
+  logItems = [];
+  capture('Ready', { mode: 'idle', active: [], focus: null, root: null, compressed: [], queryPair: [] });
+}
+
+function rebuild() {
+  parent = Array.from({ length: N }, (_, i) => i);
+  rank   = Array(N).fill(0);
+  wt     = Array(N).fill(1);
+  frames = [];
+  capture('Ready', { mode: 'idle', active: [], focus: null, root: null, compressed: [], queryPair: [] });
+
+  for (const op of ops) {
+    if (op.type === 'union') {
+      unionWithFrames(op.a, op.b, op.w);
+    } else {
+      queryWithFrames(op.a, op.b);
+    }
+  }
+  render();
+}
+
+// ─── Layout computation ───────────────────────────────────────────────────────
+function computeLayout(state) {
+  // Build tree positions level-by-level from parent array
+  const children = Array.from({ length: N }, () => []);
+  const roots = [];
+  for (let i = 0; i < N; i++) {
+    if (state.parent[i] === i) {
+      roots.push(i);
+    } else {
+      children[state.parent[i]].push(i);
+    }
+  }
+
+  // BFS to assign levels and x positions
+  const level = Array(N).fill(0);
+  const order = [];
+  const queue = [...roots];
+  while (queue.length) {
+    const node = queue.shift();
+    order.push(node);
+    for (const child of children[node]) {
+      level[child] = level[node] + 1;
+      queue.push(child);
+    }
+  }
+
+  // Group nodes by level, assign x position
+  const byLevel = {};
+  for (let i = 0; i < N; i++) {
+    if (!byLevel[level[i]]) byLevel[level[i]] = [];
+    byLevel[level[i]].push(i);
+  }
+
+  const W = 960, H = 520;
+  const coords = {};
+  const maxDepth = Math.max(...Object.keys(byLevel).map(Number));
+  const vPad = 70;
+  const vStep = maxDepth > 0 ? (H - vPad * 2) / maxDepth : 0;
+
+  for (const [d, nodes] of Object.entries(byLevel)) {
+    const depth = Number(d);
+    nodes.forEach((node, i) => {
+      coords[node] = {
+        x: (W / (nodes.length + 1)) * (i + 1),
+        y: vPad + depth * (maxDepth > 0 ? vStep : 0)
+      };
+    });
+  }
+  return { coords, children };
+}
+
+// ─── Render ──────────────────────────────────────────────────────────────────
+function render() {
+  const frame = frames[Math.min(frameIndex, frames.length - 1)];
+  const { coords, children } = computeLayout(frame);
+  const ex = frame.extra;
+
+  let svg = '';
+
+  // Draw edges
+  for (let i = 0; i < N; i++) {
+    if (frame.parent[i] === i) continue;
+    const from = coords[i];
+    const to   = coords[frame.parent[i]];
+    const isActive = ex.active && ex.active.includes(i) && ex.active.includes(frame.parent[i]);
+    const isComp   = (ex.compressed || []).includes(i);
+    let edgeColor = '#30363d';
+    let edgeWidth = 2;
+    if (isComp) { edgeColor = '#f78166'; edgeWidth = 3; }
+    else if (isActive) { edgeColor = '#58a6ff'; edgeWidth = 3.5; }
+
+    const mx = (from.x + to.x) / 2;
+    const my = (from.y + to.y) / 2;
+    svg += `<line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="${edgeColor}" stroke-width="${edgeWidth}" />`;
+
+    // Edge weight label
+    const labelBg = isComp ? '#2a1510' : isActive ? '#0f1c2e' : '#0d1117';
+    const labelFg = isComp ? '#f78166' : isActive ? '#58a6ff' : '#8b949e';
+    const wLabel  = fmt(frame.wt[i]);
+    svg += `<rect x="${mx - 20}" y="${my - 11}" width="40" height="18" rx="5" fill="${labelBg}" stroke="${edgeColor}" stroke-width="1" opacity="0.92"/>`;
+    svg += `<text x="${mx}" y="${my + 4}" fill="${labelFg}" text-anchor="middle" font-size="11" font-weight="700">${wLabel}</text>`;
+  }
+
+  // Draw nodes
+  for (let i = 0; i < N; i++) {
+    const c = coords[i];
+    const isRoot    = frame.parent[i] === i;
+    const isActive  = ex.active && ex.active.includes(i);
+    const isComp    = (ex.compressed || []).includes(i);
+    const isRoot_hi = ex.root === i;
+    const isQuery   = (ex.queryPair || []).includes(i);
+
+    let fill   = '#101720';
+    let stroke = '#30363d';
+    let strokeW = 2.5;
+
+    if (isQuery) {
+      fill = 'rgba(163,113,247,0.22)'; stroke = '#a371f7'; strokeW = 3.5;
+    } else if (isRoot_hi) {
+      fill = 'rgba(63,185,80,0.18)'; stroke = '#3fb950'; strokeW = 3.5;
+    } else if (isComp) {
+      fill = 'rgba(247,129,102,0.16)'; stroke = '#f78166'; strokeW = 3;
+    } else if (isActive && ex.mode === 'rank') {
+      fill = 'rgba(227,179,65,0.16)'; stroke = '#e3b341'; strokeW = 3;
+    } else if (isActive) {
+      fill = 'rgba(88,166,255,0.18)'; stroke = '#58a6ff'; strokeW = 3;
+    } else if (isRoot) {
+      fill = 'rgba(88,166,255,0.06)'; stroke = '#30363d';
+    }
+
+    svg += `<circle cx="${c.x}" cy="${c.y}" r="28" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>`;
+    svg += `<text x="${c.x}" y="${c.y + 5}" fill="#e6edf3" text-anchor="middle" font-size="15" font-weight="700">${i}</text>`;
+
+    // rank badge for roots
+    if (isRoot) {
+      svg += `<text x="${c.x + 20}" y="${c.y - 18}" fill="#e3b341" text-anchor="middle" font-size="11" font-weight="600">r${frame.rank[i]}</text>`;
+    }
+    // accumulated weight label below node
+    const wLabel = isRoot ? '1' : fmt(frame.wt[i]);
+    svg += `<text x="${c.x}" y="${c.y + 46}" fill="#8b949e" text-anchor="middle" font-size="11">w:${wLabel}</text>`;
+  }
+
+  treeSvg.innerHTML = svg;
+
+  // Sets row
+  const groups = new Map();
+  for (let i = 0; i < N; i++) {
+    let cur = i;
+    while (frame.parent[cur] !== cur) cur = frame.parent[cur];
+    if (!groups.has(cur)) groups.set(cur, []);
+    groups.get(cur).push(i);
+  }
+  setsRow.innerHTML = Array.from(groups.entries()).map(([root, nodes]) => `
+    <div class="set-card">
+      <strong>Root ${root}  <span style="color:var(--muted);font-weight:400;font-size:0.78rem">rank ${frame.rank[root]}</span></strong>
+      <div style="color:var(--muted)">{${nodes.join(', ')}}</div>
+    </div>
+  `).join('');
+
+  // Stats
+  statComponents.textContent = groups.size;
+  statFocus.textContent = ex.focus != null ? ex.focus : '—';
+  statWeight.textContent = ex.w2root != null ? fmt(ex.w2root) : '—';
+  statCompress.textContent = (ex.compressed || []).length;
+  statStatus.textContent = frame.status;
+
+  // Log
+  logEl.innerHTML = logItems.map((item, idx) => `
+    <div class="log-item ${item.type === 'query' ? 'query' : ''} ${idx === Math.min(frameIndex > 0 ? logItems.length - 1 : 0, logItems.length - 1) ? 'active' : ''}">
+      ${item.label}
+    </div>
+  `).join('');
+  // Scroll to bottom
+  const lastActive = logEl.querySelector('.log-item.active');
+  if (lastActive) lastActive.scrollIntoView({ block: 'nearest' });
+}
+
+// ─── Playback ─────────────────────────────────────────────────────────────────
+function play() {
+  if (frames.length <= 1) return;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  timer = setInterval(() => {
+    if (frameIndex >= frames.length - 1) { stop(); return; }
+    frameIndex++;
+    render();
+  }, speed);
+}
+function stop() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+}
+
+// ─── Event handlers ──────────────────────────────────────────────────────────
+unionBtn.addEventListener('click', () => {
+  const a = Number(aInput.value);
+  const b = Number(bInput.value);
+  const w = parseFloat(wInput.value);
+  if (isNaN(w) || w <= 0) { alert('Ratio w must be a positive number'); return; }
+  if (a < 0 || a >= N || b < 0 || b >= N) { alert(`Nodes must be 0–${N-1}`); return; }
+  if (a === b) { alert('A and B must be different'); return; }
+  ops.push({ type: 'union', a, b, w });
+  logItems.push({ type: 'union', label: `union(${a}, ${b}, w=${fmt(w)})` });
+  rebuild();
+  frameIndex = frames.length - 1;
+  render();
+});
+
+queryBtn.addEventListener('click', () => {
+  const a = Number(qaInput.value);
+  const b = Number(qbInput.value);
+  if (a < 0 || a >= N || b < 0 || b >= N) { alert(`Nodes must be 0–${N-1}`); return; }
+  ops.push({ type: 'query', a, b });
+  logItems.push({ type: 'query', label: `ratio(${a}, ${b}) ?` });
+  rebuild();
+  frameIndex = frames.length - 1;
+  render();
+});
+
+sampleBtn.addEventListener('click', () => {
+  ops = [
+    { type: 'union', a: 0, b: 1, w: 2   },   // value(0) = 2 × value(1)
+    { type: 'union', a: 1, b: 2, w: 3   },   // value(1) = 3 × value(2)
+    { type: 'union', a: 3, b: 4, w: 0.5 },   // value(3) = 0.5 × value(4)
+    { type: 'union', a: 5, b: 6, w: 4   },
+    { type: 'union', a: 6, b: 7, w: 2   },
+    { type: 'query', a: 0, b: 2          },   // should be 6
+    { type: 'union', a: 2, b: 5, w: 1.5 },
+    { type: 'query', a: 0, b: 6          },   // traverses compressed path
+  ];
+  logItems = [
+    { type: 'union', label: 'union(0, 1, w=2)' },
+    { type: 'union', label: 'union(1, 2, w=3)' },
+    { type: 'union', label: 'union(3, 4, w=0.5)' },
+    { type: 'union', label: 'union(5, 6, w=4)' },
+    { type: 'union', label: 'union(6, 7, w=2)' },
+    { type: 'query', label: 'ratio(0, 2) ?' },
+    { type: 'union', label: 'union(2, 5, w=1.5)' },
+    { type: 'query', label: 'ratio(0, 6) ?' },
+  ];
+  rebuild();
+  frameIndex = 0;
+  render();
+});
+
+clearBtn.addEventListener('click', () => { stop(); init(); render(); });
+
+playBtn.addEventListener('click', play);
+pauseBtn.addEventListener('click', stop);
+
+stepBtn.addEventListener('click', () => {
+  stop();
+  if (frameIndex < frames.length - 1) frameIndex++;
+  render();
+});
+resetBtn.addEventListener('click', () => {
+  stop();
+  frameIndex = 0;
+  render();
+});
+
+speedSlider.addEventListener('input', () => {
+  speed = Number(speedSlider.value);
+  speedLabel.textContent = speed;
+  if (timer) { stop(); play(); }
+});
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+init();
+render();
+</script>
+</body>
+</html>
