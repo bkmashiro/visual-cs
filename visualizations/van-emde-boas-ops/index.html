@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vEB Interactive Demo — visual-cs</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --panel: #101720;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --good: #3fb950;
+  --warn: #f78166;
+  --gold: #e3b341;
+  --violet: #a371f7;
+  --cyan: #67e8f9;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: radial-gradient(circle at top, rgba(88,166,255,0.07), transparent 30%), var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky; top: 0; z-index: 20;
+}
+header a { color: var(--accent); text-decoration: none; font-size: 0.84rem; }
+header h1 { font-size: 1.08rem; font-weight: 700; }
+header .sub { color: var(--muted); font-size: 0.8rem; }
+
+.main { max-width: 1420px; margin: 0 auto; padding: 22px 20px 56px; }
+
+/* Controls */
+.controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  margin-bottom: 13px;
+}
+.sep { width: 1px; height: 26px; background: var(--border); flex-shrink: 0; }
+.ctrl-lbl { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
+.u-btns { display: flex; gap: 3px; }
+.u-btn {
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.u-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.12); }
+.u-btn:hover:not(.active) { border-color: var(--border); color: var(--text); background: var(--surface); }
+
+input[type=number] {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 7px 10px;
+  width: 66px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+}
+input[type=number]:focus { border-color: var(--accent); }
+input[type=range] { accent-color: var(--accent); cursor: pointer; }
+
+button {
+  border: none;
+  border-radius: 7px;
+  padding: 7px 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.83rem;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: opacity 0.15s, filter 0.15s;
+}
+button:hover:not(:disabled) { filter: brightness(1.12); }
+button:disabled { opacity: 0.35; cursor: default; }
+.btn-ins { background: var(--accent); color: #08111b; }
+.btn-del { background: var(--warn); color: #1a0000; }
+.btn-succ { background: var(--good); color: #001a06; }
+.btn-pred { background: var(--gold); color: #1a1000; }
+.btn-minmax { background: var(--panel); color: var(--cyan); border: 1px solid var(--cyan); }
+.btn-sec { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+
+/* Stats */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 13px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.stat-val { font-size: 1.15rem; font-weight: 800; }
+.stat-lbl { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-top: 3px; }
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 13px;
+  align-items: start;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 13px;
+}
+.panel:last-child { margin-bottom: 0; }
+.sec-title {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 11px;
+}
+
+/* Universe grid */
+.univ-grid { display: flex; flex-wrap: wrap; gap: 3px; }
+.ucell {
+  width: 42px; height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.22s;
+  cursor: default;
+  user-select: none;
+}
+.ucell .sub { font-size: 0.52rem; color: var(--border); line-height: 1; margin-top: 1px; font-weight: 400; }
+.ucell.present { background: rgba(88,166,255,0.14); border-color: var(--accent); color: var(--accent); }
+.ucell.present .sub { color: rgba(88,166,255,0.5); }
+.ucell.u-query { background: rgba(227,179,65,0.18); border-color: var(--gold); color: var(--gold); }
+.ucell.u-range { background: rgba(163,113,247,0.1); border-color: rgba(163,113,247,0.5); }
+.ucell.u-result { background: rgba(63,185,80,0.2); border-color: var(--good); color: var(--good); box-shadow: 0 0 9px rgba(63,185,80,0.3); }
+.ucell.u-active { border-color: var(--violet); box-shadow: 0 0 9px rgba(163,113,247,0.3); }
+.ucell.u-ismin { border-top: 3px solid var(--good); }
+.ucell.u-ismax { border-bottom: 3px solid var(--warn); }
+.ucell.sm { width: 26px; height: 22px; font-size: 0.6rem; border-radius: 3px; }
+.ucell.sm .sub { display: none; }
+
+/* Cluster separators */
+.cluster-sep {
+  width: 100%;
+  height: 6px;
+  position: relative;
+  flex-basis: 100%;
+  flex-shrink: 0;
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 0.73rem;
+  color: var(--muted);
+}
+.leg-item { display: flex; gap: 5px; align-items: center; }
+.leg-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* vEB Tree */
+.tree-wrap { overflow-x: auto; }
+.tree-level { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 7px; }
+.vnode {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: var(--panel);
+  transition: all 0.22s;
+  min-width: 80px;
+  font-size: 0.79rem;
+}
+.vnode.active { border-color: var(--violet); background: rgba(163,113,247,0.13); box-shadow: 0 0 8px rgba(163,113,247,0.2); }
+.vnode.ancestor { border-color: var(--accent); background: rgba(88,166,255,0.09); }
+.vnode.sumancestor { border-color: var(--gold); background: rgba(227,179,65,0.09); }
+.vnode-lbl {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.vnode-vals { font-family: monospace; font-size: 0.78rem; }
+.vnode-mn { color: var(--good); }
+.vnode-mx { color: var(--warn); }
+.vnode-empty { color: var(--muted); opacity: 0.5; }
+
+/* Decomp bar */
+.decomp {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-family: monospace;
+  font-size: 0.84rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 9px;
+}
+.dc-part { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.dc-lbl { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+.dc-val { font-size: 1.05rem; font-weight: 700; }
+.dc-sep { color: var(--muted); font-size: 0.85rem; padding-top: 8px; }
+
+/* Step desc */
+.step-desc {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.65;
+  min-height: 52px;
+}
+.step-desc em { color: var(--text); font-style: normal; font-weight: 600; }
+.step-desc .result-val { color: var(--good); font-weight: 700; }
+.step-counter {
+  margin-top: 9px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+.op-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* Log */
+.log {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.log-item {
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel);
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.5;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.log-item:hover { border-color: var(--muted); }
+.log-item.current { border-color: var(--violet); color: var(--text); }
+.log-path { font-size: 0.67rem; font-family: monospace; margin-bottom: 2px; opacity: 0.7; }
+
+/* Explain */
+.explain {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin-top: 4px;
+}
+.explain h2 { color: var(--accent); font-size: 1rem; margin-bottom: 10px; }
+.explain p, .explain li { color: var(--muted); font-size: 0.87rem; line-height: 1.75; }
+.explain ul { padding-left: 20px; margin: 6px 0; }
+.explain code {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: monospace;
+  font-size: 0.85em;
+}
+.formula {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  margin: 12px 0;
+  color: var(--text);
+  white-space: pre;
+  line-height: 1.7;
+}
+.formula .hi { color: var(--gold); }
+.formula .lo { color: var(--accent); }
+
+@media (max-width: 1050px) {
+  .layout { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../../index.html">← Back to Index</a>
+  <h1>🌐 vEB Interactive Demo</h1>
+  <span class="sub">Predecessor · Successor · Universe Size Slider</span>
+</header>
+
+<div class="main">
+
+  <!-- Controls -->
+  <div class="controls">
+    <span class="ctrl-lbl">Universe U =</span>
+    <div class="u-btns">
+      <button class="u-btn" data-u="4">4</button>
+      <button class="u-btn active" data-u="16">16</button>
+      <button class="u-btn" data-u="64">64</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <span class="ctrl-lbl">x =</span>
+    <input id="x-input" type="number" min="0" max="15" value="5">
+    <button class="btn-ins" id="btn-insert">Insert</button>
+    <button class="btn-del" id="btn-delete">Delete</button>
+    <button class="btn-succ" id="btn-succ">Successor</button>
+    <button class="btn-pred" id="btn-pred">Predecessor</button>
+    <button class="btn-minmax" id="btn-min">Min</button>
+    <button class="btn-minmax" id="btn-max">Max</button>
+
+    <div class="sep"></div>
+
+    <button class="btn-sec" id="btn-demo">Load Demo</button>
+    <button class="btn-sec" id="btn-clear">Clear</button>
+
+    <div class="sep"></div>
+
+    <button class="btn-sec" id="btn-prev">◀ Prev</button>
+    <button class="btn-ins" id="btn-play">▶ Play</button>
+    <button class="btn-sec" id="btn-pause" disabled>⏸ Pause</button>
+    <button class="btn-sec" id="btn-next">Next ▶</button>
+    <span class="ctrl-lbl">Speed:</span>
+    <input id="speed-slider" type="range" min="150" max="1600" step="50" value="700" style="width:80px">
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val" id="stat-u">16</div>
+      <div class="stat-lbl">Universe U</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-n">0</div>
+      <div class="stat-lbl">Elements</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-sqrt">4</div>
+      <div class="stat-lbl">√U · cluster size</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-op" style="font-size:0.88rem;color:var(--muted)">—</div>
+      <div class="stat-lbl">Last Operation</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-result" style="font-size:0.88rem">—</div>
+      <div class="stat-lbl">Result</div>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div class="layout">
+
+    <!-- Left column -->
+    <div>
+      <div class="panel">
+        <div class="sec-title">Universe [0 … U−1]</div>
+        <div class="univ-grid" id="univ-grid"></div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-swatch" style="background:var(--panel);border:1px solid var(--border)"></div> Empty</div>
+          <div class="leg-item"><div class="leg-swatch" style="background:rgba(88,166,255,0.35)"></div> Present</div>
+          <div class="leg-item"><div class="leg-swatch" style="background:rgba(227,179,65,0.4)"></div> Query x</div>
+          <div class="leg-item"><div class="leg-swatch" style="background:rgba(163,113,247,0.3)"></div> Search range</div>
+          <div class="leg-item"><div class="leg-swatch" style="background:rgba(63,185,80,0.4)"></div> Result</div>
+          <div class="leg-item" style="margin-left:4px">▲ min / ▼ max</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="sec-title">vEB Tree Structure</div>
+        <div class="tree-wrap" id="tree-wrap"></div>
+        <div class="legend" style="margin-top:10px">
+          <div class="leg-item"><div class="leg-swatch" style="background:rgba(163,113,247,0.4)"></div> Active node</div>
+          <div class="leg-item"><div class="leg-swatch" style="background:rgba(88,166,255,0.25)"></div> Cluster ancestor</div>
+          <div class="leg-item"><div class="leg-swatch" style="background:rgba(227,179,65,0.25)"></div> Summary ancestor</div>
+          <div class="leg-item" style="color:var(--good)">mn=min</div>
+          <div class="leg-item" style="color:var(--warn)">mx=max</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div>
+      <div class="panel">
+        <div class="sec-title">Step Details</div>
+        <div id="decomp-bar" style="display:none"></div>
+        <div class="step-desc" id="step-desc">Click an operation to start the step-by-step trace.</div>
+        <div class="step-counter">
+          <span id="step-ctr">—</span>
+          <span class="op-badge" id="op-badge">—</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="sec-title">Operation Log</div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+  </div><!-- /.layout -->
+
+  <!-- Explanation -->
+  <div class="explain">
+    <h2>van Emde Boas — Predecessor &amp; Successor in O(log log U)</h2>
+    <p>A vEB tree on universe <code>U = {0,…,U−1}</code> answers predecessor/successor queries in <strong>O(log log U)</strong> by recursively halving the effective universe at each level.</p>
+    <div class="formula"><span class="hi">high(x)</span> = ⌊x / √U⌋   →  cluster index     (0 … √U−1)
+<span class="lo">low(x)</span>  = x mod √U   →  offset in cluster  (0 … √U−1)
+index(i, j) = i · √U + j  →  reconstruct from cluster i, offset j
+
+Successor(x):
+  1. x &lt; min(V)           → return min(V)         — O(1)
+  2. low(x) &lt; max(cluster[<span class="hi">high(x)</span>])
+                          → recurse into cluster[<span class="hi">high(x)</span>]
+  3. otherwise            → <span class="lo">c</span> = summary.successor(<span class="hi">high(x)</span>)
+                            return index(<span class="lo">c</span>, min(cluster[<span class="lo">c</span>]))</div>
+    <p>Each recursive call replaces U with √U, so the depth is <code>log log U</code>. With U=16: <strong>2 levels</strong>. With U=64: <strong>3 levels</strong>. With U=65536: only <strong>4 levels</strong>.</p>
+    <ul>
+      <li><strong>Insert / Delete</strong>: O(log log U) — update cluster and possibly summary</li>
+      <li><strong>Min / Max</strong>: O(1) — stored directly at the root node</li>
+      <li><strong>Space</strong>: O(U) total across all recursive sub-trees</li>
+      <li><strong>Key trick</strong>: min is <em>not</em> stored in a cluster — it's kept separate, so inserting a new min touches only the root in O(1)</li>
+    </ul>
+  </div>
+
+</div><!-- /.main -->
+
+<script>
+// ─── Helpers ───────────────────────────────────────────────────────────────
+const sqHi = U => Math.ceil(Math.sqrt(U));   // number of clusters
+const sqLo = U => Math.floor(Math.sqrt(U));  // cluster size / offset divisor
+
+// ─── vEB Node ──────────────────────────────────────────────────────────────
+class VNode {
+  constructor(U) {
+    this.U = U;
+    this.min = null;
+    this.max = null;
+    if (U > 2) {
+      this.nClusters = sqHi(U);
+      this.cSize     = sqLo(U);
+      this.summary   = new VNode(this.nClusters);
+      this.clusters  = Array.from({length: this.nClusters}, () => new VNode(this.cSize));
+    }
+  }
+  high(x) { return Math.floor(x / this.cSize); }
+  low(x)  { return x % this.cSize; }
+  idx(i, j){ return i * this.cSize + j; }
+}
+
+// ─── Step recording ────────────────────────────────────────────────────────
+function pushStep(steps, id, msg, extra = {}) {
+  steps.push({ id, msg, ...extra });
+}
+
+// ─── Insert ────────────────────────────────────────────────────────────────
+function vebInsert(V, x, steps, id) {
+  if (V.min === null) {
+    V.min = x; V.max = x;
+    pushStep(steps, id, `Empty node [U=${V.U}] → set min = max = <em>${x}</em>`, {x, phase:'base'});
+    return;
+  }
+  if (x === V.min || x === V.max) {
+    pushStep(steps, id, `<em>${x}</em> already equals min or max of this node — skip`, {x, phase:'dup'});
+    return;
+  }
+  if (V.U <= 2) {
+    if (x < V.min) { V.max = V.min; V.min = x; }
+    else V.max = x;
+    pushStep(steps, id, `Base U=2: inserted <em>${x}</em> → min=${V.min}, max=${V.max}`, {x, phase:'base'});
+    return;
+  }
+  let ins = x;
+  if (ins < V.min) {
+    pushStep(steps, id, `x=<em>${ins}</em> &lt; min=<em>${V.min}</em> → swap: <em>${ins}</em> becomes new min, recurse with <em>${V.min}</em>`, {x: ins, phase:'swap'});
+    [ins, V.min] = [V.min, ins];
+  }
+  if (ins > V.max) V.max = ins;
+  const c = V.high(ins), pos = V.low(ins);
+  pushStep(steps, id,
+    `Insert <em>${ins}</em> into [U=${V.U}]: <span style="color:var(--gold)">high(${ins})=${c}</span>, <span style="color:var(--accent)">low(${ins})=${pos}</span> → cluster[<em>${c}</em>][<em>${pos}</em>]`,
+    {x: ins, phase:'decomp', cluster: c, pos, U: V.U});
+  if (V.clusters[c].min === null) {
+    pushStep(steps, id+'.S', `Cluster <em>${c}</em> was empty → also insert <em>${c}</em> into summary`, {x: c, phase:'summary'});
+    vebInsert(V.summary, c, steps, id+'.S');
+  }
+  vebInsert(V.clusters[c], pos, steps, id+`.C[${c}]`);
+}
+
+// ─── Delete ────────────────────────────────────────────────────────────────
+function vebDelete(V, x, steps, id) {
+  if (V.min === null) {
+    pushStep(steps, id, `Node is empty — <em>${x}</em> not found`, {x, phase:'miss'});
+    return;
+  }
+  if (V.min === V.max) {
+    if (x !== V.min) {
+      pushStep(steps, id, `Only element is <em>${V.min}</em>, not <em>${x}</em> — skip`, {x, phase:'miss'});
+    } else {
+      V.min = null; V.max = null;
+      pushStep(steps, id, `Only element <em>${x}</em> removed → node now empty`, {x, phase:'base'});
+    }
+    return;
+  }
+  if (V.U <= 2) {
+    if (x === 0) { V.min = 1; V.max = 1; }
+    else { V.min = 0; V.max = 0; }
+    pushStep(steps, id, `Base U=2: deleted <em>${x}</em> → min=max=${V.min}`, {x, phase:'base'});
+    return;
+  }
+  let del = x;
+  if (del === V.min) {
+    const fc = V.summary.min;
+    del = V.idx(fc, V.clusters[fc].min);
+    V.min = del;
+    pushStep(steps, id, `Deleting min=<em>${x}</em> → pull next smallest: cluster[<em>${fc}</em>].min=<em>${V.clusters[fc].min}</em>, new min=<em>${del}</em>`, {x, phase:'swap'});
+  }
+  const c = V.high(del), pos = V.low(del);
+  pushStep(steps, id,
+    `Delete <em>${del}</em> from [U=${V.U}]: <span style="color:var(--gold)">high=${c}</span>, <span style="color:var(--accent)">low=${pos}</span>`,
+    {x: del, phase:'decomp', cluster: c, pos, U: V.U});
+  vebDelete(V.clusters[c], pos, steps, id+`.C[${c}]`);
+  if (V.clusters[c].min === null) {
+    pushStep(steps, id+'.S', `Cluster <em>${c}</em> now empty → delete <em>${c}</em> from summary`, {x: c, phase:'summary'});
+    vebDelete(V.summary, c, steps, id+'.S');
+    if (del === V.max) {
+      const sm = V.summary.max;
+      V.max = sm === null ? V.min : V.idx(sm, V.clusters[sm].max);
+    }
+  } else if (del === V.max) {
+    V.max = V.idx(c, V.clusters[c].max);
+  }
+}
+
+// ─── Successor ─────────────────────────────────────────────────────────────
+function vebSucc(V, x, steps, id) {
+  pushStep(steps, id, `succ(${x}) in [U=${V.U}]: min=${V.min}, max=${V.max}`, {x, phase:'enter', U:V.U});
+  if (V.U <= 2) {
+    const r = (x === 0 && V.max === 1) ? 1 : null;
+    pushStep(steps, id, r !== null
+      ? `Base U=2: succ(0)=<em class="result-val">1</em>`
+      : `Base U=2: no successor`, {x, phase:'base', result: r});
+    return r;
+  }
+  if (V.min !== null && x < V.min) {
+    pushStep(steps, id, `x=<em>${x}</em> &lt; min=<em>${V.min}</em> → successor is <span class="result-val">min=${V.min}</span>`, {x, phase:'trivial', result: V.min});
+    return V.min;
+  }
+  if (V.max === null || x >= V.max) {
+    pushStep(steps, id, `x=<em>${x}</em> ≥ max=${V.max} (or empty) → no successor`, {x, phase:'none', result: null});
+    return null;
+  }
+  const c = V.high(x), pos = V.low(x);
+  const cmax = V.clusters[c].max;
+  pushStep(steps, id,
+    `x=<em>${x}</em>: <span style="color:var(--gold)">high=${c}</span>, <span style="color:var(--accent)">low=${pos}</span>. cluster[<em>${c}</em>].max=${cmax}`,
+    {x, phase:'decomp', cluster: c, pos, U: V.U});
+  if (cmax !== null && pos < cmax) {
+    pushStep(steps, id+`.C[${c}]`,
+      `<em>${pos}</em> &lt; cluster[${c}].max=<em>${cmax}</em> → successor is in same cluster[<em>${c}</em>]`,
+      {x: pos, phase:'same-cluster'});
+    const off = vebSucc(V.clusters[c], pos, steps, id+`.C[${c}]`);
+    const res = V.idx(c, off);
+    pushStep(steps, id, `Found offset=<em>${off}</em> in cluster[${c}] → result = index(${c},${off}) = <span class="result-val">${res}</span>`, {x, phase:'result', result: res, cluster: c});
+    return res;
+  } else {
+    pushStep(steps, id+'.S',
+      `No succ in cluster[<em>${c}</em>] → find next non-empty cluster via summary.succ(<em>${c}</em>)`,
+      {x: c, phase:'next-cluster'});
+    const nc = vebSucc(V.summary, c, steps, id+'.S');
+    if (nc === null) {
+      pushStep(steps, id, `Summary has no cluster after <em>${c}</em> → <span style="color:var(--warn)">no successor</span>`, {x, phase:'none', result: null});
+      return null;
+    }
+    const off = V.clusters[nc].min;
+    const res = V.idx(nc, off);
+    pushStep(steps, id, `Next cluster=<em>${nc}</em>, its min=<em>${off}</em> → result = index(${nc},${off}) = <span class="result-val">${res}</span>`, {x, phase:'result', result: res, cluster: nc});
+    return res;
+  }
+}
+
+// ─── Predecessor ───────────────────────────────────────────────────────────
+function vebPred(V, x, steps, id) {
+  pushStep(steps, id, `pred(${x}) in [U=${V.U}]: min=${V.min}, max=${V.max}`, {x, phase:'enter', U:V.U});
+  if (V.U <= 2) {
+    const r = (x === 1 && V.min === 0) ? 0 : null;
+    pushStep(steps, id, r !== null
+      ? `Base U=2: pred(1)=<em class="result-val">0</em>`
+      : `Base U=2: no predecessor`, {x, phase:'base', result: r});
+    return r;
+  }
+  if (V.max !== null && x > V.max) {
+    pushStep(steps, id, `x=<em>${x}</em> &gt; max=<em>${V.max}</em> → predecessor is <span class="result-val">max=${V.max}</span>`, {x, phase:'trivial', result: V.max});
+    return V.max;
+  }
+  if (V.min === null || x <= V.min) {
+    pushStep(steps, id, `x=<em>${x}</em> ≤ min=${V.min} (or empty) → no predecessor`, {x, phase:'none', result: null});
+    return null;
+  }
+  const c = V.high(x), pos = V.low(x);
+  const cmin = V.clusters[c].min;
+  pushStep(steps, id,
+    `x=<em>${x}</em>: <span style="color:var(--gold)">high=${c}</span>, <span style="color:var(--accent)">low=${pos}</span>. cluster[<em>${c}</em>].min=${cmin}`,
+    {x, phase:'decomp', cluster: c, pos, U: V.U});
+  if (cmin !== null && pos > cmin) {
+    pushStep(steps, id+`.C[${c}]`,
+      `<em>${pos}</em> &gt; cluster[${c}].min=<em>${cmin}</em> → predecessor is in same cluster[<em>${c}</em>]`,
+      {x: pos, phase:'same-cluster'});
+    const off = vebPred(V.clusters[c], pos, steps, id+`.C[${c}]`);
+    const res = V.idx(c, off);
+    pushStep(steps, id, `Found offset=<em>${off}</em> in cluster[${c}] → result = index(${c},${off}) = <span class="result-val">${res}</span>`, {x, phase:'result', result: res, cluster: c});
+    return res;
+  } else {
+    pushStep(steps, id+'.S',
+      `No pred in cluster[<em>${c}</em>] → find prev non-empty cluster via summary.pred(<em>${c}</em>)`,
+      {x: c, phase:'prev-cluster'});
+    const pc = vebPred(V.summary, c, steps, id+'.S');
+    if (pc === null) {
+      if (V.min !== null && x > V.min) {
+        pushStep(steps, id, `No earlier cluster; min=<em>${V.min}</em> &lt; x → <span class="result-val">pred=${V.min}</span>`, {x, phase:'result', result: V.min});
+        return V.min;
+      }
+      pushStep(steps, id, `No predecessor`, {x, phase:'none', result: null});
+      return null;
+    }
+    const off = V.clusters[pc].max;
+    const res = V.idx(pc, off);
+    pushStep(steps, id, `Prev cluster=<em>${pc}</em>, its max=<em>${off}</em> → result = index(${pc},${off}) = <span class="result-val">${res}</span>`, {x, phase:'result', result: res, cluster: pc});
+    return res;
+  }
+}
+
+// ─── UI State ──────────────────────────────────────────────────────────────
+let U = 16;
+let veb = new VNode(U);
+let elements = new Set();
+let steps = [];
+let stepIdx = -1;
+let playTimer = null;
+
+// ─── Ancestor path extraction ───────────────────────────────────────────────
+function ancestors(id) {
+  // e.g. 'root.C[0].S' → {'root', 'root.C[0]'}
+  const parts = id.split('.');
+  const result = { cluster: new Set(), summary: new Set() };
+  for (let i = 1; i < parts.length; i++) {
+    const ancestor = parts.slice(0, i).join('.');
+    // classify by whether the current part (going deeper) is .S or .C[n]
+    const childPart = parts[i];
+    if (childPart === 'S') result.summary.add(ancestor);
+    else result.cluster.add(ancestor);
+  }
+  return result;
+}
+
+// ─── Universe render ───────────────────────────────────────────────────────
+function renderUniverse(step) {
+  const grid = document.getElementById('univ-grid');
+  grid.innerHTML = '';
+  const small = U >= 64;
+  const lo = sqLo(U);
+
+  // Compute current cluster range for highlight
+  let rangeStart = -1, rangeEnd = -1;
+  let queryX = -1, resultVal = -1;
+  if (step) {
+    queryX = step.x !== undefined ? step.x : -1;
+    if (step.phase === 'decomp' && step.cluster !== undefined && step.U === U) {
+      // highlight the cluster range at root level
+      rangeStart = step.cluster * lo;
+      rangeEnd = (step.cluster + 1) * lo - 1;
+    }
+    if (step.phase === 'result' || step.phase === 'trivial') {
+      resultVal = step.result;
+    }
+  }
+
+  for (let i = 0; i < U; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'ucell' + (small ? ' sm' : '');
+
+    const present = elements.has(i);
+    let cls = present ? 'present' : '';
+
+    if (i === resultVal && resultVal >= 0) {
+      cls = 'u-result';
+    } else if (step && i === queryX && queryX >= 0 && step.U === U) {
+      cls = 'u-query';
+    } else if (rangeStart >= 0 && i >= rangeStart && i <= rangeEnd) {
+      cls = present ? 'present u-range' : 'u-range';
+    } else if (present) {
+      cls = 'present';
+    }
+
+    if (cls) cell.className += ' ' + cls.trim();
+
+    // Min/max border indicators
+    if (veb.min === i) cell.classList.add('u-ismin');
+    if (veb.max === i) cell.classList.add('u-ismax');
+
+    const numEl = document.createElement('div');
+    numEl.textContent = i;
+    cell.appendChild(numEl);
+
+    if (!small) {
+      const subEl = document.createElement('div');
+      subEl.className = 'sub';
+      subEl.textContent = Math.floor(i/lo)+':'+i%lo;
+      cell.appendChild(subEl);
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+// ─── Tree render ───────────────────────────────────────────────────────────
+function makeVNodeEl(node, label, id, activeId, anc) {
+  const el = document.createElement('div');
+  el.className = 'vnode';
+  el.dataset.id = id;
+  if (id === activeId) el.classList.add('active');
+  else if (anc.cluster.has(id)) el.classList.add('ancestor');
+  else if (anc.summary.has(id)) el.classList.add('sumancestor');
+
+  const lbl = document.createElement('div');
+  lbl.className = 'vnode-lbl';
+  lbl.textContent = label + ` [U=${node.U}]`;
+  el.appendChild(lbl);
+
+  const vals = document.createElement('div');
+  vals.className = 'vnode-vals';
+  if (node.min === null) {
+    vals.innerHTML = '<span class="vnode-empty">empty</span>';
+  } else {
+    vals.innerHTML = `<span class="vnode-mn">mn:${node.min}</span> <span class="vnode-mx">mx:${node.max}</span>`;
+  }
+  el.appendChild(vals);
+  return el;
+}
+
+function renderTree(activeId, anc) {
+  if (!anc) anc = { cluster: new Set(), summary: new Set() };
+  const wrap = document.getElementById('tree-wrap');
+  wrap.innerHTML = '';
+
+  // Level 0: root
+  const rootEl = makeVNodeEl(veb, 'ROOT', 'root', activeId, anc);
+  wrap.appendChild(rootEl);
+
+  if (!veb.clusters) return;
+
+  // Level 1: summary + clusters
+  const lv1 = document.createElement('div');
+  lv1.className = 'tree-level';
+  lv1.style.marginLeft = '20px';
+  lv1.style.marginTop = '7px';
+
+  const sumEl = makeVNodeEl(veb.summary, 'SUMMARY', 'root.S', activeId, anc);
+  lv1.appendChild(sumEl);
+
+  veb.clusters.forEach((c, i) => {
+    const el = makeVNodeEl(c, `C[${i}]`, `root.C[${i}]`, activeId, anc);
+    lv1.appendChild(el);
+  });
+  wrap.appendChild(lv1);
+
+  // Level 2: only for U=16 (clusters of U=4, which have sub-clusters of U=2)
+  if (U <= 16 && veb.clusters[0] && veb.clusters[0].clusters) {
+    const lv2 = document.createElement('div');
+    lv2.className = 'tree-level';
+    lv2.style.marginLeft = '40px';
+    lv2.style.marginTop = '7px';
+
+    // Summary's sub-nodes
+    if (veb.summary.clusters) {
+      const ssEl = makeVNodeEl(veb.summary.summary, 'S.SUM', 'root.S.S', activeId, anc);
+      lv2.appendChild(ssEl);
+      veb.summary.clusters.forEach((c, i) => {
+        const el = makeVNodeEl(c, `S.C[${i}]`, `root.S.C[${i}]`, activeId, anc);
+        lv2.appendChild(el);
+      });
+    }
+
+    // Each cluster's sub-nodes
+    veb.clusters.forEach((cluster, ci) => {
+      if (cluster.clusters) {
+        const csEl = makeVNodeEl(cluster.summary, `C[${ci}].S`, `root.C[${ci}].S`, activeId, anc);
+        lv2.appendChild(csEl);
+        cluster.clusters.forEach((c, i) => {
+          const el = makeVNodeEl(c, `C[${ci}].C[${i}]`, `root.C[${ci}].C[${i}]`, activeId, anc);
+          lv2.appendChild(el);
+        });
+      }
+    });
+    wrap.appendChild(lv2);
+  }
+}
+
+// ─── Step render ───────────────────────────────────────────────────────────
+function renderStep(idx) {
+  const step = steps[idx];
+  if (!step) return;
+
+  // Step counter
+  document.getElementById('step-ctr').textContent = `Step ${idx+1} / ${steps.length}`;
+
+  // Step desc (innerHTML for HTML tags like <em>)
+  document.getElementById('step-desc').innerHTML = step.msg || '—';
+
+  // Decomp bar
+  const decomp = document.getElementById('decomp-bar');
+  if (step.phase === 'decomp' && step.cluster !== undefined && step.U) {
+    const lo = sqLo(step.U);
+    decomp.className = 'decomp';
+    decomp.style.display = 'flex';
+    decomp.innerHTML = `
+      <div class="dc-part"><div class="dc-lbl">x</div><div class="dc-val">${step.x}</div></div>
+      <div class="dc-sep">in U=${step.U}</div>
+      <div class="dc-part"><div class="dc-lbl">√U (lo)</div><div class="dc-val">${lo}</div></div>
+      <div class="dc-sep">=</div>
+      <div class="dc-part"><div class="dc-lbl">high(x)</div><div class="dc-val" style="color:var(--gold)">${step.cluster}</div></div>
+      <div class="dc-sep" style="color:var(--muted)">· ${lo} +</div>
+      <div class="dc-part"><div class="dc-lbl">low(x)</div><div class="dc-val" style="color:var(--accent)">${step.pos}</div></div>
+    `;
+  } else {
+    decomp.style.display = 'none';
+  }
+
+  // Universe
+  renderUniverse(step);
+
+  // Tree
+  const anc = ancestors(step.id);
+  renderTree(step.id, anc);
+
+  // Log highlight + scroll
+  const logItems = document.querySelectorAll('.log-item');
+  logItems.forEach((el, i) => {
+    const isCurrent = i === idx;
+    el.classList.toggle('current', isCurrent);
+    if (isCurrent) el.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+  });
+}
+
+// ─── Log render ────────────────────────────────────────────────────────────
+function renderLog() {
+  const log = document.getElementById('log');
+  log.innerHTML = '';
+  steps.forEach((step, i) => {
+    const item = document.createElement('div');
+    item.className = 'log-item' + (i === stepIdx ? ' current' : '');
+    const pathEl = document.createElement('div');
+    pathEl.className = 'log-path';
+    pathEl.textContent = step.id;
+    item.appendChild(pathEl);
+    const msgEl = document.createElement('div');
+    msgEl.innerHTML = step.msg || `[${step.phase}]`;
+    item.appendChild(msgEl);
+    item.addEventListener('click', () => { stepIdx = i; renderStep(i); });
+    log.appendChild(item);
+  });
+}
+
+function updateStats() {
+  document.getElementById('stat-u').textContent = U;
+  document.getElementById('stat-n').textContent = elements.size;
+  document.getElementById('stat-sqrt').textContent = sqLo(U);
+}
+
+function setOpBadge(label) {
+  document.getElementById('op-badge').textContent = label;
+}
+
+// ─── Operations ────────────────────────────────────────────────────────────
+function getX() { return parseInt(document.getElementById('x-input').value); }
+
+function doOp(opFn, opLabel, resultFn) {
+  stopPlay();
+  steps = [];
+  const result = opFn(steps);
+  stepIdx = 0;
+  setOpBadge(opLabel);
+  document.getElementById('stat-op').textContent = opLabel;
+  if (resultFn) {
+    const rv = resultFn(result);
+    document.getElementById('stat-result').textContent = rv.text;
+    document.getElementById('stat-result').style.color = rv.color || '';
+  }
+  renderLog();
+  if (steps.length > 0) renderStep(0);
+  renderUniverse(null);
+  renderTree(null, null);
+  updateStats();
+}
+
+document.getElementById('btn-insert').addEventListener('click', () => {
+  const x = getX();
+  if (x < 0 || x >= U) { alert(`x must be in [0, ${U-1}]`); return; }
+  doOp(
+    s => { vebInsert(veb, x, s, 'root'); elements.add(x); },
+    `Insert(${x})`,
+    () => ({ text: '✓ inserted', color: 'var(--good)' })
+  );
+});
+
+document.getElementById('btn-delete').addEventListener('click', () => {
+  const x = getX();
+  if (x < 0 || x >= U) { alert(`x must be in [0, ${U-1}]`); return; }
+  if (!elements.has(x)) { alert(`${x} is not in the set`); return; }
+  doOp(
+    s => { vebDelete(veb, x, s, 'root'); elements.delete(x); },
+    `Delete(${x})`,
+    () => ({ text: '✓ deleted', color: 'var(--warn)' })
+  );
+});
+
+document.getElementById('btn-succ').addEventListener('click', () => {
+  const x = getX();
+  if (x < 0 || x >= U) { alert(`x must be in [0, ${U-1}]`); return; }
+  let res;
+  doOp(
+    s => { res = vebSucc(veb, x, s, 'root'); return res; },
+    `Succ(${x})`,
+    () => res !== null
+      ? { text: String(res), color: 'var(--good)' }
+      : { text: 'null', color: 'var(--muted)' }
+  );
+});
+
+document.getElementById('btn-pred').addEventListener('click', () => {
+  const x = getX();
+  if (x < 0 || x >= U) { alert(`x must be in [0, ${U-1}]`); return; }
+  let res;
+  doOp(
+    s => { res = vebPred(veb, x, s, 'root'); return res; },
+    `Pred(${x})`,
+    () => res !== null
+      ? { text: String(res), color: 'var(--gold)' }
+      : { text: 'null', color: 'var(--muted)' }
+  );
+});
+
+document.getElementById('btn-min').addEventListener('click', () => {
+  doOp(
+    s => { s.push({id:'root', msg:`<em>min</em> is stored directly at root → <span class="result-val">${veb.min !== null ? veb.min : 'null'}</span> — O(1)`, phase:'base'}); return veb.min; },
+    'Min',
+    r => r !== null ? { text: String(r), color: 'var(--good)' } : { text: 'null', color: 'var(--muted)' }
+  );
+});
+
+document.getElementById('btn-max').addEventListener('click', () => {
+  doOp(
+    s => { s.push({id:'root', msg:`<em>max</em> is stored directly at root → <span class="result-val">${veb.max !== null ? veb.max : 'null'}</span> — O(1)`, phase:'base'}); return veb.max; },
+    'Max',
+    r => r !== null ? { text: String(r), color: 'var(--warn)' } : { text: 'null', color: 'var(--muted)' }
+  );
+});
+
+// ─── Play controls ─────────────────────────────────────────────────────────
+function stopPlay() {
+  if (playTimer) { clearInterval(playTimer); playTimer = null; }
+  document.getElementById('btn-play').disabled = false;
+  document.getElementById('btn-pause').disabled = true;
+}
+function startPlay() {
+  const ms = parseInt(document.getElementById('speed-slider').value);
+  document.getElementById('btn-play').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  playTimer = setInterval(() => {
+    if (stepIdx < steps.length - 1) {
+      stepIdx++;
+      renderStep(stepIdx);
+    } else {
+      stopPlay();
+    }
+  }, ms);
+}
+
+document.getElementById('btn-play').addEventListener('click', startPlay);
+document.getElementById('btn-pause').addEventListener('click', stopPlay);
+document.getElementById('btn-prev').addEventListener('click', () => {
+  if (stepIdx > 0) { stepIdx--; renderStep(stepIdx); }
+});
+document.getElementById('btn-next').addEventListener('click', () => {
+  if (stepIdx < steps.length - 1) { stepIdx++; renderStep(stepIdx); }
+});
+
+// ─── Universe size ─────────────────────────────────────────────────────────
+function setUniverse(newU) {
+  stopPlay();
+  U = newU;
+  veb = new VNode(U);
+  elements = new Set();
+  steps = [];
+  stepIdx = -1;
+
+  document.querySelectorAll('.u-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.u) === U);
+  });
+  document.getElementById('x-input').max = U - 1;
+  if (parseInt(document.getElementById('x-input').value) >= U) {
+    document.getElementById('x-input').value = Math.floor(U / 2);
+  }
+  document.getElementById('stat-op').textContent = '—';
+  document.getElementById('stat-result').textContent = '—';
+  document.getElementById('stat-result').style.color = '';
+  document.getElementById('step-ctr').textContent = '—';
+  document.getElementById('step-desc').textContent = 'Click an operation to start the step-by-step trace.';
+  document.getElementById('decomp-bar').style.display = 'none';
+
+  updateStats();
+  renderUniverse(null);
+  renderTree(null, null);
+  document.getElementById('log').innerHTML = '';
+}
+
+document.querySelectorAll('.u-btn').forEach(b => {
+  b.addEventListener('click', () => setUniverse(parseInt(b.dataset.u)));
+});
+
+// ─── Demo / Clear ──────────────────────────────────────────────────────────
+document.getElementById('btn-demo').addEventListener('click', () => {
+  stopPlay();
+  veb = new VNode(U);
+  elements = new Set();
+  const demos = {
+    4:  [0, 2, 3],
+    16: [1, 3, 6, 7, 11, 14],
+    64: [2, 5, 10, 18, 25, 33, 42, 55, 61],
+  };
+  const set = demos[U] || demos[16];
+  for (const x of set) {
+    const s = [];
+    vebInsert(veb, x, s, 'root');
+    elements.add(x);
+  }
+  steps = []; stepIdx = -1;
+  updateStats();
+  renderUniverse(null);
+  renderTree(null, null);
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('step-desc').textContent = 'Demo loaded. Now try Successor or Predecessor!';
+  document.getElementById('stat-op').textContent = 'Demo';
+  document.getElementById('stat-result').textContent = `${elements.size} elements`;
+  document.getElementById('stat-result').style.color = 'var(--accent)';
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => setUniverse(U));
+
+// ─── Init ──────────────────────────────────────────────────────────────────
+setUniverse(16);
+</script>
+</body>
+</html>

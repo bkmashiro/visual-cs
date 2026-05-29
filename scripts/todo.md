@@ -43,7 +43,7 @@
 ### Misc
 - [x] wavelet-tree — Wavelet Tree (range frequency queries, O(log σ) per op) ✅ 2026-05-25
 - [x] disjoint-set-weighted — Weighted Union-Find (union by rank + path compression) ✅ 2026-05-27
-- [ ] van-emde-boas-ops — vEB Interactive Demo (predecessor/successor with universe size slider)
+- [x] van-emde-boas-ops — vEB Interactive Demo (predecessor/successor with universe size slider) ✅ 2026-05-29
 
 ## Done
 - miller-rabin — Miller-Rabin Primality Test (probabilistic primality, witness squaring chains, Carmichael numbers) ✅ 2026-04-03
